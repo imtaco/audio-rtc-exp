@@ -1,0 +1,15 @@
+general: {
+  json = "indented"
+  ws = false
+  ws_port = 8188
+  ws_interface = "0.0.0.0"
+  wss = false
+  ws_logging = "err,warn,info"
+}
+
+admin: {
+  admin_ws = false
+  admin_ws_port = 7188
+  admin_ws_interface = "0.0.0.0"
+  admin_wss = false
+}

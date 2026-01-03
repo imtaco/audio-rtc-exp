@@ -1,0 +1,10 @@
+FROM golang:1.24-alpine
+
+COPY backend/go.mod /src/go.mod
+COPY backend/go.sum /src/go.sum
+
+WORKDIR /src/
+
+RUN \
+  apk add ffmpeg && \
+  go mod download

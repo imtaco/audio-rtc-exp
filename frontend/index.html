@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RTC Client Pages</title>
+  <link rel="stylesheet" href="/app.css">
+  <style>
+    .page-list {
+      max-width: 600px;
+      margin: 50px auto;
+    }
+    .page-link {
+      display: block;
+      padding: 15px;
+      margin: 10px 0;
+      background: white;
+      border-radius: 4px;
+      text-decoration: none;
+      color: #333;
+      border: 1px solid #ddd;
+      transition: all 0.2s;
+    }
+    .page-link:hover {
+      background: #f0f0f0;
+      border-color: #007bff;
+    }
+    .page-link h3 {
+      margin: 0 0 5px 0;
+      color: #007bff;
+    }
+    .page-link p {
+      margin: 0;
+      color: #666;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-list">
+    <h1>RTC Client Pages</h1>
+
+    <a href="/anchor.html" class="page-link">
+      <h3>Anchor</h3>
+      <p>WebRTC audio publisher with Room Manager</p>
+    </a>
+
+    <a href="/audience_mediasoup.html" class="page-link">
+      <h3>Audience (Mediasoup)</h3>
+      <p>WebRTC audio listener using mediasoup-client</p>
+    </a>
+
+    <a href="/audience_hls.html" class="page-link">
+      <h3>Audience (HLS)</h3>
+      <p>HLS audio player for m3u8 streams</p>
+    </a>
+  </div>
+</body>
+</html>

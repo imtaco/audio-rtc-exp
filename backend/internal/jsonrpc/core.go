@@ -1,0 +1,126 @@
+package jsonrpc
+
+import (
+	"context"
+	"encoding/json"
+
+	"github.com/imtaco/audio-rtc-exp/internal/log"
+)
+
+// Server manages JSON-RPC method handlers
+type handlerImpl[T any] struct {
+	methods map[string]AsyncMethodHandler[T]
+	logger  *log.Logger
+}
+
+type peerImpl[T any] struct {
+	Handler[T]
+	Conn[T]
+}
+
+func NewPeer[T any](stream ObjectStream, v *T, logger *log.Logger) Peer[T] {
+	if logger == nil {
+		panic("logger cannot be nil")
+	}
+	h := NewHandler[T](logger)
+	return &peerImpl[T]{
+		Handler: h,
+		Conn:    h.NewConn(stream, new(T)),
+	}
+}
+
+// NewHandler creates a new RPC server with the given logger
+func NewHandler[T any](logger *log.Logger) Handler[T] {
+	if logger == nil {
+		panic("logger cannot be nil")
+	}
+	return &handlerImpl[T]{
+		methods: make(map[string]AsyncMethodHandler[T]),
+		logger:  logger,
+	}
+}
+
+// Def registers a method handler (thread-safe)
+func (s *handlerImpl[T]) Def(method string, handler MethodHandler[T]) {
+	if _, ok := s.methods[method]; ok {
+		panic("method already defined: " + method)
+	}
+	s.methods[method] = func(mctx MethodContext[T], params *json.RawMessage, replier Reply) {
+		replier(handler(mctx, params))
+	}
+}
+
+func (s *handlerImpl[T]) DefAsync(method string, handler AsyncMethodHandler[T]) {
+	if _, ok := s.methods[method]; ok {
+		panic("method already defined: " + method)
+	}
+	// run with goroutine, so that handler is non-blocking
+	// TODO: limit max concurrent goroutines ?
+	s.methods[method] = func(mctx MethodContext[T], params *json.RawMessage, replier Reply) {
+		go handler(mctx, params, replier)
+	}
+}
+
+func (s *handlerImpl[T]) NewConn(stream ObjectStream, v *T) Conn[T] {
+	return newConn(stream, v, s.handle, s.logger)
+}
+
+func (c *handlerImpl[T]) handle(ctx context.Context, conn *connImpl[T], req *Request) {
+
+	c.logger.Debug("RPC request received",
+		log.String("method", req.Method),
+		log.Any("id", req.ID))
+
+	handler, ok := c.methods[req.Method]
+	if !ok {
+		c.logger.Warn("Method not found",
+			log.Int("len", len(c.methods)),
+			log.String("method", req.Method),
+			log.Any("id", req.ID))
+
+		conn.replyError(ctx, req.ID, ErrMethodNotFound(req.Method))
+		return
+	}
+
+	reply := func(result interface{}, err error) {
+		if err := c.reply(ctx, conn, req, result, err); err != nil {
+			c.logger.Error("Failed to send RPC reply",
+				log.String("method", req.Method),
+				log.Any("id", req.ID),
+				log.Error(err))
+		}
+	}
+	handler(conn.mctx, req.Params, reply)
+}
+
+func (c *handlerImpl[T]) reply(
+	ctx context.Context,
+	conn *connImpl[T],
+	req *Request,
+	result interface{},
+	err error,
+) error {
+
+	if err == nil {
+		c.logger.Debug("RPC request completed",
+			log.Any("id", req.ID))
+		return conn.reply(ctx, req.ID, result)
+	}
+
+	if rpcErr, ok := err.(*Error); ok {
+		c.logger.Error("RPC handler returned error",
+			log.String("method", req.Method),
+			log.Any("id", req.ID),
+			log.Int64("error_code", rpcErr.Code),
+			log.String("error_message", rpcErr.Message))
+		return conn.replyError(ctx, req.ID, rpcErr)
+	} else {
+		c.logger.Error("RPC handler returned unexpected error",
+			log.String("method", req.Method),
+			log.Any("id", req.ID),
+			log.Error(err))
+
+		// do not disclose internal error details to client
+		return conn.replyError(ctx, req.ID, ErrInternal("unknown error"))
+	}
+}

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>RPC Client (HTMX)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://unpkg.com/htmx.org@2.0.0"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cash/8.1.5/cash.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; background-color: #f5f5f5; }
+    main { background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); }
+    h1 { margin-top: 0; color: #333; }
+    h3 { margin-top: 0; margin-bottom: 10px; color: #555; }
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; margin-bottom: 5px; font-weight: 500; color: #333; }
+    .form-group input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; box-sizing: border-box; }
+    .client-id { font-family: monospace; color: #666; font-size: 12px; padding: 8px; background-color: #f8f9fa; border-radius: 4px; }
+    .controls { margin: 20px 0; display: flex; gap: 10px; }
+    button { padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 500; transition: background-color 0.2s; }
+    button:hover { background-color: #0056b3; }
+    button:disabled { background-color: #ccc; cursor: not-allowed; }
+    .status { margin: 20px 0; padding: 12px 15px; border-radius: 4px; font-weight: 500; display: none; }
+    .status.info { background-color: #d1ecf1; color: #0c5460; border-left: 4px solid #17a2b8; }
+    .status.success { background-color: #d4edda; color: #155724; border-left: 4px solid #28a745; }
+    .status.error { background-color: #f8d7da; color: #721c24; border-left: 4px solid #dc3545; }
+    .current-step { margin: 20px 0; padding: 15px; background-color: #fff3cd; border-radius: 4px; border-left: 4px solid #ffc107; display: none; }
+    .step-content { font-weight: 500; color: #856404; }
+    #logs-content { padding: 15px; background-color: #f8f9fa; border-radius: 4px; max-height: 300px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 12px; border: 1px solid #dee2e6; }
+    .log-entry { margin: 3px 0; color: #495057; }
+    #logs-content:empty::before { content: 'No logs yet...'; color: #999; font-style: italic; }
+  </style>
+</head>
+<body hx-on:state-change="
+  $('#btnConnect').prop('disabled', event.detail.connected);
+  $('#btnDisconnect').prop('disabled', !event.detail.connected);
+">
+  <main>
+    <h1>RPC Client (HTMX)</h1>
+
+    <div class="form-group">
+      <label>Client ID:</label>
+      <div id="clientId" class="client-id">Loading...</div>
+    </div>
+
+    <div class="form-group">
+      <label for="wsUrl">WebSocket URL:</label>
+      <input type="text" id="wsUrl" placeholder="ws://localhost:8081/rpc" autocomplete="off">
+    </div>
+
+    <div class="form-group">
+      <label for="token">Token:</label>
+      <input type="text" id="token" placeholder="Enter your token" autocomplete="off">
+    </div>
+
+    <div class="controls">
+      <button id="btnConnect" hx-on:click="rpcClient.run()">Connect!</button>
+      <button id="btnDisconnect" hx-on:click="rpcClient.disconnect()" disabled>Disconnect!</button>
+    </div>
+
+    <div id="status" class="status"
+         hx-on:status-update="
+           $(this).text(event.detail.message)
+                  .attr('class', 'status ' + event.detail.type)
+                  .show();
+         "></div>
+
+    <div id="current-step" class="current-step"
+         hx-on:step-update="
+           $('#step-content').text(event.detail.step);
+           $(this).toggle(!!event.detail.step);
+         ">
+      <h3>Current Step:</h3>
+      <div id="step-content" class="step-content"></div>
+    </div>
+
+    <div id="logs">
+      <h3>Logs</h3>
+      <div id="logs-content"
+           hx-on:new-log="
+             const entry = $('<div class=\'log-entry\'>').text('[' + event.detail.time + '] ' + event.detail.message);
+             $(this).append(entry);
+             this.scrollTop = this.scrollHeight;
+             while ($(this).children().length > 100) $(this).children().first().remove();
+           "></div>
+    </div>
+  </main>
+  
+  <script type="module" src="/rpc/client-htmx.js"></script>
+</body>
+</html>

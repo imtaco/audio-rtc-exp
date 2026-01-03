@@ -1,0 +1,11 @@
+general: {
+  debug_level = 7
+  rtp_port_range = "20000-20200"
+}
+
+admin: {
+  admin_secret = "janusoverlord"
+}
+
+media: {
+}
