@@ -12,6 +12,7 @@ import (
 	"github.com/imtaco/audio-rtc-exp/internal/etcdstate"
 	"github.com/imtaco/audio-rtc-exp/internal/log"
 	"github.com/imtaco/audio-rtc-exp/mixers/mocks"
+	"go.opentelemetry.io/otel"
 
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/mock/gomock"
@@ -46,6 +47,7 @@ func (s *RoomWatcherTestSuite) SetupTest() {
 		prefixRooms:   "/rooms/",
 		etcdClient:    s.mockEtcdClient,
 		logger:        log.NewNop(),
+		tracer:        otel.Tracer("test"),
 	}
 }
 

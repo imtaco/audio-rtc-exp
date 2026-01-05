@@ -52,6 +52,8 @@ func (rm *resourceMgrImpl) checkRoomModules(ctx context.Context) error {
 }
 
 func (rm *resourceMgrImpl) checkStaleRoom(ctx context.Context, roomID string) error {
+	staleRoomsChecked.Add(ctx, 1)
+
 	state, ok := rm.roomWatcher.GetCachedState(roomID)
 	if !ok {
 		rm.logger.Debug("Room not found during housekeeping", log.String("roomId", roomID))
@@ -63,6 +65,8 @@ func (rm *resourceMgrImpl) checkStaleRoom(ctx context.Context, roomID string) er
 
 	if meta == nil {
 		rm.logger.Info("Deleting malformed room", log.String("roomId", roomID))
+		malformedRoomsDeleted.Add(ctx, 1)
+		staleRoomsDeleted.Add(ctx, 1)
 		return rm.deleteRoom(ctx, roomID)
 	}
 
@@ -70,18 +74,23 @@ func (rm *resourceMgrImpl) checkStaleRoom(ctx context.Context, roomID string) er
 	if livemeta == nil {
 		if time.Since(meta.CreatedAt) > startTimeout {
 			rm.logger.Info("Deleting inactive room", log.String("roomId", roomID))
+			inactiveRoomsDeleted.Add(ctx, 1)
+			staleRoomsDeleted.Add(ctx, 1)
 			return rm.deleteRoom(ctx, roomID)
 		}
 	} else {
 		// Check if room exceeded max age
 		if livemeta.Status == constants.RoomStatusOnAir && time.Since(meta.CreatedAt) > roomMaxAge {
 			rm.logger.Info("Deleting room exceeded max age", log.String("roomId", roomID))
+			expiredRoomsDeleted.Add(ctx, 1)
+			staleRoomsDeleted.Add(ctx, 1)
 			return rm.deleteRoom(ctx, roomID)
 		}
 
 		// Check if room is in removing state and grace period has passed
 		if livemeta.DiscardAt != nil && utils.IsExceed(*livemeta.DiscardAt, inactiveGracefulPeriod) {
 			rm.logger.Info("Deleting inactive room after grace period", log.String("roomId", roomID))
+			staleRoomsDeleted.Add(ctx, 1)
 			return rm.deleteRoom(ctx, roomID)
 		}
 	}
@@ -89,7 +98,7 @@ func (rm *resourceMgrImpl) checkStaleRoom(ctx context.Context, roomID string) er
 	return nil
 }
 
-func (rm *resourceMgrImpl) checkRoomModule(_ context.Context, roomID string) error {
+func (rm *resourceMgrImpl) checkRoomModule(ctx context.Context, roomID string) error {
 	state, ok := rm.roomWatcher.GetCachedState(roomID)
 	if !ok {
 		return nil
@@ -103,6 +112,7 @@ func (rm *resourceMgrImpl) checkRoomModule(_ context.Context, roomID string) err
 	// Check mixer health
 	mixer, ok := rm.mixerWatcher.Get(livemeta.MixerID)
 	if !ok || !mixer.IsStable() {
+		unhealthyMixersDetected.Add(ctx, 1)
 		rm.logger.Info("Mixer unhealthy or not ready, need to pick another",
 			log.String("roomId", roomID),
 			log.String("mixerId", livemeta.MixerID))
@@ -112,6 +122,7 @@ func (rm *resourceMgrImpl) checkRoomModule(_ context.Context, roomID string) err
 	// Check janus health
 	janus, ok := rm.janusWatcher.Get(livemeta.JanusID)
 	if !ok || !janus.IsStable() {
+		unhealthyJanusesDetected.Add(ctx, 1)
 		rm.logger.Info("Janus unhealthy or not ready, need to pick another",
 			log.String("roomId", roomID),
 			log.String("janusId", livemeta.JanusID))

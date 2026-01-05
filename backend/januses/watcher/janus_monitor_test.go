@@ -8,8 +8,8 @@ import (
 
 	"github.com/imtaco/audio-rtc-exp/internal/janus/mocks"
 	"github.com/imtaco/audio-rtc-exp/internal/log"
-	"github.com/stretchr/testify/suite"
 
+	"github.com/stretchr/testify/suite"
 	"go.uber.org/mock/gomock"
 )
 

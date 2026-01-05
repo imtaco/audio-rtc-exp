@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
+
 	"github.com/imtaco/audio-rtc-exp/internal/log"
 )
 
@@ -18,6 +20,9 @@ func NewRouter(mixerID string, logger *log.Logger) *Router {
 	gin.SetMode(gin.ReleaseMode)
 	engine := gin.New()
 	engine.Use(gin.Recovery())
+
+	// Add OpenTelemetry middleware for automatic HTTP tracing
+	engine.Use(otelgin.Middleware("mixer-service"))
 
 	r := &Router{
 		mixerID: mixerID,

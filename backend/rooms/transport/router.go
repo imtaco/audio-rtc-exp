@@ -5,13 +5,14 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gin-gonic/gin"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
+
 	"github.com/imtaco/audio-rtc-exp/internal/constants"
 	"github.com/imtaco/audio-rtc-exp/internal/log"
 	"github.com/imtaco/audio-rtc-exp/internal/validation"
 	"github.com/imtaco/audio-rtc-exp/rooms"
 	utils "github.com/imtaco/audio-rtc-exp/rooms/utils"
-
-	"github.com/gin-gonic/gin"
 )
 
 const (
@@ -29,6 +30,9 @@ func NewRouter(roomService rooms.RoomService, roomStore rooms.RoomStore, logger 
 	gin.SetMode(gin.ReleaseMode)
 	engine := gin.New()
 	engine.Use(gin.Recovery())
+
+	// Add OpenTelemetry middleware for automatic HTTP tracing
+	engine.Use(otelgin.Middleware("room-service"))
 
 	r := &Router{
 		roomService: roomService,
@@ -54,6 +58,8 @@ func (r *Router) Handler() http.Handler {
 }
 
 func (r *Router) setupRoutes() {
+	r.engine.Use(otelgin.Middleware("room-service"))
+
 	// Room management routes
 	r.engine.POST("/api/rooms", r.createRoom)
 	r.engine.GET("/api/rooms/:roomId", r.getRoom)

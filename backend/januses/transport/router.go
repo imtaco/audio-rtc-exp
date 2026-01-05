@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
+
 	"github.com/imtaco/audio-rtc-exp/internal/log"
 )
 
@@ -34,6 +36,8 @@ func (r *Router) Handler() http.Handler {
 }
 
 func (r *Router) setupRoutes() {
+	r.engine.Use(otelgin.Middleware("janus-service"))
+
 	// Health check
 	r.engine.GET("/health", r.healthCheck)
 }

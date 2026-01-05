@@ -64,6 +64,8 @@ func (s *userServiceImpl) CreateUser(
 	userId string,
 	role string,
 ) (string, string, error) {
+	userCreatesRequested.Add(ctx, 1)
+
 	// Send RPC request and wait for reply
 	request := &users.CreateUserRequest{
 		RoomID: roomId,
@@ -71,15 +73,21 @@ func (s *userServiceImpl) CreateUser(
 		Role:   role,
 		TS:     time.Now(),
 	}
+
+	rpcCallsStarted.Add(ctx, 1)
 	if err := s.peerSvc.Call(ctx, "createUser", request, nil); err != nil {
+		rpcCallsFailed.Add(ctx, 1)
 		return "", "", fmt.Errorf("failed to create user: %w", err)
 	}
+	rpcCallsSuccess.Add(ctx, 1)
 
 	// Generate JWT token
 	token, err := s.jwtAuth.Sign(userId, roomId)
 	if err != nil {
+		tokensFailed.Add(ctx, 1)
 		return "", "", fmt.Errorf("failed to sign JWT: %w", err)
 	}
+	tokensGenerated.Add(ctx, 1)
 
 	return userId, token, nil
 }

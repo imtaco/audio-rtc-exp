@@ -1,6 +1,7 @@
 package ffmpeg
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"os"
@@ -8,9 +9,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/imtaco/audio-rtc-exp/mixers"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/imtaco/audio-rtc-exp/internal/log"
+	"github.com/imtaco/audio-rtc-exp/mixers"
 )
 
 // ffmpegMgrImpl manages FFmpeg processes for multiple rooms
@@ -22,6 +27,7 @@ type ffmpegMgrImpl struct {
 	forceKillTimeout time.Duration
 	processes        sync.Map // map[string]*ProcessInfo
 	logger           *log.Logger
+	tracer           trace.Tracer
 }
 
 // NewFFmpegManager creates a new FFmpegManager
@@ -41,6 +47,8 @@ func NewFFmpegManager(
 
 	hlsDir = filepath.Clean(hlsDir)
 
+	activeProcesses.Add(context.Background(), 3)
+
 	return &ffmpegMgrImpl{
 		hlsDir:           hlsDir,
 		encGen:           encGen,
@@ -48,32 +56,55 @@ func NewFFmpegManager(
 		retryDelay:       retryDelay,
 		forceKillTimeout: forceKillTimeout,
 		logger:           logger,
+		tracer:           otel.Tracer("mixer.ffmpeg"),
 	}
 }
 
 // StartFFmpeg starts an FFmpeg process for a room
 func (fm *ffmpegMgrImpl) StartFFmpeg(roomID string, rtpPort int, createdAt time.Time, nonce string) error {
+	startTime := time.Now()
+	ctx, span := fm.tracer.Start(context.Background(), "ffmpeg.StartFFmpeg",
+		trace.WithAttributes(
+			attribute.String("room.id", roomID),
+			attribute.Int("rtp.port", rtpPort),
+		))
+	defer span.End()
+
+	// Use no labels for metrics to avoid cardinality explosion
+	// room.id is high-cardinality and would create too many time series
+	attrs := metric.WithAttributes()
+
 	if _, exists := fm.processes.Load(roomID); exists {
-		return fmt.Errorf("FFmpeg already running for room %s", roomID)
+		err := fmt.Errorf("FFmpeg already running for room %s", roomID)
+		span.RecordError(err)
+		processesFailed.Add(ctx, 1, attrs)
+		return err
 	}
 
 	// Calculate initial sequence number based on createdAt
 	initSeq := fm.calculateSeqNo(roomID, createdAt)
+	span.SetAttributes(attribute.Int("hls.init_seq", initSeq))
 
 	sdpPath, err := fm.sdpGen.Generate(roomID, rtpPort)
 	if err != nil {
+		span.RecordError(err)
+		processesFailed.Add(ctx, 1, attrs)
 		return fmt.Errorf("failed to generate SDP: %w", err)
 	}
 
 	// Create HLS output directory
 	hlsDir := filepath.Join(fm.hlsDir, roomID)
 	if err := os.MkdirAll(hlsDir, 0755); err != nil {
+		span.RecordError(err)
+		processesFailed.Add(ctx, 1, attrs)
 		return fmt.Errorf("failed to create HLS directory: %w", err)
 	}
 
 	// Create AES encryption key info file
 	keyInfoPath, err := fm.encGen.Generate(roomID, nonce, hlsDir)
 	if err != nil {
+		span.RecordError(err)
+		processesFailed.Add(ctx, 1, attrs)
 		return fmt.Errorf("failed to generate encryption key: %w", err)
 	}
 
@@ -96,14 +127,31 @@ func (fm *ffmpegMgrImpl) StartFFmpeg(roomID string, rtpPort int, createdAt time.
 
 	// Start first attempt
 	processInfo.Start()
+
+	// Record metrics
+	processesStarted.Add(ctx, 1, attrs)
+	activeProcesses.Add(ctx, 1, attrs)
+	startDuration.Record(ctx, time.Since(startTime).Milliseconds(), attrs)
+
 	return nil
 }
 
 // StopFFmpeg stops the FFmpeg process for a room
 func (fm *ffmpegMgrImpl) StopFFmpeg(roomID string) error {
+	ctx, span := fm.tracer.Start(context.Background(), "ffmpeg.StopFFmpeg",
+		trace.WithAttributes(
+			attribute.String("room.id", roomID),
+		))
+	defer span.End()
+
+	// Use no labels for metrics to avoid cardinality explosion
+	attrs := metric.WithAttributes()
+
 	val, exists := fm.processes.Load(roomID)
 	if !exists {
-		return fmt.Errorf("no FFmpeg process found for room %s", roomID)
+		err := fmt.Errorf("no FFmpeg process found for room %s", roomID)
+		span.RecordError(err)
+		return err
 	}
 
 	processInfo := val.(*ProcessInfo)
@@ -112,6 +160,10 @@ func (fm *ffmpegMgrImpl) StopFFmpeg(roomID string) error {
 	// Clean up resources
 	fm.sdpGen.Delete(roomID)
 	fm.encGen.Delete(roomID)
+
+	// Record metrics
+	processesStopped.Add(ctx, 1, attrs)
+	activeProcesses.Add(ctx, -1, attrs)
 
 	// Remove from processes map after cleanup
 	time.AfterFunc(fm.forceKillTimeout+1*time.Second, func() {

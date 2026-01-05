@@ -101,8 +101,11 @@ func (c *UserStatusControl) Start(ctx context.Context) error {
 
 	c.registerRPC()
 	if err := c.roomWatcher.Start(ctx); err != nil {
+		watcherErrors.Add(ctx, 1)
 		return fmt.Errorf("failed to start room watcher: %w", err)
 	}
+	watcherStarted.Add(ctx, 1)
+
 	if err := c.peer2svc.Open(ctx); err != nil {
 		return fmt.Errorf("failed to start svc RPC peer: %w", err)
 	}
@@ -125,9 +128,12 @@ func (c *UserStatusControl) handleCreate(
 	params *json.RawMessage,
 	reply jsonrpc.Reply,
 ) {
+	ctx := context.Background()
+	rpcRequestsReceived.Add(ctx, 1)
 
 	req := users.CreateUserRequest{}
 	if err := jsonrpc.ShouldBindParams(params, &req); err != nil {
+		rpcRequestsFailed.Add(ctx, 1)
 		reply(nil, err)
 		return
 	}
@@ -143,6 +149,7 @@ func (c *UserStatusControl) handleCreate(
 		c.logger.Warn("Room not found",
 			log.String("roomId", req.RoomID),
 		)
+		rpcRequestsFailed.Add(ctx, 1)
 		reply(nil, jsonrpc.ErrInvalidRequest("room not found"))
 		return
 	}
@@ -157,6 +164,9 @@ func (c *UserStatusControl) handleCreate(
 				log.Int("currentUsers", len(currentUsers)),
 				log.Int("maxAnchors", maxAnchors),
 			)
+			maxAnchorsReached.Add(ctx, 1)
+			userCreateFailed.Add(ctx, 1)
+			rpcRequestsFailed.Add(ctx, 1)
 			reply(nil, jsonrpc.ErrInvalidRequest("reached max anchors limit"))
 			return nil
 		}
@@ -169,8 +179,15 @@ func (c *UserStatusControl) handleCreate(
 		}
 		ok, err := c.roomState.CreateUser(ctx, req.RoomID, req.UserID, u)
 		if err != nil {
+			userCreateFailed.Add(ctx, 1)
+			rpcRequestsFailed.Add(ctx, 1)
 			reply(nil, err)
 			return err
+		}
+
+		if ok {
+			usersCreated.Add(ctx, 1)
+			activeUsers.Add(ctx, 1)
 		}
 
 		c.logger.Info("User created",
@@ -180,10 +197,13 @@ func (c *UserStatusControl) handleCreate(
 			log.Bool("ok", ok),
 		)
 
+		rpcRequestsProcessed.Add(ctx, 1)
 		reply(nil, nil)
 		return nil
 	}
 
+	userEventsQueued.Add(ctx, 1)
+	userEventQueueDepth.Add(ctx, 1)
 	c.userEventCh <- &userEvent{
 		action: action,
 		ts:     req.TS,
@@ -195,9 +215,12 @@ func (c *UserStatusControl) handleDelete(
 	params *json.RawMessage,
 	reply jsonrpc.Reply,
 ) {
+	ctx := context.Background()
+	rpcRequestsReceived.Add(ctx, 1)
 
 	req := users.DeleteUserRequest{}
 	if err := jsonrpc.ShouldBindParams(params, &req); err != nil {
+		rpcRequestsFailed.Add(ctx, 1)
 		reply(nil, err)
 		return
 	}
@@ -205,7 +228,17 @@ func (c *UserStatusControl) handleDelete(
 	action := func(ctx context.Context) error {
 
 		ok, err := c.roomState.RemoveUser(ctx, req.RoomID, req.UserID)
+		if err != nil {
+			userDeleteFailed.Add(ctx, 1)
+			rpcRequestsFailed.Add(ctx, 1)
+			reply(nil, err)
+			return err
+		}
+
 		if ok {
+			usersDeleted.Add(ctx, 1)
+			activeUsers.Add(ctx, -1)
+
 			if err := c.notifyUserStatus(ctx, req.RoomID); err != nil {
 				c.logger.Error("Failed to send WS room members", log.Error(err))
 			}
@@ -217,10 +250,13 @@ func (c *UserStatusControl) handleDelete(
 			log.Bool("ok", ok),
 		)
 
-		reply(nil, err)
-		return err
+		rpcRequestsProcessed.Add(ctx, 1)
+		reply(nil, nil)
+		return nil
 	}
 
+	userEventsQueued.Add(ctx, 1)
+	userEventQueueDepth.Add(ctx, 1)
 	c.userEventCh <- &userEvent{
 		action: action,
 		ts:     req.TS,
@@ -232,9 +268,13 @@ func (c *UserStatusControl) handleSetStatus(
 	params *json.RawMessage,
 	reply jsonrpc.Reply,
 ) {
+	ctx := context.Background()
+	rpcRequestsReceived.Add(ctx, 1)
+
 	req := users.SetStatusUserRequest{}
 	if err := jsonrpc.ShouldBindParams(params, &req); err != nil {
 		c.logger.Debug("handleSetStatus called error", log.Error(err))
+		rpcRequestsFailed.Add(ctx, 1)
 		reply(nil, err)
 		return
 	}
@@ -246,7 +286,16 @@ func (c *UserStatusControl) handleSetStatus(
 			Gen:    req.Gen,
 		}
 		ok, err := c.roomState.UpdateUserStatus(ctx, req.RoomID, req.UserID, u)
+		if err != nil {
+			userStatusFailed.Add(ctx, 1)
+			rpcRequestsFailed.Add(ctx, 1)
+			reply(nil, err)
+			return err
+		}
+
 		if ok {
+			userStatusUpdated.Add(ctx, 1)
+
 			if err := c.notifyUserStatus(ctx, req.RoomID); err != nil {
 				c.logger.Error("Failed to send WS room members", log.Error(err))
 			}
@@ -259,10 +308,13 @@ func (c *UserStatusControl) handleSetStatus(
 			log.Bool("ok", ok),
 		)
 
-		reply(nil, err)
-		return err
+		rpcRequestsProcessed.Add(ctx, 1)
+		reply(nil, nil)
+		return nil
 	}
 
+	userEventsQueued.Add(ctx, 1)
+	userEventQueueDepth.Add(ctx, 1)
 	c.userEventCh <- &userEvent{
 		action: action,
 		ts:     req.TS,
@@ -296,17 +348,26 @@ func (c *UserStatusControl) notifyUserStatus(ctx context.Context, roomID string)
 	}
 	if err := c.peer2ws.Notify(ctx, "broadcastRoomStatus", req); err != nil {
 		c.logger.Error("Failed to send WS room members", log.Error(err))
+		rpcNotificationsFailed.Add(ctx, 1)
 		return err
 	}
 
+	rpcNotificationsSent.Add(ctx, 1)
 	return nil
 }
 
 func (c *UserStatusControl) rebuildState(ctx context.Context) error {
 	c.logger.Info("Rebuilding")
+	startTime := time.Now()
+	stateRebuildRuns.Add(ctx, 1)
+
 	if err := c.roomState.Rebuild(ctx); err != nil {
+		stateRebuildFailed.Add(ctx, 1)
 		return err
 	}
+
+	duration := time.Since(startTime).Seconds()
+	stateRebuildDuration.Record(ctx, duration)
 	return nil
 }
 
@@ -320,6 +381,9 @@ func (c *UserStatusControl) loop(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case event := <-c.userEventCh:
+			// Decrement queue depth when processing event
+			userEventQueueDepth.Add(ctx, -1)
+
 			// TODO: check outdated ts
 			// if event.ts.Before(time.Now().Add(-userStatusTimeout)) {
 			// outdated event, skip
@@ -327,14 +391,23 @@ func (c *UserStatusControl) loop(ctx context.Context) {
 			// }
 			if err := event.action(ctx); err != nil {
 				c.logger.Error("Failed to process user action", log.Error(err))
+				userEventsFailed.Add(ctx, 1)
+			} else {
+				userEventsProcessed.Add(ctx, 1)
 			}
 		case <-expireTicker.C:
 			// TODO: stop scheduler when suffer some errors ?
+			timeoutChecksRun.Add(ctx, 1)
 
 			roomIDs, err := c.roomState.CheckTimeout(ctx)
 			if err != nil {
 				c.logger.Error("Failed to check timeouts", log.Error(err))
 				continue
+			}
+
+			if len(roomIDs) > 0 {
+				expiredUsersDetected.Add(ctx, int64(len(roomIDs)))
+				roomsWithExpiredUsers.Add(ctx, int64(len(roomIDs)))
 			}
 
 			for _, roomID := range roomIDs {
@@ -347,6 +420,7 @@ func (c *UserStatusControl) loop(ctx context.Context) {
 }
 
 func (c *UserStatusControl) Stop() error {
+	ctx := context.Background()
 	c.logger.Info("Closing")
 
 	if err := c.peer2svc.Close(); err != nil {
@@ -356,7 +430,10 @@ func (c *UserStatusControl) Stop() error {
 		return fmt.Errorf("failed to close ws RPC peer: %w", err)
 	}
 	if err := c.roomWatcher.Stop(); err != nil {
+		watcherErrors.Add(ctx, 1)
 		return fmt.Errorf("failed to stop room watcher: %w", err)
 	}
+	watcherStopped.Add(ctx, 1)
+
 	return nil
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/imtaco/audio-rtc-exp/internal/etcd"
 	"github.com/imtaco/audio-rtc-exp/internal/httputil"
 	"github.com/imtaco/audio-rtc-exp/internal/log"
+	"github.com/imtaco/audio-rtc-exp/internal/otel"
 	"github.com/imtaco/audio-rtc-exp/internal/workflow"
 	"github.com/imtaco/audio-rtc-exp/rooms/service"
 	"github.com/imtaco/audio-rtc-exp/rooms/store"
@@ -20,6 +21,7 @@ type Config struct {
 	App                  config.App      `mapstructure:"app"`
 	Http                 httputil.Config `mapstructure:"http"`
 	Etcd                 etcd.Config     `mapstructure:"etcd"`
+	Otel                 otel.Config     `mapstructure:"otel"`
 	HLSAdvURL            string          `mapstructure:"hls_adv_url"`
 	EtcdPrefixRoomStore  string          `mapstructure:"etcd_prefix_room_store"`
 	EtcdPrefixJanusStore string          `mapstructure:"etcd_prefix_janus_store"`
@@ -35,6 +37,7 @@ func loadConfig() (*Config, error) {
 
 		config.Setup(v, "app")
 		etcd.Setup(v, "etcd")
+		otel.Setup(v, "otel")
 		httputil.Setup(v, "http")
 
 		// override default addrs to ease testing
@@ -53,6 +56,15 @@ func main() {
 		log.Fatal("Failed to create logger", err)
 	}
 	defer logger.Sync()
+
+	// global background context
+	ctx := context.Background()
+
+	// Initialize OpenTelemetry
+	otelShutdown, err := otel.Init(ctx, &config.Otel, logger)
+	if err != nil {
+		logger.Fatal("Failed to initialize OTEL provider", log.Error(err))
+	}
 
 	logger.Info("Starting Room Manager service",
 		log.String("addr", config.Http.Addr),
@@ -90,8 +102,7 @@ func main() {
 	)
 
 	// Initialize resource manager
-	ctx := context.Background()
-	if err := resManager.Start(ctx); err != nil {
+	if err = resManager.Start(ctx); err != nil {
 		logger.Fatal("Failed to start resource manager", log.Error(err))
 	}
 
@@ -111,8 +122,6 @@ func main() {
 
 	// Setup graceful shutdown
 	cleanup := func(ctx context.Context) {
-		logger.Info("Starting cleanup...")
-
 		server.Shutdown(ctx)
 
 		if err := resManager.Stop(); err != nil {
@@ -121,7 +130,9 @@ func main() {
 		if err := etcdClient.Close(); err != nil {
 			logger.Error("Failed to close etcd client", log.Error(err))
 		}
-		logger.Info("Cleanup complete")
+		if err := otelShutdown(ctx); err != nil {
+			logger.Error("Failed to shutdown OTEL", log.Error(err))
+		}
 	}
 	workflow.WaitGracefulShutdown(ctx, logger.Module("CleanUp"), cleanup, config.App.ShutdownTimeout)
 }

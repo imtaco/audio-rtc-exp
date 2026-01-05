@@ -12,6 +12,7 @@ import (
 	"github.com/imtaco/audio-rtc-exp/internal/httputil"
 	"github.com/imtaco/audio-rtc-exp/internal/jwt"
 	"github.com/imtaco/audio-rtc-exp/internal/log"
+	"github.com/imtaco/audio-rtc-exp/internal/otel"
 	"github.com/imtaco/audio-rtc-exp/internal/redis"
 	"github.com/imtaco/audio-rtc-exp/internal/workflow"
 	"github.com/imtaco/audio-rtc-exp/users/control"
@@ -25,6 +26,7 @@ type Config struct {
 	Http                httputil.Config `mapstructure:"http"`
 	Redis               redis.Config    `mapstructure:"redis"`
 	Etcd                etcd.Config     `mapstructure:"etcd"`
+	Otel                otel.Config     `mapstructure:"otel"`
 	RedisUserSvcPrefix  string          `mapstructure:"redis_user_svc_prefix"`
 	EtcdRoomPrefix      string          `mapstructure:"etcd_room_prefix"`
 	RedisReqStream      string          `mapstructure:"redis_req_stream"`
@@ -50,6 +52,7 @@ func loadConfig() (*Config, error) {
 		redis.Setup(v, "app")
 		redis.Setup(v, "redis")
 		etcd.Setup(v, "etcd")
+		otel.Setup(v, "otel")
 		httputil.Setup(v, "http")
 
 		// override default addrs to ease testing
@@ -69,7 +72,16 @@ func main() {
 	}
 	defer logger.Sync()
 
-	logger.Info("Starting WebSocket Gateway...")
+	// global background context
+	ctx := context.Background()
+
+	// Initialize OpenTelemetry
+	otelShutdown, err := otel.Init(ctx, &config.Otel, logger)
+	if err != nil {
+		logger.Fatal("Failed to initialize OTEL provider", log.Error(err))
+	}
+
+	logger.Info("Starting User Service...")
 
 	// Initialize Redis client
 	redisClient := redis.NewClient(&config.Redis)
@@ -131,8 +143,6 @@ func main() {
 	server := httputil.NewServer(&config.Http, router.Handler())
 
 	// Start components
-	ctx := context.Background()
-
 	if err := trimer.Start(ctx); err != nil {
 		logger.Fatal("Failed to start Trimer", log.Error(err))
 	}
@@ -164,6 +174,9 @@ func main() {
 		}
 		if err := etcdClient.Close(); err != nil {
 			logger.Error("Failed to close etcd client", log.Error(err))
+		}
+		if err := otelShutdown(ctx); err != nil {
+			logger.Error("Failed to shutdown OTEL", log.Error(err))
 		}
 	}
 	workflow.WaitGracefulShutdown(ctx, logger.Module("CleanUp"), cleanup, config.App.ShutdownTimeout)

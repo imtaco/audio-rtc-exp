@@ -13,6 +13,7 @@ import (
 	wsrpc "github.com/imtaco/audio-rtc-exp/internal/jsonrpc/websocket"
 	"github.com/imtaco/audio-rtc-exp/internal/jwt"
 	"github.com/imtaco/audio-rtc-exp/internal/log"
+	"github.com/imtaco/audio-rtc-exp/internal/otel"
 	"github.com/imtaco/audio-rtc-exp/internal/redis"
 	"github.com/imtaco/audio-rtc-exp/internal/workflow"
 	"github.com/imtaco/audio-rtc-exp/users/status"
@@ -25,6 +26,7 @@ type Config struct {
 	WSHttp httputil.Config `mapstructure:"ws_http"`
 	Redis  redis.Config    `mapstructure:"redis"`
 	Etcd   etcd.Config     `mapstructure:"etcd"`
+	Otel   otel.Config     `mapstructure:"otel"`
 
 	RedisUserSvcPrefix   string `mapstructure:"redis_user_svc_prefix"`
 	EtcdPrefixRoomStore  string `mapstructure:"etcd_prefix_room_store"`
@@ -62,6 +64,7 @@ func loadConfig() (*Config, error) {
 		config.Setup(v, "app")
 		redis.Setup(v, "redis")
 		etcd.Setup(v, "etcd")
+		otel.Setup(v, "otel")
 		httputil.Setup(v, "ws_http")
 
 		// override default addrs to ease testing
@@ -80,6 +83,14 @@ func main() {
 		log.Fatal("Failed to create logger", err)
 	}
 	defer logger.Sync()
+
+	ctx := context.Background()
+
+	// Initialize OpenTelemetry
+	otelShutdown, err := otel.Init(ctx, &config.Otel, logger)
+	if err != nil {
+		logger.Fatal("Failed to initialize OTEL provider", log.Error(err))
+	}
 
 	logger.Info("Starting WebSocket Gateway...")
 
@@ -161,8 +172,6 @@ func main() {
 	)
 
 	// Start components
-	ctx := context.Background()
-
 	if err := janusProxy.Open(ctx); err != nil {
 		logger.Fatal("Failed to initialize Janus proxy", log.Error(err))
 	}
@@ -201,6 +210,9 @@ func main() {
 		}
 		if err := etcdClient.Close(); err != nil {
 			logger.Error("Error closing etcd client", log.Error(err))
+		}
+		if err := otelShutdown(ctx); err != nil {
+			logger.Error("Failed to shutdown OTEL", log.Error(err))
 		}
 	}
 	workflow.WaitGracefulShutdown(ctx, logger.Module("CleanUp"), cleanup, config.App.ShutdownTimeout)

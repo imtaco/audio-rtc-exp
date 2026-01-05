@@ -286,6 +286,60 @@ The application uses [Viper](https://github.com/spf13/viper) for configuration m
 - `ETCD_PREFIX_JANUS_STORE` - etcd key prefix for Janus data (default: `/januses/`)
 - `ETCD_PREFIX_MIXER_STORE` - etcd key prefix for mixer data (default: `/mixers/`)
 
+## Observability (Optional)
+
+This project includes optional OpenTelemetry support for distributed tracing and metrics. By default, observability is **disabled** and the application runs without any external dependencies.
+
+### Features
+
+- **Distributed Tracing**: Track requests across microservices (supports Jaeger, Tempo, etc.)
+- **Metrics**: Business and operational metrics (supports Prometheus, Grafana Cloud, etc.)
+- **Independent Controls**: Enable tracing and metrics separately
+- **Vendor Neutral**: Uses OpenTelemetry standard (OTLP), works with any compatible backend
+
+### Quick Start
+
+Observability is disabled by default. To enable:
+
+```yaml
+# config.yaml
+otel:
+  tracing_enabled: true
+  metrics_enabled: true
+  service_name: "mixer-service"
+  endpoint: "localhost:4317"  # OpenTelemetry Collector
+  insecure: true
+```
+
+### Available Metrics
+
+**FFmpeg Process Metrics:**
+- `mixer.ffmpeg.processes.active` - Active FFmpeg processes (global)
+- `mixer.ffmpeg.processes.started` - Total processes started (global)
+- `mixer.ffmpeg.processes.failed` - Total failures (global)
+- `mixer.ffmpeg.start.duration` - Start duration histogram (global)
+
+**Room Management Metrics (labeled by mixer.id):**
+- `mixer.rooms.active{mixer_id="mixer-1"}` - Active rooms per mixer
+- `mixer.rooms.started{mixer_id="mixer-1"}` - Total rooms started per mixer
+- `mixer.rooms.failed{mixer_id="mixer-1"}` - Total failures per mixer
+
+> **Note**: Metrics use low-cardinality labels to prevent cardinality explosion. High-cardinality data like individual room IDs are available in traces and logs, not metrics.
+
+### Documentation
+
+- [Prometheus Setup Guide](backend/PROMETHEUS_SETUP.md) - Complete setup with Docker Compose
+- [OpenTelemetry Integration](backend/internal/otel/README.md) - Configuration reference
+- [Metrics Documentation](backend/OTEL_COMPLETE.md) - Detailed metrics guide
+
+### Example: Prometheus + Grafana
+
+See [backend/PROMETHEUS_SETUP.md](backend/PROMETHEUS_SETUP.md) for a complete Docker Compose setup with:
+- OpenTelemetry Collector
+- Prometheus
+- Grafana
+- Example queries and dashboards
+
 ## Contributing
 
 See [Development Guide](docs/development.md) for contribution guidelines and best practices.

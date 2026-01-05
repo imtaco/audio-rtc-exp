@@ -17,6 +17,7 @@ import (
 	"github.com/imtaco/audio-rtc-exp/internal/janus"
 	"github.com/imtaco/audio-rtc-exp/internal/log"
 	"github.com/imtaco/audio-rtc-exp/internal/network"
+	"github.com/imtaco/audio-rtc-exp/internal/otel"
 	"github.com/imtaco/audio-rtc-exp/internal/workflow"
 	"github.com/imtaco/audio-rtc-exp/januses/transport"
 	"github.com/imtaco/audio-rtc-exp/januses/watcher"
@@ -29,6 +30,7 @@ const (
 type Config struct {
 	App               config.App      `mapstructure:"app"`
 	Etcd              etcd.Config     `mapstructure:"etcd"`
+	Otel              otel.Config     `mapstructure:"otel"`
 	Http              httputil.Config `mapstructure:"http"`
 	JanusID           string          `mapstructure:"janus_id"`
 	JanusAdvHost      string          `mapstructure:"janus_adv_host"`
@@ -55,6 +57,7 @@ func loadConfig() (*Config, error) {
 
 		config.Setup(v, "app")
 		etcd.Setup(v, "etcd")
+		otel.Setup(v, "otel")
 		httputil.Setup(v, "http")
 	})
 }
@@ -71,6 +74,15 @@ func main() {
 	}
 	defer logger.Sync()
 
+	// global background context
+	ctx := context.Background()
+
+	// Initialize OpenTelemetry
+	otelShutdown, err := otel.Init(ctx, &config.Otel, logger)
+	if err != nil {
+		logger.Fatal("Failed to initialize OTEL provider", log.Error(err))
+	}
+
 	if config.JanusAdvHost == "" {
 		config.JanusAdvHost = network.HostIP().String()
 		logger.Info("Janus advertisement host not set, detecting automatically",
@@ -78,9 +90,6 @@ func main() {
 	}
 
 	logger.Info("Janus Manager starting", log.String("janusId", config.JanusID))
-
-	// global background context
-	ctx := context.Background()
 
 	// Create etcd client
 	etcdClient, err := etcd.NewClient(&config.Etcd)
@@ -183,6 +192,9 @@ func main() {
 		janusMonitor.Stop()
 		if err := etcdClient.Close(); err != nil {
 			logger.Error("Failed to close etcd client", log.Error(err))
+		}
+		if err := otelShutdown(ctx); err != nil {
+			logger.Error("Failed to shutdown OTEL", log.Error(err))
 		}
 	}
 	workflow.WaitGracefulShutdown(ctx, logger.Module("CleanUp"), cleanup, config.App.ShutdownTimeout)

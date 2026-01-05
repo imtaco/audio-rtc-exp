@@ -16,6 +16,7 @@ import (
 	"github.com/imtaco/audio-rtc-exp/internal/httputil"
 	"github.com/imtaco/audio-rtc-exp/internal/log"
 	"github.com/imtaco/audio-rtc-exp/internal/network"
+	"github.com/imtaco/audio-rtc-exp/internal/otel"
 	"github.com/imtaco/audio-rtc-exp/internal/workflow"
 	"github.com/imtaco/audio-rtc-exp/mixers/ffmpeg"
 	"github.com/imtaco/audio-rtc-exp/mixers/transport"
@@ -26,6 +27,7 @@ type Config struct {
 	App             config.App      `mapstructure:"app"`
 	Etcd            etcd.Config     `mapstructure:"etcd"`
 	Http            httputil.Config `mapstructure:"http"`
+	Otel            otel.Config     `mapstructure:"otel"`
 	MixerID         string          `mapstructure:"mixer_id"`
 	MixerIP         string          `mapstructure:"mixer_ip"`
 	MixerCapacity   int             `mapstructure:"mixer_capacity"`
@@ -58,6 +60,7 @@ func loadConfig() (*Config, error) {
 		config.Setup(v, "app")
 		etcd.Setup(v, "etcd")
 		httputil.Setup(v, "http")
+		otel.Setup(v, "otel")
 
 		// override default http.addr
 		v.SetDefault("http.addr", "0.0.0.0:3001")
@@ -85,6 +88,13 @@ func main() {
 		log.String("mixerId", config.MixerID),
 		log.String("mixerIp", config.MixerIP),
 		log.String("rtpPortRange", fmt.Sprintf("%d-%d", config.RTPPortStart, config.RTPPortEnd)))
+
+	// Initialize OpenTelemetry
+	ctx := context.Background()
+	otelShutdown, err := otel.Init(ctx, &config.Otel, logger)
+	if err != nil {
+		logger.Fatal("Failed to create OpenTelemetry provider", log.Error(err))
+	}
 
 	etcdClient, err := etcd.NewClient(&config.Etcd)
 	if err != nil {
@@ -137,8 +147,6 @@ func main() {
 		logger.Module("Heartbeat"),
 	)
 
-	ctx := context.Background()
-
 	// initCtx := context.Background()
 	// TODO: init with timeout ?!
 	if err := roomWatcher.Start(ctx); err != nil {
@@ -175,6 +183,9 @@ func main() {
 		}
 		if err := etcdClient.Close(); err != nil {
 			logger.Error("Failed to close etcd client", log.Error(err))
+		}
+		if err := otelShutdown(ctx); err != nil {
+			logger.Error("Failed to shutdown OTEL", log.Error(err))
 		}
 	}
 	workflow.WaitGracefulShutdown(ctx, logger.Module("CleanUp"), cleanup, config.App.ShutdownTimeout)

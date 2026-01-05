@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	lru "github.com/hashicorp/golang-lru/v2"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 
 	"github.com/imtaco/audio-rtc-exp/hlsserver"
 	commoncrypto "github.com/imtaco/audio-rtc-exp/internal/crypto"
@@ -40,6 +41,7 @@ func NewTokenRouter(roomWatcher hlsserver.RoomWatcher, jwtAuth jwt.JWTAuth, logg
 	gin.SetMode(gin.ReleaseMode)
 	engine := gin.New()
 	engine.Use(gin.Recovery())
+	engine.Use(otelgin.Middleware("token-server"))
 
 	r := &TokenRouter{
 		roomWatcher: roomWatcher,
@@ -57,6 +59,7 @@ func (r *TokenRouter) Handler() http.Handler {
 }
 
 func (r *TokenRouter) setupRoutes() {
+	r.engine.Use(otelgin.Middleware("hls-token-server"))
 	r.engine.POST("/api/token", r.generateToken)
 	r.engine.GET("/health", r.healthCheck)
 }
@@ -76,6 +79,7 @@ func (r *TokenRouter) generateToken(c *gin.Context) {
 	userID := uuid.New().String()
 	token, err := r.jwtAuth.Sign(userID, req.RoomID)
 	if err != nil {
+		tokensFailed.Add(c.Request.Context(), 1)
 		r.logger.Error("Failed to sign token",
 			log.String("userId", userID),
 			log.String("roomId", req.RoomID),
@@ -87,6 +91,7 @@ func (r *TokenRouter) generateToken(c *gin.Context) {
 		return
 	}
 
+	tokensGenerated.Add(c.Request.Context(), 1)
 	r.logger.Info("Token generated",
 		log.String("userId", userID),
 		log.String("roomId", req.RoomID))
@@ -116,6 +121,7 @@ func NewKeyRouter(roomWatcher hlsserver.RoomWatcher, jwtAuth jwt.JWTAuth, logger
 	gin.SetMode(gin.ReleaseMode)
 	engine := gin.New()
 	engine.Use(gin.Recovery())
+	engine.Use(otelgin.Middleware("key-server"))
 
 	// Configure CORS
 	engine.Use(cors.New(cors.Config{
@@ -142,6 +148,7 @@ func (r *KeyRouter) Handler() http.Handler {
 }
 
 func (r *KeyRouter) setupRoutes() {
+	r.engine.Use(otelgin.Middleware("hls-key-server"))
 	r.engine.GET("/hls/rooms/:roomId/enc.key", r.getEncryptionKey)
 	r.engine.GET("/health", r.healthCheck)
 }
@@ -162,6 +169,7 @@ func (r *KeyRouter) getEncryptionKey(c *gin.Context) {
 	authHeader := c.GetHeader("Authorization")
 
 	if authHeader == "" {
+		authFailures.Add(c.Request.Context(), 1)
 		r.logger.Warn("Missing authorization header",
 			log.String("url", c.Request.URL.String()))
 		c.String(http.StatusUnauthorized, "Authorization header required")
@@ -175,6 +183,7 @@ func (r *KeyRouter) getEncryptionKey(c *gin.Context) {
 
 	payload, err := r.jwtAuth.Verify(token)
 	if err != nil {
+		authFailures.Add(c.Request.Context(), 1)
 		r.logger.Warn("Invalid token",
 			log.String("url", c.Request.URL.String()),
 			log.Error(err))
@@ -183,6 +192,7 @@ func (r *KeyRouter) getEncryptionKey(c *gin.Context) {
 	}
 
 	if subtle.ConstantTimeCompare([]byte(roomID), []byte(payload.RoomID)) != 1 {
+		authFailures.Add(c.Request.Context(), 1)
 		r.logger.Warn("RoomId mismatch",
 			log.String("roomId", roomID),
 			log.String("tokenRoomId", payload.RoomID))
@@ -192,12 +202,15 @@ func (r *KeyRouter) getEncryptionKey(c *gin.Context) {
 
 	keyData, ok := keyCache.Get(roomID)
 	if ok {
+		cacheHits.Add(c.Request.Context(), 1)
 		r.logger.Debug("Key served from cache",
 			log.String("roomId", roomID),
 			log.String("userId", payload.UserID))
 	} else {
+		cacheMisses.Add(c.Request.Context(), 1)
 		livemeta := r.roomWatcher.GetActiveLiveMeta(roomID)
 		if livemeta == nil {
+			roomNotFound.Add(c.Request.Context(), 1)
 			r.logger.Warn("Room not found or not active",
 				log.String("roomId", roomID))
 			c.String(http.StatusForbidden, "Access denied 3")
@@ -213,6 +226,7 @@ func (r *KeyRouter) getEncryptionKey(c *gin.Context) {
 			log.Int("cacheSize", keyCache.Len()))
 	}
 
+	keysServed.Add(c.Request.Context(), 1)
 	c.Header("Content-Type", "application/octet-stream")
 	c.Header("Cache-Control", "no-cache, no-store, must-revalidate")
 	c.Header("Pragma", "no-cache")

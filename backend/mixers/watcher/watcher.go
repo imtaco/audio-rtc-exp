@@ -6,12 +6,16 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/imtaco/audio-rtc-exp/internal/log"
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/imtaco/audio-rtc-exp/internal/constants"
 	"github.com/imtaco/audio-rtc-exp/internal/etcd"
 	"github.com/imtaco/audio-rtc-exp/internal/etcdstate"
+	"github.com/imtaco/audio-rtc-exp/internal/log"
 	etcdwatcher "github.com/imtaco/audio-rtc-exp/internal/reswatcher/etcd"
 	"github.com/imtaco/audio-rtc-exp/mixers"
 )
@@ -27,6 +31,7 @@ type RoomWatcher struct {
 	prefixRooms   string
 	activeRooms   sync.Map
 	logger        *log.Logger
+	tracer        trace.Tracer
 }
 
 // ActiveRoom represents an active room being processed
@@ -52,7 +57,9 @@ func NewRoomWatcher(
 		prefixRooms:   prefixRooms,
 		etcdClient:    etcdClient,
 		logger:        logger,
+		tracer:        otel.Tracer("mixer.watcher"),
 	}
+
 	w.RoomWatcher = etcdwatcher.NewRoomWatcher(
 		etcdClient,
 		prefixRooms,
@@ -88,41 +95,85 @@ func (w *RoomWatcher) updateMixer(ctx context.Context, roomID string, port *int)
 
 // startRoomFFmpeg starts FFmpeg for a room
 func (w *RoomWatcher) startRoomFFmpeg(ctx context.Context, roomID string, livemeta *etcdstate.LiveMeta) error {
+	ctx, span := w.tracer.Start(ctx, "watcher.startRoomFFmpeg",
+		trace.WithAttributes(
+			attribute.String("room.id", roomID),
+			attribute.String("mixer.id", w.id),
+		))
+	defer span.End()
+
+	// Use only low-cardinality labels for metrics (mixer.id)
+	// High-cardinality labels like room.id cause cardinality explosion
+	attrs := metric.WithAttributes(
+		attribute.String("mixer.id", w.id),
+	)
+
 	port, err := w.portManager.GetFreeRTPPort()
 	if err != nil {
+		span.RecordError(err)
+		roomsFailed.Add(ctx, 1, attrs)
 		return fmt.Errorf("failed to allocate RTP port: %w", err)
 	}
+	span.SetAttributes(attribute.Int("rtp.port", port))
 
 	w.logger.Info("Allocated RTP port for room",
 		log.String("roomId", roomID),
 		log.Int("port", port))
 
 	if err := w.ffmpegManager.StartFFmpeg(roomID, port, livemeta.CreatedAt, livemeta.Nonce); err != nil {
+		span.RecordError(err)
+		roomsFailed.Add(ctx, 1, attrs)
 		return fmt.Errorf("failed to start FFmpeg: %w", err)
 	}
 
 	if err := w.updateMixer(ctx, roomID, &port); err != nil {
+		span.RecordError(err)
+		roomsFailed.Add(ctx, 1, attrs)
 		return fmt.Errorf("failed to update mixer data: %w", err)
 	}
 
 	w.activeRooms.Store(roomID, &ActiveRoom{Port: port, Status: "running"})
+
+	// Record metrics
+	roomsStarted.Add(ctx, 1, attrs)
+	activeRoomsGauge.Add(ctx, 1, attrs)
+
 	return nil
 }
 
 // stopRoomFFmpeg stops FFmpeg for a room
 func (w *RoomWatcher) stopRoomFFmpeg(ctx context.Context, roomID string, isStateRunner bool) error {
+	ctx, span := w.tracer.Start(ctx, "watcher.stopRoomFFmpeg",
+		trace.WithAttributes(
+			attribute.String("room.id", roomID),
+			attribute.String("mixer.id", w.id),
+			attribute.Bool("is_state_runner", isStateRunner),
+		))
+	defer span.End()
+
+	// Use only low-cardinality labels for metrics (mixer.id)
+	attrs := metric.WithAttributes(
+		attribute.String("mixer.id", w.id),
+	)
+
 	w.logger.Info("Stopping FFmpeg", log.String("roomId", roomID))
 
 	if err := w.ffmpegManager.StopFFmpeg(roomID); err != nil {
+		span.RecordError(err)
 		return fmt.Errorf("failed to stop FFmpeg: %w", err)
 	}
 
 	w.activeRooms.Delete(roomID)
 
+	// Record metrics
+	roomsStopped.Add(ctx, 1, attrs)
+	activeRoomsGauge.Add(ctx, -1, attrs)
+
 	// If someone else took ownership, don't modify data
 	if isStateRunner {
 		w.logger.Info("Remove port for room", log.String("roomId", roomID))
 		if err := w.updateMixer(ctx, roomID, nil); err != nil {
+			span.RecordError(err)
 			return fmt.Errorf("failed to remove mixer data: %w", err)
 		}
 	} else {
@@ -148,6 +199,19 @@ func (w *RoomWatcher) syncMixerData(ctx context.Context, roomID string) error {
 
 // processChange processes a room state change
 func (w *RoomWatcher) processChange(ctx context.Context, roomID string, state *etcdstate.RoomState) error {
+	ctx, span := w.tracer.Start(ctx, "watcher.processChange",
+		trace.WithAttributes(
+			attribute.String("room.id", roomID),
+			attribute.String("mixer.id", w.id),
+		))
+	defer span.End()
+
+	// Record that we processed a change (use only low-cardinality labels)
+	attrs := metric.WithAttributes(
+		attribute.String("mixer.id", w.id),
+	)
+	roomsProcessed.Add(ctx, 1, attrs)
+
 	w.logger.Info("Processing change for room", log.String("roomId", roomID))
 
 	if state == nil {
@@ -163,6 +227,12 @@ func (w *RoomWatcher) processChange(ctx context.Context, roomID string, state *e
 
 	_, isRunning := w.activeRooms.Load(roomID)
 	isStateRunner := mixer != nil && mixer.ID == w.id
+
+	span.SetAttributes(
+		attribute.Bool("should_be_running", shouldBeRunning),
+		attribute.Bool("is_running", isRunning),
+		attribute.Bool("is_state_runner", isStateRunner),
+	)
 
 	if shouldBeRunning && !isRunning {
 		// Must have livemeta here

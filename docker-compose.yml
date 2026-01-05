@@ -21,6 +21,39 @@ services:
     ports:
       - "6379:6379"
 
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    networks: ["janus"]
+    ports:
+      - "3009:3000"
+    volumes:
+      - grafana-storage:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+
+  mimir:
+    image: grafana/mimir:latest
+    container_name: mimir
+    command: ["-config.file=/etc/mimir/demo.yaml"]
+    networks: ["janus"]
+    ports:
+      - "9009:9009"
+    volumes:
+      - ./demo-conf/mimir-demo.yaml:/etc/mimir/demo.yaml:ro
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: otel-collector
+    command: ["--config=/etc/otelcol/otelcol.yaml"]
+    networks: ["janus"]
+    depends_on: [mimir]
+    ports:
+      - "4317:4317"   # OTLP gRPC receiver
+      - "4318:4318"   # OTLP HTTP receiver (optional)
+    volumes:
+      - ./demo-conf/otelcol.yaml:/etc/otelcol/otelcol.yaml:ro
+
   janus:
     image: canyan/janus-gateway:latest
     container_name: janus
@@ -30,9 +63,9 @@ services:
       - "8088:8088" # rest
       - "20000-20200:20000-20200/udp"
     volumes:
-      - ./janus/janus.jcfg:/usr/local/etc/janus/janus.jcfg
-      - ./janus/janus.transport.websockets.jcfg:/usr/local/etc/janus/janus.transport.websockets.jcfg
-      - ./janus/janus.plugin.audiobridge.jcfg:/usr/local/etc/janus/janus.plugin.audiobridge.jcfg
+      - ./demo-conf/janus/janus.jcfg:/usr/local/etc/janus/janus.jcfg
+      - ./demo-conf/janus/janus.transport.websockets.jcfg:/usr/local/etc/janus/janus.transport.websockets.jcfg
+      - ./demo-conf/janus/janus.plugin.audiobridge.jcfg:/usr/local/etc/janus/janus.plugin.audiobridge.jcfg
     restart: always
 
   # docker build --output type=local,dest=./dist -f Dockerfile.build .
@@ -130,6 +163,10 @@ services:
       - JANUS_URL=ws://janus:8188/
       - ADMIN_SECRET=supersecret
       - LOG_LEVEL_USER=debug
+      # for OTEL
+      - OTEL_METRICS_ENABLED=true
+      - OTEL_ENDPOINT=otel-collector:4317
+      - OTEL_GO_METRICS_ENABLED=true
       # - LOG_LEVEL_USER_SRV=debug
       # - LOG_LEVEL_REDIS_RPC=debug
       # - LOG_LEVEL_REDIS_STREAM=debug
@@ -224,13 +261,14 @@ services:
     ports:
       - "8080:80"
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./demo-conf/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./hls:/wwwroot/hls
       - ./fs/sounds:/wwwroot/sounds
     restart: always
 
 volumes:
   etcddata:
+  grafana-storage:
 
 networks:
   janus:

@@ -19,6 +19,7 @@ import (
 
 func setupRouter(t *testing.T) (*Router, *mocks.MockRoomService, *mocks.MockRoomStore) {
 	gin.SetMode(gin.TestMode)
+
 	ctrl := gomock.NewController(t)
 	mockService := mocks.NewMockRoomService(ctrl)
 	mockStore := mocks.NewMockRoomStore(ctrl)

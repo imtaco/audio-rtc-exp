@@ -13,12 +13,14 @@ import (
 	"github.com/imtaco/audio-rtc-exp/internal/httputil"
 	"github.com/imtaco/audio-rtc-exp/internal/jwt"
 	"github.com/imtaco/audio-rtc-exp/internal/log"
+	"github.com/imtaco/audio-rtc-exp/internal/otel"
 	"github.com/imtaco/audio-rtc-exp/internal/workflow"
 )
 
 type Config struct {
 	App               config.App      `mapstructure:"app"`
 	Etcd              etcd.Config     `mapstructure:"etcd"`
+	Otel              otel.Config     `mapstructure:"otel"`
 	TokenServerHttp   httputil.Config `mapstructure:"token_server_http"`
 	KeyServerHttp     httputil.Config `mapstructure:"key_server_http"`
 	M3U8ServerHttp    httputil.Config `mapstructure:"m3u8_server_http"`
@@ -39,6 +41,7 @@ func loadConfig() (*Config, error) {
 
 		config.Setup(v, "app")
 		etcd.Setup(v, "etcd")
+		otel.Setup(v, "otel")
 		httputil.Setup(v, "token_server_http")
 		httputil.Setup(v, "key_server_http")
 		httputil.Setup(v, "m3u8_server_http")
@@ -62,6 +65,14 @@ func main() {
 	}
 	defer logger.Sync()
 
+	ctx := context.Background()
+
+	// Initialize OpenTelemetry
+	otelShutdown, err := otel.Init(ctx, &config.Otel, logger)
+	if err != nil {
+		logger.Fatal("Failed to initialize OTEL provider", log.Error(err))
+	}
+
 	logger.Info("Starting HLS servers",
 		log.Bool("tokenServerEnabled", config.EnableTokenServer),
 		log.Bool("keyServerEnabled", config.EnableKeyServer),
@@ -84,8 +95,7 @@ func main() {
 		logger.Module("RoomWatcher"),
 	)
 
-	ctx := context.Background()
-	if err := roomWatcher.Start(ctx); err != nil {
+	if err = roomWatcher.Start(ctx); err != nil {
 		logger.Fatal("Failed to start room watcher", log.Error(err))
 	}
 
@@ -134,6 +144,9 @@ func main() {
 		}
 		if err := etcdClient.Close(); err != nil {
 			logger.Error("Failed to close etcd client", log.Error(err))
+		}
+		if err := otelShutdown(ctx); err != nil {
+			logger.Error("Failed to shutdown OTEL", log.Error(err))
 		}
 	}
 	workflow.WaitGracefulShutdown(ctx, logger.Module("CleanUp"), cleanup, config.App.ShutdownTimeout)

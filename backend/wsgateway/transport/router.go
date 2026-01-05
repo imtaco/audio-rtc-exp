@@ -8,6 +8,7 @@ import (
 	"github.com/imtaco/audio-rtc-exp/internal/log"
 
 	"github.com/gin-gonic/gin"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 )
 
 type Router struct {
@@ -20,6 +21,9 @@ func NewRouter(jwtAuth *jwt.JWTAuth, logger *log.Logger) *Router {
 	gin.SetMode(gin.ReleaseMode)
 	engine := gin.New()
 	engine.Use(gin.Recovery())
+
+	// Add OpenTelemetry middleware for automatic HTTP tracing
+	engine.Use(otelgin.Middleware("wsgateway"))
 
 	r := &Router{
 		jwtAuth: jwtAuth,
