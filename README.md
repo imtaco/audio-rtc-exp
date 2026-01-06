@@ -311,35 +311,6 @@ otel:
   insecure: true
 ```
 
-### Available Metrics
-
-**FFmpeg Process Metrics:**
-- `mixer.ffmpeg.processes.active` - Active FFmpeg processes (global)
-- `mixer.ffmpeg.processes.started` - Total processes started (global)
-- `mixer.ffmpeg.processes.failed` - Total failures (global)
-- `mixer.ffmpeg.start.duration` - Start duration histogram (global)
-
-**Room Management Metrics (labeled by mixer.id):**
-- `mixer.rooms.active{mixer_id="mixer-1"}` - Active rooms per mixer
-- `mixer.rooms.started{mixer_id="mixer-1"}` - Total rooms started per mixer
-- `mixer.rooms.failed{mixer_id="mixer-1"}` - Total failures per mixer
-
-> **Note**: Metrics use low-cardinality labels to prevent cardinality explosion. High-cardinality data like individual room IDs are available in traces and logs, not metrics.
-
-### Documentation
-
-- [Prometheus Setup Guide](backend/PROMETHEUS_SETUP.md) - Complete setup with Docker Compose
-- [OpenTelemetry Integration](backend/internal/otel/README.md) - Configuration reference
-- [Metrics Documentation](backend/OTEL_COMPLETE.md) - Detailed metrics guide
-
-### Example: Prometheus + Grafana
-
-See [backend/PROMETHEUS_SETUP.md](backend/PROMETHEUS_SETUP.md) for a complete Docker Compose setup with:
-- OpenTelemetry Collector
-- Prometheus
-- Grafana
-- Example queries and dashboards
-
 ## Contributing
 
 See [Development Guide](docs/development.md) for contribution guidelines and best practices.
