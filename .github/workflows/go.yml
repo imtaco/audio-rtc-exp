@@ -11,6 +11,8 @@ on:
 
 jobs:
   lint:
+    permissions:
+      contents: read
     uses: ./.github/workflows/lint.yml
   build:
     runs-on: ubuntu-latest
