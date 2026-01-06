@@ -13,10 +13,11 @@ import (
 	context "context"
 	reflect "reflect"
 
+	gomock "go.uber.org/mock/gomock"
+
 	constants "github.com/imtaco/audio-rtc-exp/internal/constants"
 	etcdstate "github.com/imtaco/audio-rtc-exp/internal/etcdstate"
 	rooms "github.com/imtaco/audio-rtc-exp/rooms"
-	gomock "go.uber.org/mock/gomock"
 )
 
 // MockRoomStore is a mock of RoomStore interface.

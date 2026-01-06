@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/imtaco/audio-rtc-exp/internal/log"
 	"github.com/redis/go-redis/v9"
+
+	"github.com/imtaco/audio-rtc-exp/internal/log"
 )
 
 type Producer interface {

@@ -13,8 +13,9 @@ import (
 	context "context"
 	reflect "reflect"
 
-	etcdstate "github.com/imtaco/audio-rtc-exp/internal/etcdstate"
 	gomock "go.uber.org/mock/gomock"
+
+	etcdstate "github.com/imtaco/audio-rtc-exp/internal/etcdstate"
 )
 
 // MockHealthyModuleWatcher is a mock of HealthyModuleWatcher interface.

@@ -5,8 +5,9 @@ import (
 	"time"
 
 	"github.com/cenkalti/backoff/v4"
-	"github.com/imtaco/audio-rtc-exp/internal/log"
 	"github.com/redis/go-redis/v9"
+
+	"github.com/imtaco/audio-rtc-exp/internal/log"
 )
 
 // RedisForever wraps go-redis client with automatic retry using exponential backoff.

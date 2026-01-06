@@ -12,8 +12,9 @@ package mocks
 import (
 	reflect "reflect"
 
-	jwt "github.com/imtaco/audio-rtc-exp/internal/jwt"
 	gomock "go.uber.org/mock/gomock"
+
+	jwt "github.com/imtaco/audio-rtc-exp/internal/jwt"
 )
 
 // MockJWTAuth is a mock of JWTAuth interface.

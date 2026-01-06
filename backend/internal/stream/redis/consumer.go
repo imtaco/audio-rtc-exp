@@ -6,11 +6,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/imtaco/audio-rtc-exp/internal/retry"
 	"github.com/jonboulle/clockwork"
 
-	"github.com/imtaco/audio-rtc-exp/internal/log"
+	"github.com/imtaco/audio-rtc-exp/internal/retry"
+
 	"github.com/redis/go-redis/v9"
+
+	"github.com/imtaco/audio-rtc-exp/internal/log"
 )
 
 const (

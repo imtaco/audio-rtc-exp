@@ -10,11 +10,12 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/assert"
+	gomock "go.uber.org/mock/gomock"
+
 	"github.com/imtaco/audio-rtc-exp/internal/log"
 	"github.com/imtaco/audio-rtc-exp/rooms"
 	"github.com/imtaco/audio-rtc-exp/rooms/mocks"
-	"github.com/stretchr/testify/assert"
-	gomock "go.uber.org/mock/gomock"
 )
 
 func setupRouter(t *testing.T) (*Router, *mocks.MockRoomService, *mocks.MockRoomStore) {

@@ -7,15 +7,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/suite"
+	"go.etcd.io/etcd/api/v3/mvccpb"
+	clientv3 "go.etcd.io/etcd/client/v3"
+	"go.uber.org/mock/gomock"
+
 	"github.com/imtaco/audio-rtc-exp/internal/constants"
 	etcdmocks "github.com/imtaco/audio-rtc-exp/internal/etcd/mocks"
 	"github.com/imtaco/audio-rtc-exp/internal/etcdstate"
 	"github.com/imtaco/audio-rtc-exp/internal/log"
 	"github.com/imtaco/audio-rtc-exp/rooms"
-	"github.com/stretchr/testify/suite"
-	"go.etcd.io/etcd/api/v3/mvccpb"
-	clientv3 "go.etcd.io/etcd/client/v3"
-	"go.uber.org/mock/gomock"
 )
 
 type RoomStoreTestSuite struct {

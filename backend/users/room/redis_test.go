@@ -5,10 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/imtaco/audio-rtc-exp/internal/constants"
-	"github.com/imtaco/audio-rtc-exp/users"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/imtaco/audio-rtc-exp/internal/constants"
+	"github.com/imtaco/audio-rtc-exp/users"
 )
 
 func TestStatusField(t *testing.T) {

@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/pkg/errors"
+
 	"github.com/imtaco/audio-rtc-exp/internal/jsonrpc"
 	"github.com/imtaco/audio-rtc-exp/internal/log"
 	redisstream "github.com/imtaco/audio-rtc-exp/internal/stream/redis"
-	"github.com/pkg/errors"
 )
 
 // redisStream wraps a redis-stream connection to implement jsonrpc2.ObjectStream

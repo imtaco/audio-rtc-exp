@@ -7,15 +7,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/suite"
+	"go.opentelemetry.io/otel"
+	"go.uber.org/mock/gomock"
+
 	"github.com/imtaco/audio-rtc-exp/internal/constants"
 	etcdmocks "github.com/imtaco/audio-rtc-exp/internal/etcd/mocks"
 	"github.com/imtaco/audio-rtc-exp/internal/etcdstate"
 	"github.com/imtaco/audio-rtc-exp/internal/log"
 	"github.com/imtaco/audio-rtc-exp/mixers/mocks"
-	"go.opentelemetry.io/otel"
-
-	"github.com/stretchr/testify/suite"
-	"go.uber.org/mock/gomock"
 )
 
 type RoomWatcherTestSuite struct {

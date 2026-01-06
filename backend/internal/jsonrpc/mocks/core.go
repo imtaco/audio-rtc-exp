@@ -12,8 +12,9 @@ package mocks
 import (
 	reflect "reflect"
 
-	jsonrpc "github.com/imtaco/audio-rtc-exp/internal/jsonrpc"
 	gomock "go.uber.org/mock/gomock"
+
+	jsonrpc "github.com/imtaco/audio-rtc-exp/internal/jsonrpc"
 )
 
 // MockCore is a mock of Core interface.

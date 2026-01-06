@@ -13,9 +13,10 @@ import (
 	context "context"
 	reflect "reflect"
 
+	gomock "go.uber.org/mock/gomock"
+
 	constants "github.com/imtaco/audio-rtc-exp/internal/constants"
 	"github.com/imtaco/audio-rtc-exp/users"
-	gomock "go.uber.org/mock/gomock"
 )
 
 // MockUserService is a mock of UserService interface.

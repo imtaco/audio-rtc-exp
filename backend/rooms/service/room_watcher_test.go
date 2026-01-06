@@ -4,10 +4,11 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/suite"
+
 	"github.com/imtaco/audio-rtc-exp/internal/constants"
 	"github.com/imtaco/audio-rtc-exp/internal/etcdstate"
 	"github.com/imtaco/audio-rtc-exp/internal/log"
-	"github.com/stretchr/testify/suite"
 )
 
 type RoomWatcherTestSuite struct {

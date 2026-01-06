@@ -4,11 +4,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/imtaco/audio-rtc-exp/internal/jwt"
-	"github.com/imtaco/audio-rtc-exp/internal/log"
-
 	"github.com/gin-gonic/gin"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
+
+	"github.com/imtaco/audio-rtc-exp/internal/jwt"
+	"github.com/imtaco/audio-rtc-exp/internal/log"
 )
 
 type Router struct {

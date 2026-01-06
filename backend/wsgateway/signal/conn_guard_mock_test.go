@@ -13,8 +13,9 @@ import (
 	context "context"
 	reflect "reflect"
 
-	jsonrpc "github.com/imtaco/audio-rtc-exp/internal/jsonrpc"
 	gomock "go.uber.org/mock/gomock"
+
+	jsonrpc "github.com/imtaco/audio-rtc-exp/internal/jsonrpc"
 )
 
 // MockConnectionGuard is a mock of ConnectionGuard interface.

@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/redis/go-redis/v9"
+
 	"github.com/imtaco/audio-rtc-exp/internal/log"
 	fredis "github.com/imtaco/audio-rtc-exp/internal/redis"
 	"github.com/imtaco/audio-rtc-exp/internal/zset"
 	"github.com/imtaco/audio-rtc-exp/users"
-	"github.com/redis/go-redis/v9"
 )
 
 func New(

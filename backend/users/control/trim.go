@@ -4,9 +4,10 @@ import (
 	"context"
 	"time"
 
+	"github.com/redis/go-redis/v9"
+
 	"github.com/imtaco/audio-rtc-exp/internal/log"
 	redisstream "github.com/imtaco/audio-rtc-exp/internal/stream/redis"
-	"github.com/redis/go-redis/v9"
 )
 
 const (

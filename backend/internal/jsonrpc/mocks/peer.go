@@ -13,8 +13,9 @@ import (
 	context "context"
 	reflect "reflect"
 
-	jsonrpc "github.com/imtaco/audio-rtc-exp/internal/jsonrpc"
 	gomock "go.uber.org/mock/gomock"
+
+	jsonrpc "github.com/imtaco/audio-rtc-exp/internal/jsonrpc"
 )
 
 // MockPeer is a mock of Peer interface.

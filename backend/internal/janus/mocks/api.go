@@ -13,8 +13,9 @@ import (
 	context "context"
 	reflect "reflect"
 
-	janus "github.com/imtaco/audio-rtc-exp/internal/janus"
 	gomock "go.uber.org/mock/gomock"
+
+	janus "github.com/imtaco/audio-rtc-exp/internal/janus"
 )
 
 // MockAPI is a mock of API interface.

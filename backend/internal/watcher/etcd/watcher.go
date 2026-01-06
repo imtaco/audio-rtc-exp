@@ -6,8 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/imtaco/audio-rtc-exp/internal/log"
 	clientv3 "go.etcd.io/etcd/client/v3"
+
+	"github.com/imtaco/audio-rtc-exp/internal/log"
 
 	"github.com/imtaco/audio-rtc-exp/internal/etcd"
 	"github.com/imtaco/audio-rtc-exp/internal/scheduler"

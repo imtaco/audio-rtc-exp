@@ -3,13 +3,13 @@ package watcher
 import (
 	"net/http"
 
-	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/imtaco/audio-rtc-exp/hlsserver"
 	"github.com/imtaco/audio-rtc-exp/internal/constants"
 	"github.com/imtaco/audio-rtc-exp/internal/etcdstate"
 	"github.com/imtaco/audio-rtc-exp/internal/log"
 	etcdwatcher "github.com/imtaco/audio-rtc-exp/internal/reswatcher/etcd"
 
+	lru "github.com/hashicorp/golang-lru/v2"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"golang.org/x/sync/singleflight"
 )

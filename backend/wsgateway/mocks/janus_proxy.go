@@ -13,9 +13,10 @@ import (
 	context "context"
 	reflect "reflect"
 
+	gomock "go.uber.org/mock/gomock"
+
 	etcdstate "github.com/imtaco/audio-rtc-exp/internal/etcdstate"
 	janus "github.com/imtaco/audio-rtc-exp/internal/janus"
-	gomock "go.uber.org/mock/gomock"
 )
 
 // MockJanusProxy is a mock of JanusProxy interface.

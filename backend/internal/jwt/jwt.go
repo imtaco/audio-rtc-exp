@@ -2,6 +2,7 @@ package jwt
 
 import (
 	"github.com/golang-jwt/jwt/v5"
+
 	"github.com/imtaco/audio-rtc-exp/internal/errors"
 )
 

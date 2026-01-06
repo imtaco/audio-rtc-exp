@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/go-resty/resty/v2"
+
 	"github.com/imtaco/audio-rtc-exp/internal/errors"
 	"github.com/imtaco/audio-rtc-exp/internal/log"
 )

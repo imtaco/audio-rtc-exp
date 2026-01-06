@@ -7,9 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/imtaco/audio-rtc-exp/internal/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/imtaco/audio-rtc-exp/internal/log"
 )
 
 func TestProcessInfoWithTestCommand(t *testing.T) {

@@ -5,9 +5,10 @@ import (
 	"testing"
 
 	"github.com/alicebob/miniredis/v2"
-	"github.com/imtaco/audio-rtc-exp/internal/log"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/suite"
+
+	"github.com/imtaco/audio-rtc-exp/internal/log"
 )
 
 type ProducerTestSuite struct {

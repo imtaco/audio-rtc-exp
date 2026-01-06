@@ -7,17 +7,17 @@ import (
 	"time"
 
 	"github.com/alicebob/miniredis/v2"
+	"github.com/redis/go-redis/v9"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
+	"go.uber.org/mock/gomock"
+
 	"github.com/imtaco/audio-rtc-exp/internal/constants"
 	jsonrpcmocks "github.com/imtaco/audio-rtc-exp/internal/jsonrpc/mocks"
 	"github.com/imtaco/audio-rtc-exp/internal/jwt"
 	jwtmocks "github.com/imtaco/audio-rtc-exp/internal/jwt/mocks"
 	"github.com/imtaco/audio-rtc-exp/internal/log"
 	"github.com/imtaco/audio-rtc-exp/users"
-	"github.com/redis/go-redis/v9"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/suite"
-	"go.uber.org/mock/gomock"
 )
 
 type UserServiceUnitTestSuite struct {

@@ -11,18 +11,19 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	jwtMocks "github.com/imtaco/audio-rtc-exp/internal/jwt/mocks"
-	"github.com/imtaco/audio-rtc-exp/internal/log"
-	userMocks "github.com/imtaco/audio-rtc-exp/users/mocks"
 	"github.com/stretchr/testify/assert"
 	gomock "go.uber.org/mock/gomock"
+
+	jwtmocks "github.com/imtaco/audio-rtc-exp/internal/jwt/mocks"
+	"github.com/imtaco/audio-rtc-exp/internal/log"
+	usermocks "github.com/imtaco/audio-rtc-exp/users/mocks"
 )
 
-func setupRouter(t *testing.T) (*Router, *userMocks.MockUserService, *jwtMocks.MockJWTAuth) {
+func setupRouter(t *testing.T) (*Router, *usermocks.MockUserService, *jwtmocks.MockJWTAuth) {
 	gin.SetMode(gin.TestMode)
 	ctrl := gomock.NewController(t)
-	mockUserService := userMocks.NewMockUserService(ctrl)
-	mockJWTAuth := jwtMocks.NewMockJWTAuth(ctrl)
+	mockUserService := usermocks.NewMockUserService(ctrl)
+	mockJWTAuth := jwtmocks.NewMockJWTAuth(ctrl)
 	router := NewRouter(mockUserService, mockJWTAuth, log.NewTest(t))
 	return router, mockUserService, mockJWTAuth
 }

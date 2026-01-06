@@ -5,8 +5,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/imtaco/audio-rtc-exp/internal/log"
 	"github.com/jonboulle/clockwork"
+
+	"github.com/imtaco/audio-rtc-exp/internal/log"
 )
 
 // KeyedScheduler is a priority-based scheduler that manages delayed execution of items

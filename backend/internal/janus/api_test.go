@@ -7,8 +7,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/imtaco/audio-rtc-exp/internal/log"
 	"github.com/stretchr/testify/suite"
+
+	"github.com/imtaco/audio-rtc-exp/internal/log"
 )
 
 type JanusAPITestSuite struct {

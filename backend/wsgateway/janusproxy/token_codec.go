@@ -8,8 +8,9 @@ import (
 	"encoding/binary"
 	"io"
 
-	"github.com/imtaco/audio-rtc-exp/wsgateway"
 	"github.com/pkg/errors"
+
+	"github.com/imtaco/audio-rtc-exp/wsgateway"
 )
 
 func NewJanusTokenCodec(key []byte) (wsgateway.JanusTokenCodec, error) {

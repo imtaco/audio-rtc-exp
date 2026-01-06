@@ -13,8 +13,9 @@ import (
 	context "context"
 	reflect "reflect"
 
-	users "github.com/imtaco/audio-rtc-exp/users"
 	gomock "go.uber.org/mock/gomock"
+
+	users "github.com/imtaco/audio-rtc-exp/users"
 )
 
 // MockRoomsState is a mock of RoomsState interface.

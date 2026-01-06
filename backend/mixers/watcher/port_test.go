@@ -3,8 +3,9 @@ package watcher
 import (
 	"testing"
 
-	"github.com/imtaco/audio-rtc-exp/internal/log"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/imtaco/audio-rtc-exp/internal/log"
 )
 
 func TestNewPortManager(t *testing.T) {

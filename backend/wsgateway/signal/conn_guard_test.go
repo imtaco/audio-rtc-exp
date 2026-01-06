@@ -4,14 +4,14 @@ import (
 	"context"
 	"testing"
 
-	"github.com/imtaco/audio-rtc-exp/internal/jsonrpc"
-	"github.com/imtaco/audio-rtc-exp/internal/jsonrpc/mocks"
-	"github.com/imtaco/audio-rtc-exp/internal/log"
-	"go.uber.org/mock/gomock"
-
 	"github.com/alicebob/miniredis/v2"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/suite"
+	"go.uber.org/mock/gomock"
+
+	"github.com/imtaco/audio-rtc-exp/internal/jsonrpc"
+	"github.com/imtaco/audio-rtc-exp/internal/jsonrpc/mocks"
+	"github.com/imtaco/audio-rtc-exp/internal/log"
 )
 
 type ConnLockSuite struct {

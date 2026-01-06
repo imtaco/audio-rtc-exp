@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/imtaco/audio-rtc-exp/internal/log"
 	"github.com/jonboulle/clockwork"
 	"github.com/redis/go-redis/v9"
+
+	"github.com/imtaco/audio-rtc-exp/internal/log"
 )
 
 type Trimer interface {
