@@ -44,7 +44,8 @@ type message struct {
 func (m *message) validate() {
 	// TODO: check rpc version ?
 
-	if m.Method != nil {
+	switch {
+	case m.Method != nil:
 		if m.Result != nil || m.Error != nil {
 			m.msgType = typeUnknown
 			return
@@ -54,13 +55,13 @@ func (m *message) validate() {
 		} else {
 			m.msgType = typeRequst
 		}
-	} else if m.Result != nil || m.Error != nil {
+	case m.Result != nil || m.Error != nil:
 		if m.ID.IsSet() {
 			m.msgType = typeResponse
 		} else {
 			m.msgType = typeUnknown
 		}
-	} else {
+	default:
 		m.msgType = typeUnknown
 	}
 }
@@ -96,12 +97,12 @@ func newNotificationMessage(method string, params interface{}) (*message, error)
 	}, nil
 }
 
-func newResponseMessage(id ID, result interface{}, Err *Error) (*message, error) {
+func newResponseMessage(id ID, result interface{}, err *Error) (*message, error) {
 	var resultRaw *json.RawMessage
-	if Err == nil {
-		bs, err := json.Marshal(result)
-		if err != nil {
-			return nil, errors.Wrap(ErrCodeParseError, err, "failed to marshal result")
+	if err == nil {
+		bs, marshalErr := json.Marshal(result)
+		if marshalErr != nil {
+			return nil, errors.Wrap(ErrCodeParseError, marshalErr, "failed to marshal result")
 		}
 		resultRaw = utils.Ptr(json.RawMessage(bs))
 	}
@@ -109,7 +110,7 @@ func newResponseMessage(id ID, result interface{}, Err *Error) (*message, error)
 		JSONRPC: jsonRPCVersion,
 		ID:      &id,
 		Result:  resultRaw,
-		Error:   Err,
+		Error:   err,
 		msgType: typeResponse,
 	}, nil
 }

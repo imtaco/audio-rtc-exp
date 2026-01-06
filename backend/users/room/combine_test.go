@@ -95,7 +95,7 @@ func (s *CombinedRoomTestSuite) TestCreateUser() {
 		{
 			name: "create duplicate user should fail",
 			setup: func() {
-				s.room.CreateUser(s.ctx, "room2", "user1", &users.User{
+				_, _ = s.room.CreateUser(s.ctx, "room2", "user1", &users.User{
 					Role: "anchor",
 					Gen:  0,
 					TS:   now,
@@ -156,7 +156,7 @@ func (s *CombinedRoomTestSuite) TestUpdateUserStatus() {
 		{
 			name: "update existing user status",
 			setup: func() {
-				s.room.CreateUser(s.ctx, "room1", "user1", &users.User{
+				_, _ = s.room.CreateUser(s.ctx, "room1", "user1", &users.User{
 					Role: "anchor",
 					Gen:  0,
 					TS:   now,
@@ -234,12 +234,12 @@ func (s *CombinedRoomTestSuite) TestRemoveUser() {
 		{
 			name: "remove existing user",
 			setup: func() {
-				s.room.CreateUser(s.ctx, "room1", "user1", &users.User{
+				_, _ = s.room.CreateUser(s.ctx, "room1", "user1", &users.User{
 					Role: "anchor",
 					Gen:  0,
 					TS:   now,
 				})
-				s.room.CreateUser(s.ctx, "room1", "user2", &users.User{
+				_, _ = s.room.CreateUser(s.ctx, "room1", "user2", &users.User{
 					Role: "viewer",
 					Gen:  0,
 					TS:   now,
@@ -258,7 +258,7 @@ func (s *CombinedRoomTestSuite) TestRemoveUser() {
 		{
 			name: "remove last user from room",
 			setup: func() {
-				s.room.CreateUser(s.ctx, "room2", "user1", &users.User{
+				_, _ = s.room.CreateUser(s.ctx, "room2", "user1", &users.User{
 					Role: "anchor",
 					Gen:  0,
 					TS:   now,
@@ -313,12 +313,12 @@ func (s *CombinedRoomTestSuite) TestGetRoomUsers() {
 	s.Run("get users from existing room", func() {
 		s.resetRoomState()
 
-		s.room.CreateUser(s.ctx, "room1", "user1", &users.User{
+		_, _ = s.room.CreateUser(s.ctx, "room1", "user1", &users.User{
 			Role: "anchor",
 			Gen:  0,
 			TS:   now,
 		})
-		s.room.CreateUser(s.ctx, "room1", "user2", &users.User{
+		_, _ = s.room.CreateUser(s.ctx, "room1", "user2", &users.User{
 			Role: "viewer",
 			Gen:  0,
 			TS:   now,
@@ -353,12 +353,12 @@ func (s *CombinedRoomTestSuite) TestRebuild() {
 	s.Run("rebuild from existing data", func() {
 		s.resetRoomState()
 
-		s.room.CreateUser(s.ctx, "room1", "user1", &users.User{
+		_, _ = s.room.CreateUser(s.ctx, "room1", "user1", &users.User{
 			Role: "anchor",
 			Gen:  0,
 			TS:   now,
 		})
-		s.room.UpdateUserStatus(s.ctx, "room1", "user1", &users.User{
+		_, _ = s.room.UpdateUserStatus(s.ctx, "room1", "user1", &users.User{
 			Status: constants.AnchorStatusOnAir,
 			Gen:    1,
 			TS:     now,
@@ -391,12 +391,12 @@ func (s *CombinedRoomTestSuite) TestCheckTimeout() {
 
 		oldTime := time.Now().Add(-users.UserStatusTimeout - time.Minute)
 
-		s.room.CreateUser(s.ctx, "room1", "user1", &users.User{
+		_, _ = s.room.CreateUser(s.ctx, "room1", "user1", &users.User{
 			Role: "anchor",
 			Gen:  0,
 			TS:   oldTime,
 		})
-		s.room.UpdateUserStatus(s.ctx, "room1", "user1", &users.User{
+		_, _ = s.room.UpdateUserStatus(s.ctx, "room1", "user1", &users.User{
 			Status: constants.AnchorStatusIdle,
 			Gen:    1,
 			TS:     oldTime,
@@ -415,12 +415,12 @@ func (s *CombinedRoomTestSuite) TestCheckTimeout() {
 
 		now := time.Now()
 
-		s.room.CreateUser(s.ctx, "room2", "user2", &users.User{
+		_, _ = s.room.CreateUser(s.ctx, "room2", "user2", &users.User{
 			Role: "anchor",
 			Gen:  0,
 			TS:   now,
 		})
-		s.room.UpdateUserStatus(s.ctx, "room2", "user2", &users.User{
+		_, _ = s.room.UpdateUserStatus(s.ctx, "room2", "user2", &users.User{
 			Status: constants.AnchorStatusOnAir,
 			Gen:    1,
 			TS:     now,

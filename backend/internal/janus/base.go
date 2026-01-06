@@ -38,7 +38,7 @@ func (b *baseInstance) GetHandleID() int64 {
 	return b.handleID
 }
 
-func (b *baseInstance) post(ctx context.Context, payload map[string]interface{}) (*JanusResponse, error) {
+func (b *baseInstance) post(ctx context.Context, payload map[string]interface{}) (*Response, error) {
 	if payload == nil {
 		payload = make(map[string]interface{})
 	}
@@ -49,7 +49,7 @@ func (b *baseInstance) post(ctx context.Context, payload map[string]interface{})
 }
 
 // postMessage posts a message with a typed body payload.
-func (b *baseInstance) postMessage(ctx context.Context, janus string, body interface{}) (*JanusResponse, error) {
+func (b *baseInstance) postMessage(ctx context.Context, janus string, body interface{}) (*Response, error) {
 	payload := map[string]interface{}{
 		"janus":      janus,
 		"session_id": b.sessionID,
@@ -63,7 +63,7 @@ func (b *baseInstance) postMessage(ctx context.Context, janus string, body inter
 }
 
 // postTrickle posts a trickle ICE candidate.
-func (b *baseInstance) postTrickle(ctx context.Context, candidate ICECandidate) (*JanusResponse, error) {
+func (b *baseInstance) postTrickle(ctx context.Context, candidate ICECandidate) (*Response, error) {
 	payload := map[string]interface{}{
 		"janus":      "trickle",
 		"session_id": b.sessionID,
@@ -79,7 +79,7 @@ func (b *baseInstance) postMessageWithJSEP(
 	ctx context.Context,
 	body interface{},
 	jsep *JSEP,
-) (*JanusResponse, error) {
+) (*Response, error) {
 	payload := map[string]interface{}{
 		"janus":      "message",
 		"session_id": b.sessionID,
@@ -149,11 +149,11 @@ func (b *baseInstance) runKeepalive(ctx context.Context) {
 	}
 }
 
-func (b *baseInstance) GetEvents(ctx context.Context, maxEvents int) ([]*JanusResponse, error) {
+func (b *baseInstance) GetEvents(ctx context.Context, maxEvents int) ([]*Response, error) {
 	if maxEvents <= 0 {
 		maxEvents = 3
 	}
-	var payload []*JanusResponse
+	var payload []*Response
 	path := fmt.Sprintf("/janus/%d", b.sessionID)
 	resp, err := client.R().
 		SetContext(ctx).

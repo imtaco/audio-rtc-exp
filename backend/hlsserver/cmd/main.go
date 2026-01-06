@@ -21,9 +21,9 @@ type Config struct {
 	App               config.App      `mapstructure:"app"`
 	Etcd              etcd.Config     `mapstructure:"etcd"`
 	Otel              otel.Config     `mapstructure:"otel"`
-	TokenServerHttp   httputil.Config `mapstructure:"token_server_http"`
-	KeyServerHttp     httputil.Config `mapstructure:"key_server_http"`
-	M3U8ServerHttp    httputil.Config `mapstructure:"m3u8_server_http"`
+	TokenServerHTTP   httputil.Config `mapstructure:"token_server_http"`
+	KeyServerHTTP     httputil.Config `mapstructure:"key_server_http"`
+	M3U8ServerHTTP    httputil.Config `mapstructure:"m3u8_server_http"`
 	EnableTokenServer bool            `mapstructure:"enable_token_server"`
 	EnableKeyServer   bool            `mapstructure:"enable_key_server"`
 	EnableM3U8Server  bool            `mapstructure:"enable_m3u8_server"`
@@ -63,7 +63,7 @@ func main() {
 	if err != nil {
 		log.Fatal("Failed to create logger", err)
 	}
-	defer logger.Sync()
+	defer func() { _ = logger.Sync() }()
 
 	ctx := context.Background()
 
@@ -77,9 +77,9 @@ func main() {
 		log.Bool("tokenServerEnabled", config.EnableTokenServer),
 		log.Bool("keyServerEnabled", config.EnableKeyServer),
 		log.Bool("m3u8ServerEnabled", config.EnableM3U8Server),
-		log.String("tokenServerAddr", config.TokenServerHttp.Addr),
-		log.String("keyServerAddr", config.KeyServerHttp.Addr),
-		log.String("m3u8ServerAddr", config.M3U8ServerHttp.Addr))
+		log.String("tokenServerAddr", config.TokenServerHTTP.Addr),
+		log.String("keyServerAddr", config.KeyServerHTTP.Addr),
+		log.String("m3u8ServerAddr", config.M3U8ServerHTTP.Addr))
 
 	etcdClient, err := etcd.NewClient(&config.Etcd)
 	if err != nil {
@@ -87,7 +87,7 @@ func main() {
 	}
 	defer etcdClient.Close()
 
-	jwtAuth := jwt.NewJWTAuth(config.JWTSecret)
+	jwtAuth := jwt.NewAuth(config.JWTSecret)
 
 	roomWatcher := watcher.NewRoomWatcher(
 		etcdClient,
@@ -107,9 +107,9 @@ func main() {
 
 	// Start servers based on configuration
 	if config.EnableTokenServer {
-		tokenServer = httputil.NewServer(&config.TokenServerHttp, tokenRouter.Handler())
+		tokenServer = httputil.NewServer(&config.TokenServerHTTP, tokenRouter.Handler())
 		go func() {
-			logger.Info("Starting token server", log.String("addr", config.TokenServerHttp.Addr))
+			logger.Info("Starting token server", log.String("addr", config.TokenServerHTTP.Addr))
 			if err := tokenServer.Listen(); err != nil && err != http.ErrServerClosed {
 				logger.Fatal("Failed to start token server", log.Error(err))
 			}
@@ -117,9 +117,9 @@ func main() {
 	}
 
 	if config.EnableKeyServer {
-		keyServer = httputil.NewServer(&config.KeyServerHttp, keyRouter.Handler())
+		keyServer = httputil.NewServer(&config.KeyServerHTTP, keyRouter.Handler())
 		go func() {
-			logger.Info("Starting key server", log.String("addr", config.KeyServerHttp.Addr))
+			logger.Info("Starting key server", log.String("addr", config.KeyServerHTTP.Addr))
 			if err := keyServer.Listen(); err != nil && err != http.ErrServerClosed {
 				logger.Fatal("Failed to start key server", log.Error(err))
 			}
@@ -128,15 +128,15 @@ func main() {
 
 	if config.EnableM3U8Server {
 		logger.Info("M3U8 server enabled but not yet implemented",
-			log.String("addr", config.M3U8ServerHttp.Addr))
+			log.String("addr", config.M3U8ServerHTTP.Addr))
 	}
 
 	cleanup := func(ctx context.Context) {
 		if tokenServer != nil {
-			tokenServer.Shutdown(ctx)
+			_ = tokenServer.Shutdown(ctx)
 		}
 		if keyServer != nil {
-			keyServer.Shutdown(ctx)
+			_ = keyServer.Shutdown(ctx)
 		}
 
 		if err := roomWatcher.Stop(); err != nil {

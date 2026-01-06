@@ -2,6 +2,7 @@ package httputil
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
@@ -35,8 +36,9 @@ func Setup(v *viper.Viper, prefix string) {
 func NewServer(cfg *Config, handler http.Handler) *Server {
 	return &Server{
 		Server: &http.Server{
-			Addr:    cfg.Addr,
-			Handler: handler,
+			Addr:              cfg.Addr,
+			Handler:           handler,
+			ReadHeaderTimeout: 10 * time.Second,
 		},
 		cfg: cfg,
 	}

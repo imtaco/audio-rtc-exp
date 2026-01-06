@@ -70,7 +70,7 @@ func (s *Server[T]) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	stream := newStream(wsConn, s.logger)
-	rpcConn := s.Handler.NewConn(stream, initValue)
+	rpcConn := s.NewConn(stream, initValue)
 
 	s.logger.Info("WebSocket connection established",
 		log.String("remote_addr", r.RemoteAddr),

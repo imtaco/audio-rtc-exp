@@ -215,5 +215,5 @@ func (rm *resourceMgrImpl) randomPickModule(watcher etcdwatcher.HealthyModuleWat
 	}
 
 	// Randomly pick one
-	return pickableKeys[rand.Intn(len(pickableKeys))]
+	return pickableKeys[rand.Intn(len(pickableKeys))] // #nosec G404 -- weak random is acceptable for load balancing resource selection, no security impact
 }

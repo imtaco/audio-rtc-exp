@@ -127,7 +127,7 @@ func (s *UserStatusControlTestSuite) TestHandleCreate() {
 		rawParams := json.RawMessage(params)
 
 		replyCalled := false
-		reply := func(result interface{}, err error) {
+		reply := func(_ interface{}, err error) {
 			replyCalled = true
 			s.Assert().NoError(err)
 		}
@@ -165,7 +165,7 @@ func (s *UserStatusControlTestSuite) TestHandleCreate() {
 
 		replyCalled := false
 		var replyErr error
-		reply := func(result interface{}, err error) {
+		reply := func(_ interface{}, err error) {
 			replyCalled = true
 			replyErr = err
 		}
@@ -192,7 +192,7 @@ func (s *UserStatusControlTestSuite) TestHandleCreate() {
 
 		replyCalled := false
 		var replyErr error
-		reply := func(result interface{}, err error) {
+		reply := func(_ interface{}, err error) {
 			replyCalled = true
 			replyErr = err
 		}
@@ -222,7 +222,7 @@ func (s *UserStatusControlTestSuite) TestHandleCreate() {
 
 		replyCalled := false
 		var replyErr error
-		reply := func(result interface{}, err error) {
+		reply := func(_ interface{}, err error) {
 			replyCalled = true
 			replyErr = err
 		}
@@ -275,7 +275,7 @@ func (s *UserStatusControlTestSuite) TestHandleCreate() {
 		rawParams := json.RawMessage(params)
 
 		replyCalled := false
-		reply := func(result interface{}, err error) {
+		reply := func(_ interface{}, err error) {
 			replyCalled = true
 			s.Assert().NoError(err)
 		}
@@ -329,7 +329,7 @@ func (s *UserStatusControlTestSuite) TestHandleDelete() {
 	rawParams := json.RawMessage(params)
 
 	replyCalled := false
-	reply := func(result interface{}, err error) {
+	reply := func(_ interface{}, _ error) {
 		replyCalled = true
 	}
 
@@ -371,7 +371,7 @@ func (s *UserStatusControlTestSuite) TestHandleSetStatus() {
 		rawParams := json.RawMessage(params)
 
 		replyCalled := false
-		reply := func(result interface{}, err error) {
+		reply := func(_ interface{}, _ error) {
 			replyCalled = true
 		}
 
@@ -411,7 +411,7 @@ func (s *UserStatusControlTestSuite) TestHandleSetStatus() {
 		rawParams := json.RawMessage(params)
 
 		replyCalled := false
-		reply := func(result interface{}, err error) {
+		reply := func(_ interface{}, _ error) {
 			replyCalled = true
 		}
 
@@ -423,7 +423,7 @@ func (s *UserStatusControlTestSuite) TestHandleSetStatus() {
 
 		select {
 		case event := <-s.ctrl.userEventCh:
-			event.action(ctx)
+			_ = event.action(ctx)
 		case <-time.After(1 * time.Second):
 			s.T().Fatal("timeout waiting for event")
 		}
@@ -463,7 +463,7 @@ func (s *UserStatusControlTestSuite) TestUserEvent() {
 	called := false
 
 	event := &userEvent{
-		action: func(ctx context.Context) error {
+		action: func(_ context.Context) error {
 			called = true
 			return nil
 		},
@@ -491,7 +491,7 @@ func (s *UserStatusControlTestSuite) TestLoop() {
 
 		called := make(chan bool, 1)
 		event := &userEvent{
-			action: func(ctx context.Context) error {
+			action: func(_ context.Context) error {
 				called <- true
 				return nil
 			},

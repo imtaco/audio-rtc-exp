@@ -88,35 +88,35 @@ func (jp *janusProxyImpl) GetJanusRoomID(roomID string) int64 {
 
 func (jp *janusProxyImpl) GetJanusAPI(roomID string) janus.API {
 	result, _, _ := jp.sfJanus.Do(roomID, func() (interface{}, error) {
-		janusId := jp.getJanusID(roomID)
-		if janusId == "" {
+		janusID := jp.getJanusID(roomID)
+		if janusID == "" {
 			return nil, nil
 		}
 
-		hb, _ := jp.janusWatcher.Get(janusId)
+		hb, _ := jp.janusWatcher.Get(janusID)
 		host := hb.GetHeartbeat().GetHost()
 
 		// unregister janus instance if host is not found or unhealthy
 		if host == "" {
-			jp.instCache.Remove(janusId)
+			jp.instCache.Remove(janusID)
 			return nil, nil
 		}
 
-		janusApi, ok := jp.instCache.Get(janusId)
+		janusAPI, ok := jp.instCache.Get(janusID)
 		if ok {
-			return janusApi, nil
+			return janusAPI, nil
 		}
 
 		url := fmt.Sprintf("http://%s:%s", host, jp.janusPort)
-		janusApi = janus.New(url, jp.logger)
-		jp.instCache.Add(janusId, janusApi)
+		janusAPI = janus.New(url, jp.logger)
+		jp.instCache.Add(janusID, janusAPI)
 
 		jp.logger.Info("Created new Janus API instance",
-			log.String("janusId", janusId),
+			log.String("janusId", janusID),
 			log.String("url", url),
 		)
 
-		return janusApi, nil
+		return janusAPI, nil
 	})
 
 	if result == nil {

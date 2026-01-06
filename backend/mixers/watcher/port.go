@@ -33,7 +33,7 @@ func (pm *portMgrImpl) GetFreeRTPPort() (int, error) {
 	// Try to find a port pair in the specified range
 	for attempt := 0; attempt < maxAttempts; attempt++ {
 		// Generate random even port in range (RTP must be even)
-		port := pm.portRangeStart + rand.Intn(pm.portRangeEnd-pm.portRangeStart+1)
+		port := pm.portRangeStart + rand.Intn(pm.portRangeEnd-pm.portRangeStart+1) // #nosec G404 -- weak random is acceptable for port selection, no security impact
 
 		// Ensure port is even
 		if port%2 != 0 {
@@ -61,7 +61,7 @@ func (pm *portMgrImpl) GetFreeRTPPort() (int, error) {
 	ephemeralEnd := 65534 // -1 to leave room for RTCP
 
 	for i := 0; i < 20; i++ {
-		port := ephemeralStart + rand.Intn(ephemeralEnd-ephemeralStart+1)
+		port := ephemeralStart + rand.Intn(ephemeralEnd-ephemeralStart+1) // #nosec G404 -- weak random is acceptable for port selection, no security impact
 
 		// Ensure port is even
 		if port%2 != 0 {

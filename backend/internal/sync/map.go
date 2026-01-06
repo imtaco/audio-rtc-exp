@@ -79,7 +79,7 @@ func (m *Map[K, V]) LoadAndDelete(key K) (value V, loaded bool) {
 // CompareAndSwap swaps the old and new values for key
 // if the value stored in the map is equal to old.
 // The old value must be of a comparable type.
-func (m *Map[K, V]) CompareAndSwap(key K, old, new V) bool {
+func (m *Map[K, V]) CompareAndSwap(key K, old, newVal V) bool {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	current, exists := m.m[key]
@@ -89,7 +89,7 @@ func (m *Map[K, V]) CompareAndSwap(key K, old, new V) bool {
 	// For comparable types, we can use ==
 	// This works for basic types and pointers
 	if any(current) == any(old) {
-		m.m[key] = new
+		m.m[key] = newVal
 		return true
 	}
 	return false

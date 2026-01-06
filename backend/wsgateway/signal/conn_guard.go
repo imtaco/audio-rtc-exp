@@ -84,8 +84,8 @@ func NewConnGuard(
 	}
 }
 
-func (s *connGuardImpl) connKey(userId string) string {
-	return fmt.Sprintf("%s:c:%s", s.prefix, userId)
+func (s *connGuardImpl) connKey(userID string) string {
+	return fmt.Sprintf("%s:c:%s", s.prefix, userID)
 }
 
 func (s *connGuardImpl) serverKey() string {

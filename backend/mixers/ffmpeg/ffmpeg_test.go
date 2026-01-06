@@ -245,7 +245,7 @@ func (s *FFmpegManagerTestSuite) TestStopAll() {
 		}
 
 		count := 0
-		s.ffmpegMgr.processes.Range(func(key, value interface{}) bool {
+		s.ffmpegMgr.processes.Range(func(_, _ interface{}) bool {
 			count++
 			return true
 		})

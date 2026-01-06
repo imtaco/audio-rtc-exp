@@ -18,7 +18,7 @@ type peerImpl[T any] struct {
 	Conn[T]
 }
 
-func NewPeer[T any](stream ObjectStream, v *T, logger *log.Logger) Peer[T] {
+func NewPeer[T any](stream ObjectStream, _ *T, logger *log.Logger) Peer[T] {
 	if logger == nil {
 		panic("logger cannot be nil")
 	}
@@ -65,26 +65,26 @@ func (s *handlerImpl[T]) NewConn(stream ObjectStream, v *T) Conn[T] {
 	return newConn(stream, v, s.handle, s.logger)
 }
 
-func (c *handlerImpl[T]) handle(ctx context.Context, conn *connImpl[T], req *Request) {
+func (s *handlerImpl[T]) handle(ctx context.Context, conn *connImpl[T], req *Request) {
 
-	c.logger.Debug("RPC request received",
+	s.logger.Debug("RPC request received",
 		log.String("method", req.Method),
 		log.Any("id", req.ID))
 
-	handler, ok := c.methods[req.Method]
+	handler, ok := s.methods[req.Method]
 	if !ok {
-		c.logger.Warn("Method not found",
-			log.Int("len", len(c.methods)),
+		s.logger.Warn("Method not found",
+			log.Int("len", len(s.methods)),
 			log.String("method", req.Method),
 			log.Any("id", req.ID))
 
-		conn.replyError(ctx, req.ID, ErrMethodNotFound(req.Method))
+		_ = conn.replyError(ctx, req.ID, ErrMethodNotFound(req.Method))
 		return
 	}
 
 	reply := func(result interface{}, err error) {
-		if err := c.reply(ctx, conn, req, result, err); err != nil {
-			c.logger.Error("Failed to send RPC reply",
+		if err := s.reply(ctx, conn, req, result, err); err != nil {
+			s.logger.Error("Failed to send RPC reply",
 				log.String("method", req.Method),
 				log.Any("id", req.ID),
 				log.Error(err))
@@ -93,7 +93,7 @@ func (c *handlerImpl[T]) handle(ctx context.Context, conn *connImpl[T], req *Req
 	handler(conn.mctx, req.Params, reply)
 }
 
-func (c *handlerImpl[T]) reply(
+func (s *handlerImpl[T]) reply(
 	ctx context.Context,
 	conn *connImpl[T],
 	req *Request,
@@ -102,25 +102,24 @@ func (c *handlerImpl[T]) reply(
 ) error {
 
 	if err == nil {
-		c.logger.Debug("RPC request completed",
+		s.logger.Debug("RPC request completed",
 			log.Any("id", req.ID))
 		return conn.reply(ctx, req.ID, result)
 	}
 
 	if rpcErr, ok := err.(*Error); ok {
-		c.logger.Error("RPC handler returned error",
+		s.logger.Error("RPC handler returned error",
 			log.String("method", req.Method),
 			log.Any("id", req.ID),
 			log.Int64("error_code", rpcErr.Code),
 			log.String("error_message", rpcErr.Message))
 		return conn.replyError(ctx, req.ID, rpcErr)
-	} else {
-		c.logger.Error("RPC handler returned unexpected error",
-			log.String("method", req.Method),
-			log.Any("id", req.ID),
-			log.Error(err))
-
-		// do not disclose internal error details to client
-		return conn.replyError(ctx, req.ID, ErrInternal("unknown error"))
 	}
+	s.logger.Error("RPC handler returned unexpected error",
+		log.String("method", req.Method),
+		log.Any("id", req.ID),
+		log.Error(err))
+
+	// do not disclose internal error details to client
+	return conn.replyError(ctx, req.ID, ErrInternal("unknown error"))
 }

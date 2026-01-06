@@ -57,7 +57,7 @@ func TestMap_Range(t *testing.T) {
 
 	count := 0
 	sum := 0
-	m.Range(func(key string, value int) bool {
+	m.Range(func(_ string, value int) bool {
 		count++
 		sum += value
 		return true
@@ -75,7 +75,7 @@ func TestMap_RangeStopEarly(t *testing.T) {
 	m.Store("key3", 3)
 
 	count := 0
-	m.Range(func(key string, value int) bool {
+	m.Range(func(_ string, _ int) bool {
 		count++
 		return count < 2
 	})
@@ -231,7 +231,7 @@ func TestMap_WithLock_Range(t *testing.T) {
 
 	var count, sum int
 	m.WithLock(func(view View[string, int]) {
-		view.Range(func(key string, value int) bool {
+		view.Range(func(_ string, value int) bool {
 			count++
 			sum += value
 			return true
@@ -255,7 +255,7 @@ func TestMap_WithLock_Len(t *testing.T) {
 	assert.Equal(t, 2, length)
 }
 
-func TestMap_WithLock_Concurrency(t *testing.T) {
+func TestMap_WithLock_Concurrency(_ *testing.T) {
 	m := NewMap[int, int]()
 
 	// Initialize map
@@ -279,7 +279,7 @@ func TestMap_WithLock_Concurrency(t *testing.T) {
 	go func() {
 		m.WithLock(func(view View[int, int]) {
 			sum := 0
-			view.Range(func(key int, value int) bool {
+			view.Range(func(_ int, value int) bool {
 				sum += value
 				return true
 			})
@@ -298,7 +298,7 @@ func TestMap_WithLock_Panic(t *testing.T) {
 	// Test that lock is released even when panic occurs
 	func() {
 		defer func() {
-			recover()
+			_ = recover()
 		}()
 		m.WithLock(func(view View[string, int]) {
 			view.Set("key2", 2)

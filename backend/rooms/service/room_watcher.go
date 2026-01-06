@@ -47,7 +47,7 @@ func NewRoomWatcherWithStats(
 	return w
 }
 
-func (w *roomWatcherWithStats) processChange(ctx context.Context, roomID string, state *etcdstate.RoomState) error {
+func (w *roomWatcherWithStats) processChange(_ context.Context, roomID string, state *etcdstate.RoomState) error {
 	// Get the previous state to track changes
 	// Get old module IDs
 	newJanusID := state.GetLiveMeta().GetJanusID()
@@ -63,7 +63,7 @@ func (w *roomWatcherWithStats) processChange(ctx context.Context, roomID string,
 	return nil
 }
 
-func (w *roomWatcherWithStats) RebuildStart(ctx context.Context) error {
+func (w *roomWatcherWithStats) RebuildStart(_ context.Context) error {
 	w.rwLock.Lock()
 
 	// Clear usage maps before rebuilding
@@ -72,7 +72,7 @@ func (w *roomWatcherWithStats) RebuildStart(ctx context.Context) error {
 	return nil
 }
 
-func (w *roomWatcherWithStats) RebuildState(ctx context.Context, id string, etcdData *etcdstate.RoomState) error {
+func (w *roomWatcherWithStats) RebuildState(_ context.Context, id string, etcdData *etcdstate.RoomState) error {
 	// During rebuild, count all active rooms
 	liveMeta := etcdData.GetLiveMeta()
 	if liveMeta == nil {
@@ -90,7 +90,7 @@ func (w *roomWatcherWithStats) RebuildState(ctx context.Context, id string, etcd
 	return nil
 }
 
-func (w *roomWatcherWithStats) RebuildEnd(ctx context.Context) error {
+func (w *roomWatcherWithStats) RebuildEnd(_ context.Context) error {
 	w.rwLock.Unlock()
 
 	return nil
@@ -111,7 +111,7 @@ func (w *roomWatcherWithStats) GetMixerStreamCount(mixerID string) int {
 }
 
 func (w *roomWatcherWithStats) NewState(
-	id, keyType string,
+	_, keyType string,
 	data []byte,
 	curState *etcdstate.RoomState,
 ) (*etcdstate.RoomState, error) {

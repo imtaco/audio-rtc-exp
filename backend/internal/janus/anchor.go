@@ -23,7 +23,7 @@ func (a *anchorInstance) Join(
 	roomID int64,
 	pin string,
 	displayName string,
-	jsep *JSEP) (*JanusResponse, error) {
+	jsep *JSEP) (*Response, error) {
 	req := JoinRequest{
 		Request: "join",
 		Room:    roomID,
@@ -35,7 +35,7 @@ func (a *anchorInstance) Join(
 }
 
 // Leave instructs Janus to leave the current room.
-func (a *anchorInstance) Leave(ctx context.Context) (*JanusResponse, error) {
+func (a *anchorInstance) Leave(ctx context.Context) (*Response, error) {
 	req := LeaveRequest{
 		Request: "leave",
 	}
@@ -43,7 +43,7 @@ func (a *anchorInstance) Leave(ctx context.Context) (*JanusResponse, error) {
 }
 
 // IceCandidate forwards an ICE candidate (or completion message) to Janus.
-func (a *anchorInstance) IceCandidate(ctx context.Context, candidate ICECandidate) (*JanusResponse, error) {
+func (a *anchorInstance) IceCandidate(ctx context.Context, candidate ICECandidate) (*Response, error) {
 	return a.postTrickle(ctx, candidate)
 }
 

@@ -14,8 +14,8 @@ import (
 	"github.com/imtaco/audio-rtc-exp/users"
 )
 
-// wsConnManager manages WebSocket connections and broadcasts messages to clients in rooms
-type wsConnManager struct {
+// WSConnManager manages WebSocket connections and broadcasts messages to clients in rooms
+type WSConnManager struct {
 	room2clients map[string]map[string]jsonrpc.Conn[rtcContext] // roomId -> connId -> Client
 	client2room  map[string]string                              // connId -> roomId
 	clientsMux   sync.RWMutex
@@ -27,7 +27,7 @@ func NewWSConnMgr(
 	redisClient *redis.Client,
 	wsStreamName string,
 	logger *log.Logger,
-) (*wsConnManager, error) {
+) (*WSConnManager, error) {
 	peer2ws, err := redisrpc.NewPeer[interface{}](
 		redisClient,
 		"", // consumer only, no need to specify producer name
@@ -39,7 +39,7 @@ func NewWSConnMgr(
 		return nil, fmt.Errorf("failed to create WS RPC peer: %w", err)
 	}
 
-	return &wsConnManager{
+	return &WSConnManager{
 		peer2ws:      peer2ws,
 		room2clients: make(map[string]map[string]jsonrpc.Conn[rtcContext]),
 		client2room:  make(map[string]string),
@@ -47,7 +47,7 @@ func NewWSConnMgr(
 	}, nil
 }
 
-func (m *wsConnManager) Start(ctx context.Context) error {
+func (m *WSConnManager) Start(ctx context.Context) error {
 	m.logger.Info("Starting WebSocket client manager")
 	m.register()
 
@@ -57,7 +57,7 @@ func (m *wsConnManager) Start(ctx context.Context) error {
 	return nil
 }
 
-func (m *wsConnManager) Stop(ctx context.Context) error {
+func (m *WSConnManager) Stop(_ context.Context) error {
 	m.logger.Info("Stopping WebSocket client manager")
 	if err := m.peer2ws.Close(); err != nil {
 		m.logger.Error("Failed to close WS RPC peer", log.Error(err))
@@ -65,13 +65,13 @@ func (m *wsConnManager) Stop(ctx context.Context) error {
 	return nil
 }
 
-func (m *wsConnManager) register() {
+func (m *WSConnManager) register() {
 	m.peer2ws.Def("broadcastRoomStatus", m.handleBroadcast)
 
 }
 
-func (m *wsConnManager) handleBroadcast(
-	mctx jsonrpc.MethodContext[interface{}],
+func (m *WSConnManager) handleBroadcast(
+	_ jsonrpc.MethodContext[interface{}],
 	params *json.RawMessage,
 ) (interface{}, error) {
 
@@ -88,7 +88,7 @@ func (m *wsConnManager) handleBroadcast(
 	return nil, nil
 }
 
-func (m *wsConnManager) AddClient(connID, roomID string, peer jsonrpc.Conn[rtcContext]) {
+func (m *WSConnManager) AddClient(connID, roomID string, peer jsonrpc.Conn[rtcContext]) {
 	m.clientsMux.Lock()
 	defer m.clientsMux.Unlock()
 
@@ -107,7 +107,7 @@ func (m *wsConnManager) AddClient(connID, roomID string, peer jsonrpc.Conn[rtcCo
 	)
 }
 
-func (m *wsConnManager) RemoveClient(connID string) {
+func (m *WSConnManager) RemoveClient(connID string) {
 	m.clientsMux.Lock()
 	defer m.clientsMux.Unlock()
 
@@ -130,7 +130,7 @@ func (m *wsConnManager) RemoveClient(connID string) {
 	)
 }
 
-func (m *wsConnManager) RemoveRoom(roomID string) {
+func (m *WSConnManager) RemoveRoom(roomID string) {
 	m.clientsMux.Lock()
 	defer m.clientsMux.Unlock()
 
@@ -147,11 +147,11 @@ func (m *wsConnManager) RemoveRoom(roomID string) {
 	m.logger.Debug("Room removed", log.String("roomId", roomID))
 }
 
-func (m *wsConnManager) getRoomConns(roomId string) []jsonrpc.Conn[rtcContext] {
+func (m *WSConnManager) getRoomConns(roomID string) []jsonrpc.Conn[rtcContext] {
 	m.clientsMux.RLock()
 	defer m.clientsMux.RUnlock()
 
-	clients := m.room2clients[roomId]
+	clients := m.room2clients[roomID]
 	if clients == nil {
 		return nil
 	}
@@ -163,12 +163,12 @@ func (m *wsConnManager) getRoomConns(roomId string) []jsonrpc.Conn[rtcContext] {
 	return conns
 }
 
-func (m *wsConnManager) notifyRoomLocalPeer(
-	roomId,
+func (m *WSConnManager) notifyRoomLocalPeer(
+	roomID,
 	method string,
 	data interface{}) {
 
-	conns := m.getRoomConns(roomId)
+	conns := m.getRoomConns(roomID)
 	if conns == nil {
 		return
 	}
@@ -178,11 +178,11 @@ func (m *wsConnManager) notifyRoomLocalPeer(
 		ctx := conn.Context().Get().reqCtx
 		if err := conn.Notify(ctx, method, data); err != nil {
 			m.logger.Error("Failed to send to client",
-				log.String("roomId", roomId),
+				log.String("roomId", roomID),
 				log.Error(err),
 			)
 		}
 	}
 
-	m.logger.Debug("Notified room local peers", log.String("roomId", roomId))
+	m.logger.Debug("Notified room local peers", log.String("roomId", roomID))
 }

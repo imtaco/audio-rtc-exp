@@ -26,7 +26,7 @@ import (
 type Config struct {
 	App             config.App      `mapstructure:"app"`
 	Etcd            etcd.Config     `mapstructure:"etcd"`
-	Http            httputil.Config `mapstructure:"http"`
+	HTTP            httputil.Config `mapstructure:"http"`
 	Otel            otel.Config     `mapstructure:"otel"`
 	MixerID         string          `mapstructure:"mixer_id"`
 	MixerIP         string          `mapstructure:"mixer_ip"`
@@ -77,7 +77,7 @@ func main() {
 	if err != nil {
 		log.Fatal("Failed to create logger", err)
 	}
-	defer logger.Sync()
+	defer func() { _ = logger.Sync() }()
 
 	if config.MixerIP == "" {
 		config.MixerIP = network.HostIP().String()
@@ -158,10 +158,10 @@ func main() {
 
 	// Setup Gin router
 	router := transport.NewRouter(config.MixerID, logger.Module("Router"))
-	server := httputil.NewServer(&config.Http, router.Handler())
+	server := httputil.NewServer(&config.HTTP, router.Handler())
 
 	go func() {
-		logger.Info("Starting HTTP server", log.String("addr", config.Http.Addr))
+		logger.Info("Starting HTTP server", log.String("addr", config.HTTP.Addr))
 		if err := server.Listen(); err != nil && err != http.ErrServerClosed {
 			logger.Fatal("Failed to start HTTP server", log.Error(err))
 		}
@@ -170,7 +170,7 @@ func main() {
 
 	// Setup graceful shutdown
 	cleanup := func(ctx context.Context) {
-		server.Shutdown(ctx)
+		_ = server.Shutdown(ctx)
 
 		if err := heartbeat.Stop(ctx); err != nil {
 			logger.Error("Error cleaning up heartbeat", log.Error(err))

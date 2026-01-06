@@ -1,23 +1,17 @@
 package watcher
 
 import (
-	"net/http"
-
 	"github.com/imtaco/audio-rtc-exp/hlsserver"
 	"github.com/imtaco/audio-rtc-exp/internal/constants"
 	"github.com/imtaco/audio-rtc-exp/internal/etcdstate"
 	"github.com/imtaco/audio-rtc-exp/internal/log"
 	etcdwatcher "github.com/imtaco/audio-rtc-exp/internal/reswatcher/etcd"
 
-	lru "github.com/hashicorp/golang-lru/v2"
 	clientv3 "go.etcd.io/etcd/client/v3"
-	"golang.org/x/sync/singleflight"
 )
 
 type roomWatcherImpl struct {
 	etcdwatcher.RoomWatcher
-	handlerCache *lru.Cache[string, http.Handler]
-	sfMixer      singleflight.Group
 }
 
 func NewRoomWatcher(

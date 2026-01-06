@@ -40,14 +40,14 @@ func (s *JanusAPITestSuite) handleJanusRequest(w http.ResponseWriter, r *http.Re
 
 	janusType, _ := req["janus"].(string)
 
-	var resp JanusResponse
+	var resp Response
 	resp.Janus = "success"
 
 	switch janusType {
 	case "create":
-		resp.Data = &JanusData{ID: 1234}
+		resp.Data = &Data{ID: 1234}
 	case "attach":
-		resp.Data = &JanusData{ID: 5678}
+		resp.Data = &Data{ID: 5678}
 	case "message":
 		body, _ := req["body"].(map[string]interface{})
 		request, _ := body["request"].(string)
@@ -69,7 +69,7 @@ func (s *JanusAPITestSuite) handleJanusRequest(w http.ResponseWriter, r *http.Re
 		}
 
 		data, _ := json.Marshal(pluginData)
-		resp.Plugindata = &JanusPluginData{Data: data}
+		resp.Plugindata = &PluginData{Data: data}
 	case "keepalive":
 		// success
 	case "destroy":
@@ -82,7 +82,7 @@ func (s *JanusAPITestSuite) handleJanusRequest(w http.ResponseWriter, r *http.Re
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	_ = json.NewEncoder(w).Encode(resp)
 }
 
 func (s *JanusAPITestSuite) TestCreateSession() {
@@ -190,10 +190,10 @@ func (s *JanusAPITestSuite) TestErrorHandling() {
 		// Re-configure server to return error for a specific request
 		// For simplicity, I'll just use a one-off server or check if I can modify handleJanusRequest behavior
 		// Let's just create a new API pointing to a failing server
-		failServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			resp := JanusResponse{Janus: "error"}
+		failServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			resp := Response{Janus: "error"}
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(resp)
+			_ = json.NewEncoder(w).Encode(resp)
 		}))
 		defer failServer.Close()
 

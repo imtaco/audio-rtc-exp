@@ -5,10 +5,10 @@ import (
 	"crypto/sha256"
 )
 
-// GenerateAESKey generates a deterministic AES-128 key from roomId and nonce
-func GenerateAESKey(roomId, nonce string) []byte {
+// GenerateAESKey generates a deterministic AES-128 key from roomID and nonce
+func GenerateAESKey(roomID, nonce string) []byte {
 	hash := sha256.New()
-	hash.Write([]byte(roomId))
+	hash.Write([]byte(roomID))
 	hash.Write([]byte(nonce))
 	sum := hash.Sum(nil)
 	return sum[:16] // AES-128 uses 16 bytes

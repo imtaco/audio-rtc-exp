@@ -22,8 +22,8 @@ type WSHookSuite struct {
 	ctrl          *gomock.Controller
 	logger        *log.Logger
 	connGuard     *MockConnectionGuard
-	clientManager *wsConnManager
-	jwtAuth       *jwtmocks.MockJWTAuth
+	clientManager *WSConnManager
+	jwtAuth       *jwtmocks.MockAuth
 	hook          wsrpc.ConnectionHooks[rtcContext]
 }
 
@@ -35,9 +35,9 @@ func (s *WSHookSuite) SetupTest() {
 	s.ctrl = gomock.NewController(s.T())
 	s.logger = log.NewNop()
 	s.connGuard = NewMockConnectionGuard(s.ctrl)
-	s.jwtAuth = jwtmocks.NewMockJWTAuth(s.ctrl)
+	s.jwtAuth = jwtmocks.NewMockAuth(s.ctrl)
 
-	s.clientManager = &wsConnManager{
+	s.clientManager = &WSConnManager{
 		room2clients: make(map[string]map[string]jsonrpc.Conn[rtcContext]),
 		client2room:  make(map[string]string),
 		logger:       s.logger,
@@ -58,7 +58,7 @@ func (s *WSHookSuite) TearDownTest() {
 func (s *WSHookSuite) TestOnVerify_Success() {
 	req := httptest.NewRequest("GET", "/?token=valid-token", nil)
 
-	s.jwtAuth.EXPECT().Verify("valid-token").Return(&jwt.JWTPayload{
+	s.jwtAuth.EXPECT().Verify("valid-token").Return(&jwt.Payload{
 		UserID: "user1",
 		RoomID: "room1",
 	}, nil)
@@ -74,7 +74,7 @@ func (s *WSHookSuite) TestOnVerify_BearerToken() {
 	req := httptest.NewRequest("GET", "/", nil)
 	req.Header.Set("Authorization", "Bearer valid-token")
 
-	s.jwtAuth.EXPECT().Verify("valid-token").Return(&jwt.JWTPayload{
+	s.jwtAuth.EXPECT().Verify("valid-token").Return(&jwt.Payload{
 		UserID: "user1",
 		RoomID: "room1",
 	}, nil)

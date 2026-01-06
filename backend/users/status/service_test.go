@@ -24,7 +24,7 @@ type UserServiceUnitTestSuite struct {
 	suite.Suite
 	ctrl     *gomock.Controller
 	mockPeer *jsonrpcmocks.MockPeer[interface{}]
-	jwtAuth  jwt.JWTAuth
+	jwtAuth  jwt.Auth
 	svc      *userServiceImpl
 	ctx      context.Context
 }
@@ -36,7 +36,7 @@ func TestUserServiceUnitSuite(t *testing.T) {
 func (s *UserServiceUnitTestSuite) SetupTest() {
 	s.ctrl = gomock.NewController(s.T())
 	s.mockPeer = jsonrpcmocks.NewMockPeer[interface{}](s.ctrl)
-	s.jwtAuth = jwt.NewJWTAuth("test-secret-key")
+	s.jwtAuth = jwt.NewAuth("test-secret-key")
 	s.ctx = context.Background()
 
 	s.svc = &userServiceImpl{
@@ -55,7 +55,7 @@ func (s *UserServiceUnitTestSuite) TestCreateUser() {
 		// Expect Call with correct parameters
 		s.mockPeer.EXPECT().
 			Call(gomock.Any(), "createUser", gomock.Any(), nil).
-			DoAndReturn(func(ctx context.Context, method string, params, result interface{}) error {
+			DoAndReturn(func(_ context.Context, _ string, params, _ interface{}) error {
 				// Verify the request parameters
 				req, ok := params.(*users.CreateUserRequest)
 				s.Require().True(ok, "params should be *createUserRequest")
@@ -95,7 +95,7 @@ func (s *UserServiceUnitTestSuite) TestDeleteUser() {
 	s.Run("delete user successfully", func() {
 		s.mockPeer.EXPECT().
 			Call(gomock.Any(), "deleteUser", gomock.Any(), nil).
-			DoAndReturn(func(ctx context.Context, method string, params, result interface{}) error {
+			DoAndReturn(func(_ context.Context, _ string, params, _ interface{}) error {
 				req, ok := params.(*users.DeleteUserRequest)
 				s.Require().True(ok, "params should be *deleteUserRequest")
 				s.Assert().Equal("room1", req.RoomID)
@@ -125,7 +125,7 @@ func (s *UserServiceUnitTestSuite) TestSetUserStatus() {
 	s.Run("set status successfully", func() {
 		s.mockPeer.EXPECT().
 			Notify(gomock.Any(), "setUserStatus", gomock.Any()).
-			DoAndReturn(func(ctx context.Context, method string, params interface{}) error {
+			DoAndReturn(func(_ context.Context, _ string, params interface{}) error {
 				req, ok := params.(*users.SetStatusUserRequest)
 				s.Require().True(ok, "params should be *SetStatusUserRequest")
 				s.Assert().Equal("room1", req.RoomID)
@@ -154,7 +154,7 @@ func (s *UserServiceUnitTestSuite) TestSetUserStatus() {
 	s.Run("empty status", func() {
 		s.mockPeer.EXPECT().
 			Notify(gomock.Any(), "setUserStatus", gomock.Any()).
-			DoAndReturn(func(ctx context.Context, method string, params interface{}) error {
+			DoAndReturn(func(_ context.Context, _ string, params interface{}) error {
 				req := params.(*users.SetStatusUserRequest)
 				s.Assert().Equal(constants.AnchorStatus(""), req.Status)
 				return nil
@@ -170,7 +170,7 @@ func (s *UserServiceUnitTestSuite) TestCreateUserRequestMarshaling() {
 	s.Run("request can be marshaled to JSON", func() {
 		s.mockPeer.EXPECT().
 			Call(gomock.Any(), "createUser", gomock.Any(), nil).
-			DoAndReturn(func(ctx context.Context, method string, params, result interface{}) error {
+			DoAndReturn(func(_ context.Context, _ string, params, _ interface{}) error {
 				// Verify the struct can be marshaled
 				data, err := json.Marshal(params)
 				s.Require().NoError(err)
@@ -224,7 +224,7 @@ func TestNewUserService(t *testing.T) {
 	})
 	defer redisClient.Close()
 
-	jwtAuth := jwt.NewJWTAuth("test-secret-key")
+	jwtAuth := jwt.NewAuth("test-secret-key")
 	logger := log.NewNop()
 
 	t.Run("create service successfully", func(t *testing.T) {
@@ -292,7 +292,7 @@ func TestCreateUserJWTSigningFailure(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockPeer := jsonrpcmocks.NewMockPeer[interface{}](ctrl)
-	mockJWT := jwtmocks.NewMockJWTAuth(ctrl)
+	mockJWT := jwtmocks.NewMockAuth(ctrl)
 	ctx := context.Background()
 
 	svc := &userServiceImpl{

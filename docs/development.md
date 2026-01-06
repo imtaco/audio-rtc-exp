@@ -45,7 +45,7 @@
 - Collaborative music creation platforms
 - Online education voice interaction
 
-## Optimization TODO
+## TODO
 
 ### High Priority
 1. **Janus Restart Handling** - Detect and handle Janus restart events
@@ -60,7 +60,7 @@
 3. ~~**Input Validation** - REST API input validation~~
 4. **Error Messages** - Don't expose detailed error messages to end users
 5. **Throttling** - Message rate limiting and blocking users reconnect too frequently
-6. **Observability** - Support OpenTelemetry
+6. ~~**Observability** - Support OpenTelemetry~~
 
 ### Low Priority
 1. **Recording Feature** - Implement recording and upload to cloud storage

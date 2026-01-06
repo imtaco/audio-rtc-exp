@@ -14,8 +14,8 @@ type JanusProxy interface {
 	Close() error
 	GetJanusRoomID(roomID string) int64
 	GetJanusAPI(roomID string) janus.API
-	GetRoomMeta(roomId string) *etcdstate.Meta
-	GetRoomLiveMeta(roomId string) *etcdstate.LiveMeta
+	GetRoomMeta(roomID string) *etcdstate.Meta
+	GetRoomLiveMeta(roomID string) *etcdstate.LiveMeta
 }
 
 // JanusTokenCodec provides methods to encode/decode Janus tokens.

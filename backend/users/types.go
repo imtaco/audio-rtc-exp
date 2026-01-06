@@ -30,10 +30,10 @@ type RoomsState interface {
 // to UserController for centralized processing.
 type UserService interface {
 	Start(ctx context.Context) error
-	CreateUser(ctx context.Context, roomId, userId, role string) (string, string, error)
-	DeleteUser(ctx context.Context, roomId, userId string) error
-	SetUserStatus(ctx context.Context, roomId, userId string, status constants.AnchorStatus, gen int32) error
-	GetActiveRoomUsers(ctx context.Context, roomId string) ([]*RoomUser, error)
+	CreateUser(ctx context.Context, roomID, userID, role string) (string, string, error)
+	DeleteUser(ctx context.Context, roomID, userID string) error
+	SetUserStatus(ctx context.Context, roomID, userID string, status constants.AnchorStatus, gen int32) error
+	GetActiveRoomUsers(ctx context.Context, roomID string) ([]*RoomUser, error)
 }
 
 type RoomUser struct {

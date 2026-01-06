@@ -54,40 +54,40 @@ func (s *RoomWatcherTestSuite) TearDownTest() {
 }
 
 func (s *RoomWatcherTestSuite) TestCryptoRandInt_WithinRange() {
-	max := int64(900000)
+	maxVal := int64(900000)
 
 	for i := 0; i < 100; i++ {
-		val, err := cryptoRandInt(max)
+		val, err := cryptoRandInt(maxVal)
 		s.NoError(err)
 		s.GreaterOrEqual(val, int64(0))
-		s.Less(val, max)
+		s.Less(val, maxVal)
 	}
 }
 
 func (s *RoomWatcherTestSuite) TestCryptoRandInt_SmallRange() {
-	max := int64(10)
+	maxVal := int64(10)
 
 	for i := 0; i < 50; i++ {
-		val, err := cryptoRandInt(max)
+		val, err := cryptoRandInt(maxVal)
 		s.NoError(err)
 		s.GreaterOrEqual(val, int64(0))
-		s.Less(val, max)
+		s.Less(val, maxVal)
 	}
 }
 
 func (s *RoomWatcherTestSuite) TestCryptoRandInt_Distribution() {
-	max := int64(10)
+	maxVal := int64(10)
 	counts := make(map[int64]int)
 
 	for i := 0; i < 1000; i++ {
-		val, err := cryptoRandInt(max)
+		val, err := cryptoRandInt(maxVal)
 		s.NoError(err)
 		counts[val]++
 	}
 
-	s.Len(counts, int(max), "Should generate all possible values")
+	s.Len(counts, int(maxVal), "Should generate all possible values")
 
-	for i := int64(0); i < max; i++ {
+	for i := int64(0); i < maxVal; i++ {
 		s.Greater(counts[i], 0, "Value %d should appear at least once", i)
 	}
 }
@@ -713,7 +713,7 @@ func (s *RoomWatcherTestSuite) TestRebuildStart_EmptyJanus() {
 
 	// Verify activeRooms is empty
 	count := 0
-	s.watcher.activeRooms.Range(func(key, value interface{}) bool {
+	s.watcher.activeRooms.Range(func(_, _ interface{}) bool {
 		count++
 		return true
 	})

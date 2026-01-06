@@ -24,7 +24,7 @@ type RouterSuite struct {
 	suite.Suite
 	ctrl        *gomock.Controller
 	mockWatcher *mocks.MockRoomWatcher
-	jwtAuth     jwt.JWTAuth
+	jwtAuth     jwt.Auth
 	secret      string
 }
 
@@ -32,7 +32,7 @@ func (s *RouterSuite) SetupTest() {
 	s.ctrl = gomock.NewController(s.T())
 	s.mockWatcher = mocks.NewMockRoomWatcher(s.ctrl)
 	s.secret = "very-secret-key"
-	s.jwtAuth = jwt.NewJWTAuth(s.secret)
+	s.jwtAuth = jwt.NewAuth(s.secret)
 	gin.SetMode(gin.TestMode)
 }
 

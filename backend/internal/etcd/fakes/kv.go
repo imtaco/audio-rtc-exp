@@ -9,14 +9,14 @@ import (
 // EtcdKV is a minimal fake for testing that ignores all calls
 type EtcdKV struct{}
 
-func (f *EtcdKV) Get(ctx context.Context, key string, opts ...clientv3.OpOption) (*clientv3.GetResponse, error) {
+func (f *EtcdKV) Get(_ context.Context, _ string, _ ...clientv3.OpOption) (*clientv3.GetResponse, error) {
 	return &clientv3.GetResponse{}, nil
 }
 
-func (f *EtcdKV) Put(ctx context.Context, key, val string, opts ...clientv3.OpOption) (*clientv3.PutResponse, error) {
+func (f *EtcdKV) Put(_ context.Context, _, _ string, _ ...clientv3.OpOption) (*clientv3.PutResponse, error) {
 	return &clientv3.PutResponse{}, nil
 }
 
-func (f *EtcdKV) Delete(ctx context.Context, key string, opts ...clientv3.OpOption) (*clientv3.DeleteResponse, error) {
+func (f *EtcdKV) Delete(_ context.Context, _ string, _ ...clientv3.OpOption) (*clientv3.DeleteResponse, error) {
 	return &clientv3.DeleteResponse{}, nil
 }

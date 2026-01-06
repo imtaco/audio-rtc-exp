@@ -118,7 +118,7 @@ func (c *connImpl[T]) close(err error) error {
 	// to avoid race condition, first collect all pending keys
 	// then delete them with popPending
 	key2del := make([]ID, 0)
-	c.pendings.Range(func(key, value interface{}) bool {
+	c.pendings.Range(func(key, _ interface{}) bool {
 		key2del = append(key2del, key.(ID))
 		return true
 	})

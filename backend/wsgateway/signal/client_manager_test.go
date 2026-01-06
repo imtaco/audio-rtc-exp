@@ -22,7 +22,7 @@ type mockConn struct {
 	notifyFunc func(ctx context.Context, method string, params interface{}) error
 }
 
-func (m *mockConn) Open(ctx context.Context) error {
+func (m *mockConn) Open(_ context.Context) error {
 	return nil
 }
 
@@ -33,7 +33,7 @@ func (m *mockConn) Notify(ctx context.Context, method string, params interface{}
 	return nil
 }
 
-func (m *mockConn) Call(ctx context.Context, method string, params interface{}, result interface{}) error {
+func (m *mockConn) Call(_ context.Context, _ string, _ interface{}, _ interface{}) error {
 	return nil
 }
 
@@ -67,7 +67,7 @@ type ClientManagerSuite struct {
 	miniRedis *miniredis.Miniredis
 	client    *redis.Client
 	mockPeer  *rpcmocks.MockPeer[interface{}]
-	manager   *wsConnManager
+	manager   *WSConnManager
 	logger    *log.Logger
 }
 
@@ -223,7 +223,7 @@ func (s *ClientManagerSuite) TestNotifyRoomLocalPeer() {
 			roomID: roomID,
 			reqCtx: context.Background(),
 		},
-		notifyFunc: func(ctx context.Context, method string, params interface{}) error {
+		notifyFunc: func(_ context.Context, method string, _ interface{}) error {
 			notified["conn1"] = true
 			s.Equal("testMethod", method)
 			return nil
@@ -236,7 +236,7 @@ func (s *ClientManagerSuite) TestNotifyRoomLocalPeer() {
 			roomID: roomID,
 			reqCtx: context.Background(),
 		},
-		notifyFunc: func(ctx context.Context, method string, params interface{}) error {
+		notifyFunc: func(_ context.Context, method string, _ interface{}) error {
 			notified["conn2"] = true
 			s.Equal("testMethod", method)
 			return nil
@@ -264,7 +264,7 @@ func (s *ClientManagerSuite) TestHandleBroadcast() {
 			roomID: roomID,
 			reqCtx: context.Background(),
 		},
-		notifyFunc: func(ctx context.Context, method string, params interface{}) error {
+		notifyFunc: func(_ context.Context, method string, params interface{}) error {
 			notified = true
 			notifiedMethod = method
 			notifiedParams = params
@@ -346,7 +346,7 @@ func (s *ClientManagerSuite) TestNotifyRoomLocalPeer_Error() {
 		context: &rtcContext{
 			reqCtx: context.Background(),
 		},
-		notifyFunc: func(ctx context.Context, method string, params interface{}) error {
+		notifyFunc: func(_ context.Context, _ string, _ interface{}) error {
 			return context.DeadlineExceeded
 		},
 	}

@@ -131,6 +131,7 @@ func (p *ProcessInfo) runOnce() {
 	}
 
 	// Store PID atomically
+	// #nosec G115 -- Process.Pid is guaranteed to fit in int32 on all platforms
 	p.pid = int32(cmd.Process.Pid)
 	p.process = cmd
 
@@ -164,13 +165,23 @@ func (p *ProcessInfo) stop() {
 		return
 	}
 
-	p.process.Process.Signal(syscall.SIGTERM)
+	if err := p.process.Process.Signal(syscall.SIGTERM); err != nil {
+		logger.Error("Failed to send SIGTERM to FFmpeg process",
+			log.String("roomId", p.roomID),
+			log.Int32("pid", p.pid),
+			log.Error(err))
+	}
 	// Force kill after timeout
 	go func(cmd *exec.Cmd, pid int32, roomID string) {
 		time.Sleep(forceKillTimeout)
 		if cmd.Process != nil {
 			p.logger.Info("Force killing FFmpeg", log.String("roomId", roomID), log.Int32("pid", pid))
-			cmd.Process.Kill()
+			if err := cmd.Process.Kill(); err != nil {
+				p.logger.Error("Failed to force kill FFmpeg process",
+					log.String("roomId", roomID),
+					log.Int32("pid", pid),
+					log.Error(err))
+			}
 		}
 	}(p.process, p.pid, p.roomID)
 }

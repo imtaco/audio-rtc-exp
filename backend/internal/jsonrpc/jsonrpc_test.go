@@ -337,7 +337,7 @@ func (s *JSONRPCSuite) TestWaitPropagatesRPCErrors() {
 
 func (s *JSONRPCSuite) TestReadLoopDispatchesRequests() {
 	reqCh := make(chan *Request, 1)
-	handler := func(ctx context.Context, conn *connImpl[map[string]string], req *Request) {
+	handler := func(_ context.Context, _ *connImpl[map[string]string], req *Request) {
 		reqCh <- req
 	}
 	conn, stream := s.newConnWithHandler(handler)

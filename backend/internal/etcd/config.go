@@ -93,7 +93,8 @@ func (c Config) BuildClientConfig() (clientv3.Config, error) {
 
 func buildTLSConfig(t TLSConfig) (*tls.Config, error) {
 	tc := &tls.Config{
-		MinVersion:         tls.VersionTLS12,
+		MinVersion: tls.VersionTLS12,
+		// #nosec G402 -- InsecureSkipVerify is intentionally exposed as a config option for development/testing environments
 		InsecureSkipVerify: t.InsecureSkipVerify,
 	}
 

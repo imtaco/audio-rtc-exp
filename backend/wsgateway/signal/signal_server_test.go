@@ -45,11 +45,11 @@ type mockPeer struct {
 	contextFunc func() jsonrpc.MethodContext[rtcContext]
 }
 
-func (m *mockPeer) Open(ctx context.Context) error {
+func (m *mockPeer) Open(_ context.Context) error {
 	return nil
 }
 
-func (m *mockPeer) Call(ctx context.Context, method string, params interface{}, result interface{}) error {
+func (m *mockPeer) Call(_ context.Context, _ string, _ interface{}, _ interface{}) error {
 	return nil
 }
 
@@ -83,8 +83,8 @@ type SignalServerSuite struct {
 	userService     *usersmocks.MockUserService
 	connGuard       *MockConnectionGuard
 	core            *jsonrpcmocks.MockCore[rtcContext]
-	clientManager   *wsConnManager
-	server          *signalServerImpl
+	clientManager   *WSConnManager
+	server          *SignalServer
 	logger          *log.Logger
 	janusServer     *httptest.Server
 	realJanusAPI    janus.API // Keep for tests that still use httptest
@@ -107,7 +107,7 @@ func (s *SignalServerSuite) SetupTest() {
 	s.connGuard = NewMockConnectionGuard(s.ctrl)
 	s.core = jsonrpcmocks.NewMockCore[rtcContext](s.ctrl)
 
-	s.clientManager = &wsConnManager{
+	s.clientManager = &WSConnManager{
 		room2clients: make(map[string]map[string]jsonrpc.Conn[rtcContext]),
 		client2room:  make(map[string]string),
 		logger:       s.logger,
@@ -132,7 +132,7 @@ func (s *SignalServerSuite) SetupTest() {
 			return
 		}
 		var req map[string]interface{}
-		json.NewDecoder(r.Body).Decode(&req)
+		_ = json.NewDecoder(r.Body).Decode(&req)
 
 		janusType, _ := req["janus"].(string)
 
@@ -157,7 +157,8 @@ func (s *SignalServerSuite) SetupTest() {
 			body, _ := req["body"].(map[string]interface{})
 			request, _ := body["request"].(string)
 
-			if request == "join" {
+			switch request {
+			case "join":
 				resp = map[string]interface{}{
 					"janus": "ack",
 					"plugindata": map[string]interface{}{
@@ -166,7 +167,7 @@ func (s *SignalServerSuite) SetupTest() {
 						},
 					},
 				}
-			} else if request == "exists" {
+			case "exists":
 				// exists check for session validation
 				resp = map[string]interface{}{
 					"janus": "success",
@@ -178,7 +179,7 @@ func (s *SignalServerSuite) SetupTest() {
 						},
 					},
 				}
-			} else {
+			default:
 				resp = map[string]interface{}{
 					"janus": "success",
 					"plugindata": map[string]interface{}{
@@ -203,7 +204,7 @@ func (s *SignalServerSuite) SetupTest() {
 
 		if r.Method == "GET" {
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode([]map[string]interface{}{
+			_ = json.NewEncoder(w).Encode([]map[string]interface{}{
 				{
 					"janus": "event",
 					"jsep": map[string]interface{}{
@@ -217,7 +218,7 @@ func (s *SignalServerSuite) SetupTest() {
 
 		if resp != nil {
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(resp)
+			_ = json.NewEncoder(w).Encode(resp)
 		}
 	}))
 
@@ -614,7 +615,7 @@ func (s *SignalServerSuite) TestHandleJoin_WithValidTokenButExpiredSession() {
 	// Create a special test server that returns session not found for old session
 	expiredJanusServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var req map[string]interface{}
-		json.NewDecoder(r.Body).Decode(&req)
+		_ = json.NewDecoder(r.Body).Decode(&req)
 
 		janusType, _ := req["janus"].(string)
 		var resp map[string]interface{}
@@ -651,7 +652,7 @@ func (s *SignalServerSuite) TestHandleJoin_WithValidTokenButExpiredSession() {
 
 		if resp != nil {
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(resp)
+			_ = json.NewEncoder(w).Encode(resp)
 		}
 	}))
 	defer expiredJanusServer.Close()
@@ -771,7 +772,7 @@ func (s *SignalServerSuite) TestHandleJoin_CheckFailsWithHTTPError() {
 	// This will trigger ErrNoneSuccessResponse, causing a new session to be created
 	errorJanusServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var req map[string]interface{}
-		json.NewDecoder(r.Body).Decode(&req)
+		_ = json.NewDecoder(r.Body).Decode(&req)
 
 		janusType, _ := req["janus"].(string)
 		var resp map[string]interface{}
@@ -803,7 +804,7 @@ func (s *SignalServerSuite) TestHandleJoin_CheckFailsWithHTTPError() {
 
 		if resp != nil {
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(resp)
+			_ = json.NewEncoder(w).Encode(resp)
 		}
 	}))
 	defer errorJanusServer.Close()

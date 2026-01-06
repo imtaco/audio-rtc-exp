@@ -4,14 +4,14 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// JWTAuth handles JWT authentication
-type JWTAuth interface {
+// Auth handles JWT authentication
+type Auth interface {
 	Sign(userID, roomID string) (string, error)
-	Verify(tokenString string) (*JWTPayload, error)
+	Verify(tokenString string) (*Payload, error)
 }
 
-// JWTPayload represents the JWT token payload
-type JWTPayload struct {
+// Payload represents the JWT token payload
+type Payload struct {
 	UserID string `json:"userId"`
 	RoomID string `json:"roomId"`
 	jwt.RegisteredClaims

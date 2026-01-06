@@ -32,12 +32,12 @@ func initKeyCache() {
 // TokenRouter handles token generation endpoints
 type TokenRouter struct {
 	roomWatcher hlsserver.RoomWatcher
-	jwtAuth     jwt.JWTAuth
+	jwtAuth     jwt.Auth
 	engine      *gin.Engine
 	logger      *log.Logger
 }
 
-func NewTokenRouter(roomWatcher hlsserver.RoomWatcher, jwtAuth jwt.JWTAuth, logger *log.Logger) *TokenRouter {
+func NewTokenRouter(roomWatcher hlsserver.RoomWatcher, jwtAuth jwt.Auth, logger *log.Logger) *TokenRouter {
 	gin.SetMode(gin.ReleaseMode)
 	engine := gin.New()
 	engine.Use(gin.Recovery())
@@ -110,12 +110,12 @@ func (r *TokenRouter) healthCheck(c *gin.Context) {
 // KeyRouter handles encryption key serving endpoints
 type KeyRouter struct {
 	roomWatcher hlsserver.RoomWatcher
-	jwtAuth     jwt.JWTAuth
+	jwtAuth     jwt.Auth
 	engine      *gin.Engine
 	logger      *log.Logger
 }
 
-func NewKeyRouter(roomWatcher hlsserver.RoomWatcher, jwtAuth jwt.JWTAuth, logger *log.Logger) *KeyRouter {
+func NewKeyRouter(roomWatcher hlsserver.RoomWatcher, jwtAuth jwt.Auth, logger *log.Logger) *KeyRouter {
 	initKeyCache()
 
 	gin.SetMode(gin.ReleaseMode)

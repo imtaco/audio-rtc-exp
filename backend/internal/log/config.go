@@ -28,11 +28,11 @@ func env(key string) (string, bool) {
 }
 
 func parseLevelFromEnv(key string) (zapcore.Level, bool) {
-	if v, ok := envFunc(key); !ok {
+	v, ok := envFunc(key)
+	if !ok {
 		return zapcore.InfoLevel, false
-	} else {
-		return parseLevel(v)
 	}
+	return parseLevel(v)
 }
 
 func moduleLevel(names []string) zapcore.Level {

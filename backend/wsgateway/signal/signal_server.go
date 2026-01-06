@@ -20,14 +20,14 @@ const (
 	GEN = 1
 )
 
-type signalServerImpl struct {
+type SignalServer struct {
 	jsonrpc.Handler[rtcContext]
 	janusProxy      wsgateway.JanusProxy
 	janusTokenCodec wsgateway.JanusTokenCodec
 	connGuard       ConnectionGuard
 	userService     users.UserService
-	clientManager   *wsConnManager
-	jwtAuth         jwt.JWTAuth
+	clientManager   *WSConnManager
+	jwtAuth         jwt.Auth
 	logger          *log.Logger
 }
 
@@ -35,14 +35,14 @@ func NewSignalServer(
 	handler jsonrpc.Handler[rtcContext],
 	janusProxy wsgateway.JanusProxy,
 	janusTokenCodec wsgateway.JanusTokenCodec,
-	clientManager *wsConnManager,
+	clientManager *WSConnManager,
 	userService users.UserService,
 	connGuard ConnectionGuard,
-	jwtAuth jwt.JWTAuth,
+	jwtAuth jwt.Auth,
 	logger *log.Logger,
-) *signalServerImpl {
+) *SignalServer {
 	// TODO: create client manager here ?
-	return &signalServerImpl{
+	return &SignalServer{
 		Handler:         handler,
 		janusProxy:      janusProxy,
 		connGuard:       connGuard,
@@ -54,7 +54,7 @@ func NewSignalServer(
 	}
 }
 
-func (s *signalServerImpl) Open(ctx context.Context) error {
+func (s *SignalServer) Open(ctx context.Context) error {
 	s.logger.Info("Opening Signal Server")
 	s.register()
 
@@ -65,15 +65,15 @@ func (s *signalServerImpl) Open(ctx context.Context) error {
 	return nil
 }
 
-func (s *signalServerImpl) Close() error {
+func (s *SignalServer) Close() error {
 	s.logger.Info("Closing Signal Server")
 	s.connGuard.Stop()
 	return nil
 }
 
-func (s *signalServerImpl) register() {
+func (s *SignalServer) register() {
 	// Register RPC methods
-	// hanlder is single threaded, no need to lock here
+	// handler is single threaded, no need to lock here
 	s.Def("join", s.handleJoin)
 	s.Def("leave", s.handleLeave)
 	s.Def("offer", s.handleOffer)
@@ -82,7 +82,7 @@ func (s *signalServerImpl) register() {
 	s.Def("status", s.handleKeepAlive)
 }
 
-func (s *signalServerImpl) updateUserStatus(ctx context.Context, roomID, userID string, status constants.AnchorStatus) {
+func (s *SignalServer) updateUserStatus(ctx context.Context, roomID, userID string, status constants.AnchorStatus) {
 	// TODO: handle gen
 	if err := s.userService.SetUserStatus(
 		ctx,
@@ -100,13 +100,13 @@ func (s *signalServerImpl) updateUserStatus(ctx context.Context, roomID, userID 
 	}
 }
 
-func (s *signalServerImpl) mustHoldLock(mctx jsonrpc.MethodContext[rtcContext]) {
+func (s *SignalServer) mustHoldLock(mctx jsonrpc.MethodContext[rtcContext]) {
 	if _, err := s.connGuard.MustHold(mctx); err != nil {
 		s.logger.Error("Failed to acquire connect lock", log.Error(err))
 	}
 }
 
-func (s *signalServerImpl) handleJoin(mctx jsonrpc.MethodContext[rtcContext], params *json.RawMessage) (interface{}, error) {
+func (s *SignalServer) handleJoin(mctx jsonrpc.MethodContext[rtcContext], params *json.RawMessage) (interface{}, error) {
 
 	rtcCtx := mctx.Get()
 	if rtcCtx.joined {
@@ -115,7 +115,7 @@ func (s *signalServerImpl) handleJoin(mctx jsonrpc.MethodContext[rtcContext], pa
 
 	var data struct {
 		Pin        string `json:"pin"`
-		ClientId   string `json:"clientId" validate:"required,uuid4"`
+		ClientID   string `json:"clientId" validate:"required,uuid4"`
 		JanusToken string `json:"jtoken"`
 	}
 	if err := jsonrpc.ShouldBindParams(params, &data); err != nil {
@@ -140,8 +140,8 @@ func (s *signalServerImpl) handleJoin(mctx jsonrpc.MethodContext[rtcContext], pa
 		return nil, jsonrpc.ErrInvalidRequest("invalid room pin")
 	}
 
-	janusApi := s.janusProxy.GetJanusAPI(roomID)
-	if janusApi == nil {
+	janusAPI := s.janusProxy.GetJanusAPI(roomID)
+	if janusAPI == nil {
 		return nil, jsonrpc.ErrInternal("fail to get janus api")
 	}
 
@@ -157,7 +157,7 @@ func (s *signalServerImpl) handleJoin(mctx jsonrpc.MethodContext[rtcContext], pa
 		}
 	}
 
-	apiInst, err := s.restoreJanusInstance(rtcCtx, janusApi, sessionID, handleID)
+	apiInst, err := s.restoreJanusInstance(rtcCtx, janusAPI, sessionID, handleID)
 	if err != nil {
 		return nil, err
 	}
@@ -182,7 +182,7 @@ func (s *signalServerImpl) handleJoin(mctx jsonrpc.MethodContext[rtcContext], pa
 	}, nil
 }
 
-func (s *signalServerImpl) handleLeave(mctx jsonrpc.MethodContext[rtcContext], params *json.RawMessage) (interface{}, error) {
+func (s *SignalServer) handleLeave(mctx jsonrpc.MethodContext[rtcContext], _ *json.RawMessage) (interface{}, error) {
 	rtcCtx := mctx.Get()
 	if !rtcCtx.joined {
 		return nil, jsonrpc.ErrInvalidRequest("not joined yet")
@@ -200,7 +200,7 @@ func (s *signalServerImpl) handleLeave(mctx jsonrpc.MethodContext[rtcContext], p
 	return nil, nil
 }
 
-func (s *signalServerImpl) handleOffer(mctx jsonrpc.MethodContext[rtcContext], params *json.RawMessage) (interface{}, error) {
+func (s *SignalServer) handleOffer(mctx jsonrpc.MethodContext[rtcContext], params *json.RawMessage) (interface{}, error) {
 	rtcCtx := mctx.Get()
 	if !rtcCtx.joined {
 		return nil, jsonrpc.ErrInvalidRequest("not joined yet")
@@ -250,7 +250,7 @@ func (s *signalServerImpl) handleOffer(mctx jsonrpc.MethodContext[rtcContext], p
 	}, nil
 }
 
-func (s *signalServerImpl) eventLoop(ctx context.Context, apiInst janus.Anchor) (json.RawMessage, error) {
+func (s *SignalServer) eventLoop(ctx context.Context, apiInst janus.Anchor) (json.RawMessage, error) {
 	resps, err := apiInst.GetEvents(ctx, 10)
 	if err != nil {
 		return nil, err
@@ -264,7 +264,7 @@ func (s *signalServerImpl) eventLoop(ctx context.Context, apiInst janus.Anchor) 
 	return nil, fmt.Errorf("no SDP answer found in Janus events")
 }
 
-func (s *signalServerImpl) handleIceCandidate(mctx jsonrpc.MethodContext[rtcContext], params *json.RawMessage) (interface{}, error) {
+func (s *SignalServer) handleIceCandidate(mctx jsonrpc.MethodContext[rtcContext], params *json.RawMessage) (interface{}, error) {
 	// ice candidate might called several times before answered
 	rtcCtx := mctx.Get()
 	if !rtcCtx.joined {
@@ -293,7 +293,7 @@ func (s *signalServerImpl) handleIceCandidate(mctx jsonrpc.MethodContext[rtcCont
 	return nil, nil
 }
 
-func (s *signalServerImpl) handleKeepAlive(mctx jsonrpc.MethodContext[rtcContext], params *json.RawMessage) (interface{}, error) {
+func (s *SignalServer) handleKeepAlive(mctx jsonrpc.MethodContext[rtcContext], params *json.RawMessage) (interface{}, error) {
 	rtcCtx := mctx.Get()
 	if !rtcCtx.joined {
 		return nil, fmt.Errorf("not joined yet")
@@ -313,19 +313,19 @@ func (s *signalServerImpl) handleKeepAlive(mctx jsonrpc.MethodContext[rtcContext
 	}
 
 	s.mustHoldLock(mctx)
-	s.updateUserStatus(ctx, rtcCtx.roomID, rtcCtx.userID, constants.AnchorStatus(data.Status))
+	s.updateUserStatus(ctx, rtcCtx.roomID, rtcCtx.userID, data.Status)
 
 	return nil, nil
 }
 
-func (*signalServerImpl) restoreJanusInstance(
+func (*SignalServer) restoreJanusInstance(
 	rtcCtx *rtcContext,
-	janusApi janus.API,
+	janusAPI janus.API,
 	sessionID, handleID int64,
 ) (janus.Anchor, error) {
 	ctx := rtcCtx.reqCtx
 
-	apiInst, err := janusApi.CreateAnchorInstance(ctx, rtcCtx.connID, sessionID, handleID)
+	apiInst, err := janusAPI.CreateAnchorInstance(ctx, rtcCtx.connID, sessionID, handleID)
 	if err != nil {
 		return nil, jsonrpc.ErrInternal("fail to create janus instance")
 	}
@@ -340,8 +340,7 @@ func (*signalServerImpl) restoreJanusInstance(
 		return apiInst, nil
 	} else if errors.Is(err, janus.ErrNoneSuccessResponse) {
 		// api not success, session expired
-		return janusApi.CreateAnchorInstance(ctx, rtcCtx.connID, 0, 0)
-	} else {
-		return nil, jsonrpc.ErrInternal("fail to check janus instance")
+		return janusAPI.CreateAnchorInstance(ctx, rtcCtx.connID, 0, 0)
 	}
+	return nil, jsonrpc.ErrInternal("fail to check janus instance")
 }

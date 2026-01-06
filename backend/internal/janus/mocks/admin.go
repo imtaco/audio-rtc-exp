@@ -112,10 +112,10 @@ func (mr *MockAdminMockRecorder) DestroyRoom(ctx, roomID any) *gomock.Call {
 }
 
 // GetEvents mocks base method.
-func (m *MockAdmin) GetEvents(ctx context.Context, maxEvents int) ([]*janus.JanusResponse, error) {
+func (m *MockAdmin) GetEvents(ctx context.Context, maxEvents int) ([]*janus.Response, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetEvents", ctx, maxEvents)
-	ret0, _ := ret[0].([]*janus.JanusResponse)
+	ret0, _ := ret[0].([]*janus.Response)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

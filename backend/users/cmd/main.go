@@ -23,7 +23,7 @@ import (
 
 type Config struct {
 	App                 config.App      `mapstructure:"app"`
-	Http                httputil.Config `mapstructure:"http"`
+	HTTP                httputil.Config `mapstructure:"http"`
 	Redis               redis.Config    `mapstructure:"redis"`
 	Etcd                etcd.Config     `mapstructure:"etcd"`
 	Otel                otel.Config     `mapstructure:"otel"`
@@ -70,7 +70,7 @@ func main() {
 	if err != nil {
 		log.Fatal("Failed to create logger", err)
 	}
-	defer logger.Sync()
+	defer func() { _ = logger.Sync() }()
 
 	// global background context
 	ctx := context.Background()
@@ -95,7 +95,7 @@ func main() {
 	}
 
 	// Initialize JWT Auth (expiresIn handled in JWT library if needed)
-	jwtAuth := jwt.NewJWTAuth(config.JWTSecret)
+	jwtAuth := jwt.NewAuth(config.JWTSecret)
 
 	// Initialize User Status Service
 	userService, err := status.NewUserService(
@@ -140,7 +140,7 @@ func main() {
 
 	// Initialize REST API router
 	router := transport.NewRouter(userService, jwtAuth, logger.Module("Router"))
-	server := httputil.NewServer(&config.Http, router.Handler())
+	server := httputil.NewServer(&config.HTTP, router.Handler())
 
 	// Start components
 	if err := trimer.Start(ctx); err != nil {
@@ -155,7 +155,7 @@ func main() {
 
 	// Start HTTP server in goroutine
 	go func() {
-		logger.Info("Starting REST API server", log.String("addr", config.Http.Addr))
+		logger.Info("Starting REST API server", log.String("addr", config.HTTP.Addr))
 		if err := server.Listen(); err != nil && err != http.ErrServerClosed {
 			logger.Fatal("Failed to start REST API server", log.Error(err))
 		}
@@ -163,7 +163,7 @@ func main() {
 
 	// Graceful shutdown
 	cleanup := func(ctx context.Context) {
-		server.Shutdown(ctx)
+		_ = server.Shutdown(ctx)
 		trimer.Stop()
 
 		if err := userCtrl.Stop(); err != nil {

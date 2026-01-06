@@ -82,7 +82,7 @@ func (c *combinedRoom) RemoveUser(ctx context.Context, roomID, userID string) (b
 	return ok, c.redisState.removeRoomUser(ctx, roomID, userID, lastUser)
 }
 
-func (c *combinedRoom) GetRoomUsers(ctx context.Context, roomID string) map[string]users.User {
+func (c *combinedRoom) GetRoomUsers(_ context.Context, roomID string) map[string]users.User {
 	return c.memState.getRoomUsers(roomID)
 }
 

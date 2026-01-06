@@ -40,24 +40,25 @@ func NewRoomWatcher(
 	return watcher
 }
 
-func (*roomWatcherImpl) processChange(ctx context.Context, id string, state *etcdstate.RoomState) error {
+func (*roomWatcherImpl) processChange(_ context.Context, _ string, _ *etcdstate.RoomState) error {
 	return nil
 }
 
-func (*roomWatcherImpl) RebuildStart(ctx context.Context) error {
+func (*roomWatcherImpl) RebuildStart(_ context.Context) error {
 	return nil
 }
 
-func (*roomWatcherImpl) RebuildState(ctx context.Context, id string, etcdData *etcdstate.RoomState) error {
+func (*roomWatcherImpl) RebuildState(_ context.Context, _ string, _ *etcdstate.RoomState) error {
 	return nil
 }
 
-func (*roomWatcherImpl) RebuildEnd(ctx context.Context) error {
+func (*roomWatcherImpl) RebuildEnd(_ context.Context) error {
 	return nil
 }
 
 func (*roomWatcherImpl) NewState(
-	id, keyType string,
+	_ string,
+	keyType string,
 	data []byte,
 	curState *etcdstate.RoomState,
 ) (*etcdstate.RoomState, error) {

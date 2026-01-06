@@ -28,13 +28,13 @@ func NewEncryptionGenerator(keyBaseURL, tmpDir string) *EncryptionGenerator {
 
 // Generate creates encryption key and keyinfo files for FFmpeg
 // Note: nonce should not change for a given room to ensure consistent key generation
-func (eg *EncryptionGenerator) Generate(roomID, nonce, hlsDir string) (string, error) {
+func (eg *EncryptionGenerator) Generate(roomID, nonce, _ string) (string, error) {
 	keyPath := filepath.Join(eg.tmpDir, "enc.key")
 	keyInfoPath := filepath.Join(eg.tmpDir, fmt.Sprintf("enc-%s.keyinfo", roomID))
 
 	// Generate deterministic AES key
 	key := crypto.GenerateAESKey(roomID, nonce)
-	if err := os.WriteFile(keyPath, key, 0644); err != nil {
+	if err := os.WriteFile(keyPath, key, 0600); err != nil {
 		return "", fmt.Errorf("failed to write key file: %w", err)
 	}
 
@@ -57,7 +57,7 @@ func (eg *EncryptionGenerator) Generate(roomID, nonce, hlsDir string) (string, e
 	// Line 3: IV in hex
 	keyInfoContent := fmt.Sprintf("%s\n%s\n%s\n", keyURI, keyPath, hex.EncodeToString(iv))
 
-	if err := os.WriteFile(keyInfoPath, []byte(keyInfoContent), 0644); err != nil {
+	if err := os.WriteFile(keyInfoPath, []byte(keyInfoContent), 0600); err != nil {
 		return "", fmt.Errorf("failed to write keyinfo file: %w", err)
 	}
 

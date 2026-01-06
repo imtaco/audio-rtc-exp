@@ -19,7 +19,7 @@ import (
 
 type Config struct {
 	App                  config.App      `mapstructure:"app"`
-	Http                 httputil.Config `mapstructure:"http"`
+	HTTP                 httputil.Config `mapstructure:"http"`
 	Etcd                 etcd.Config     `mapstructure:"etcd"`
 	Otel                 otel.Config     `mapstructure:"otel"`
 	HLSAdvURL            string          `mapstructure:"hls_adv_url"`
@@ -55,7 +55,7 @@ func main() {
 	if err != nil {
 		log.Fatal("Failed to create logger", err)
 	}
-	defer logger.Sync()
+	defer func() { _ = logger.Sync() }()
 
 	// global background context
 	ctx := context.Background()
@@ -67,7 +67,7 @@ func main() {
 	}
 
 	logger.Info("Starting Room Manager service",
-		log.String("addr", config.Http.Addr),
+		log.String("addr", config.HTTP.Addr),
 		log.Any("etcdUrl", config.Etcd.Endpoints),
 		log.String("hlsAdvUrl", config.HLSAdvURL))
 
@@ -108,11 +108,11 @@ func main() {
 
 	// Setup router
 	router := transport.NewRouter(roomService, roomStore, logger.Module("Router"))
-	server := httputil.NewServer(&config.Http, router.Handler())
+	server := httputil.NewServer(&config.HTTP, router.Handler())
 
 	// Start HTTP server
 	go func() {
-		logger.Info("Starting HTTP server", log.String("addr", config.Http.Addr))
+		logger.Info("Starting HTTP server", log.String("addr", config.HTTP.Addr))
 		if err := server.Listen(); err != nil && err != http.ErrServerClosed {
 			logger.Fatal("Failed to start HTTP server", log.Error(err))
 		}
@@ -122,7 +122,7 @@ func main() {
 
 	// Setup graceful shutdown
 	cleanup := func(ctx context.Context) {
-		server.Shutdown(ctx)
+		_ = server.Shutdown(ctx)
 
 		if err := resManager.Stop(); err != nil {
 			logger.Error("Error cleaning up resource manager", log.Error(err))

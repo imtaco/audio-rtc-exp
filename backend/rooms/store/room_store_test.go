@@ -61,7 +61,7 @@ func (s *RoomStoreTestSuite) TestCreateRoom_Success() {
 	// Mock: Put succeeds
 	s.mockEtcdClient.EXPECT().
 		Put(gomock.Any(), "/rooms/room-123/meta", gomock.Any()).
-		DoAndReturn(func(ctx context.Context, key, val string, opts ...clientv3.OpOption) (*clientv3.PutResponse, error) {
+		DoAndReturn(func(_ context.Context, _, val string, _ ...clientv3.OpOption) (*clientv3.PutResponse, error) {
 			// Verify JSON structure
 			var stored etcdstate.Meta
 			err := json.Unmarshal([]byte(val), &stored)
@@ -265,7 +265,7 @@ func (s *RoomStoreTestSuite) TestDeleteRoom_Error() {
 func (s *RoomStoreTestSuite) TestCreateLiveMeta_Success() {
 	s.mockEtcdClient.EXPECT().
 		Put(gomock.Any(), "/rooms/room-123/livemeta", gomock.Any()).
-		DoAndReturn(func(ctx context.Context, key, val string, opts ...clientv3.OpOption) (*clientv3.PutResponse, error) {
+		DoAndReturn(func(_ context.Context, _, val string, _ ...clientv3.OpOption) (*clientv3.PutResponse, error) {
 			var livemeta rooms.LiveMeta
 			err := json.Unmarshal([]byte(val), &livemeta)
 			s.NoError(err)
@@ -297,7 +297,7 @@ func (s *RoomStoreTestSuite) TestCreateLiveMeta_PutError() {
 func (s *RoomStoreTestSuite) TestStopLiveMeta_Success() {
 	s.mockEtcdClient.EXPECT().
 		Put(gomock.Any(), "/rooms/room-123/livemeta", gomock.Any()).
-		DoAndReturn(func(ctx context.Context, key, val string, opts ...clientv3.OpOption) (*clientv3.PutResponse, error) {
+		DoAndReturn(func(_ context.Context, _, val string, _ ...clientv3.OpOption) (*clientv3.PutResponse, error) {
 			var livemeta rooms.LiveMeta
 			err := json.Unmarshal([]byte(val), &livemeta)
 			s.NoError(err)
@@ -501,8 +501,8 @@ func (s *RoomStoreTestSuite) TestCreateRoom_SetsTimestamp() {
 	var storedData etcdstate.Meta
 	s.mockEtcdClient.EXPECT().
 		Put(gomock.Any(), "/rooms/room-123/meta", gomock.Any()).
-		DoAndReturn(func(ctx context.Context, key, val string, opts ...clientv3.OpOption) (*clientv3.PutResponse, error) {
-			json.Unmarshal([]byte(val), &storedData)
+		DoAndReturn(func(_ context.Context, _, val string, _ ...clientv3.OpOption) (*clientv3.PutResponse, error) {
+			_ = json.Unmarshal([]byte(val), &storedData)
 			return &clientv3.PutResponse{}, nil
 		})
 
@@ -520,7 +520,7 @@ func (s *RoomStoreTestSuite) TestCreateRoom_SetsTimestamp() {
 func (s *RoomStoreTestSuite) TestSetModuleMark_SuccessWithoutTTL() {
 	s.mockEtcdClient.EXPECT().
 		Put(gomock.Any(), "mixersmixer-1/mark", gomock.Any()).
-		DoAndReturn(func(ctx context.Context, key, val string, opts ...clientv3.OpOption) (*clientv3.PutResponse, error) {
+		DoAndReturn(func(_ context.Context, _ string, val string, opts ...clientv3.OpOption) (*clientv3.PutResponse, error) {
 			// Verify JSON structure
 			var markData etcdstate.MarkData
 			err := json.Unmarshal([]byte(val), &markData)
@@ -546,7 +546,7 @@ func (s *RoomStoreTestSuite) TestSetModuleMark_SuccessWithTTL() {
 
 	s.mockEtcdClient.EXPECT().
 		Put(gomock.Any(), "janusesjan-1/mark", gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, key, val string, opts ...clientv3.OpOption) (*clientv3.PutResponse, error) {
+		DoAndReturn(func(_ context.Context, _, val string, opts ...clientv3.OpOption) (*clientv3.PutResponse, error) {
 			// Verify JSON structure
 			var markData etcdstate.MarkData
 			err := json.Unmarshal([]byte(val), &markData)
@@ -585,7 +585,7 @@ func (s *RoomStoreTestSuite) TestSetModuleMark_AllLabels() {
 	for _, label := range labels {
 		s.mockEtcdClient.EXPECT().
 			Put(gomock.Any(), gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, key, val string, opts ...clientv3.OpOption) (*clientv3.PutResponse, error) {
+			DoAndReturn(func(_ context.Context, _, val string, _ ...clientv3.OpOption) (*clientv3.PutResponse, error) {
 				var markData etcdstate.MarkData
 				err := json.Unmarshal([]byte(val), &markData)
 				s.NoError(err)
@@ -614,7 +614,7 @@ func (s *RoomStoreTestSuite) TestSetModuleMark_ModuleTypes() {
 	for _, moduleType := range moduleTypes {
 		s.mockEtcdClient.EXPECT().
 			Put(gomock.Any(), gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, key, val string, opts ...clientv3.OpOption) (*clientv3.PutResponse, error) {
+			DoAndReturn(func(_ context.Context, key, _ string, _ ...clientv3.OpOption) (*clientv3.PutResponse, error) {
 				// Verify the key contains the correct module type
 				s.Contains(key, moduleType)
 				return &clientv3.PutResponse{}, nil
@@ -652,7 +652,7 @@ func (s *RoomStoreTestSuite) TestDeleteModuleMark_AllModuleTypes() {
 	for _, moduleType := range moduleTypes {
 		s.mockEtcdClient.EXPECT().
 			Delete(gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, key string, opts ...clientv3.OpOption) (*clientv3.DeleteResponse, error) {
+			DoAndReturn(func(_ context.Context, key string, _ ...clientv3.OpOption) (*clientv3.DeleteResponse, error) {
 				// Verify the key contains the correct module type
 				s.Contains(key, moduleType)
 				return &clientv3.DeleteResponse{Deleted: 1}, nil
@@ -669,7 +669,7 @@ func (s *RoomStoreTestSuite) TestDeleteModuleMark_MultipleModules() {
 	for _, moduleID := range moduleIDs {
 		s.mockEtcdClient.EXPECT().
 			Delete(gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, key string, opts ...clientv3.OpOption) (*clientv3.DeleteResponse, error) {
+			DoAndReturn(func(_ context.Context, key string, _ ...clientv3.OpOption) (*clientv3.DeleteResponse, error) {
 				// Verify the key contains the correct module ID
 				s.Contains(key, moduleID)
 				return &clientv3.DeleteResponse{Deleted: 1}, nil

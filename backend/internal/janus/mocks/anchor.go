@@ -84,10 +84,10 @@ func (mr *MockAnchorMockRecorder) Destroy(ctx any) *gomock.Call {
 }
 
 // GetEvents mocks base method.
-func (m *MockAnchor) GetEvents(ctx context.Context, maxEvents int) ([]*janus.JanusResponse, error) {
+func (m *MockAnchor) GetEvents(ctx context.Context, maxEvents int) ([]*janus.Response, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetEvents", ctx, maxEvents)
-	ret0, _ := ret[0].([]*janus.JanusResponse)
+	ret0, _ := ret[0].([]*janus.Response)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -127,10 +127,10 @@ func (mr *MockAnchorMockRecorder) GetSessionID() *gomock.Call {
 }
 
 // IceCandidate mocks base method.
-func (m *MockAnchor) IceCandidate(ctx context.Context, candidate janus.ICECandidate) (*janus.JanusResponse, error) {
+func (m *MockAnchor) IceCandidate(ctx context.Context, candidate janus.ICECandidate) (*janus.Response, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IceCandidate", ctx, candidate)
-	ret0, _ := ret[0].(*janus.JanusResponse)
+	ret0, _ := ret[0].(*janus.Response)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -142,10 +142,10 @@ func (mr *MockAnchorMockRecorder) IceCandidate(ctx, candidate any) *gomock.Call 
 }
 
 // Join mocks base method.
-func (m *MockAnchor) Join(ctx context.Context, roomID int64, pin, displayName string, jsep *janus.JSEP) (*janus.JanusResponse, error) {
+func (m *MockAnchor) Join(ctx context.Context, roomID int64, pin, displayName string, jsep *janus.JSEP) (*janus.Response, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Join", ctx, roomID, pin, displayName, jsep)
-	ret0, _ := ret[0].(*janus.JanusResponse)
+	ret0, _ := ret[0].(*janus.Response)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -171,10 +171,10 @@ func (mr *MockAnchorMockRecorder) KeepAlive(ctx any) *gomock.Call {
 }
 
 // Leave mocks base method.
-func (m *MockAnchor) Leave(ctx context.Context) (*janus.JanusResponse, error) {
+func (m *MockAnchor) Leave(ctx context.Context) (*janus.Response, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Leave", ctx)
-	ret0, _ := ret[0].(*janus.JanusResponse)
+	ret0, _ := ret[0].(*janus.Response)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

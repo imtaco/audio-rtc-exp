@@ -18,7 +18,7 @@ type rsStream struct {
 	logger   *log.Logger
 }
 
-func (rs *rsStream) Write(ctx context.Context, obj interface{}) error {
+func (rs *rsStream) Write(_ context.Context, obj interface{}) error {
 	rs.logger.Debug("write to redis stream", log.Any("obj", obj))
 
 	bs, err := json.Marshal(obj)
@@ -69,7 +69,7 @@ func (rs *rsStream) Read(ctx context.Context, v interface{}) error {
 	return nil
 }
 
-func (ws *rsStream) Disconnected() <-chan struct{} {
+func (rs *rsStream) Disconnected() <-chan struct{} {
 	// TODO: implement proper disconnection notification
 	return make(<-chan struct{})
 }

@@ -58,8 +58,7 @@ func Init(ctx context.Context, config *Config, logger *log.Logger) (ShutdownFunc
 			semconv.ServiceName(config.ServiceName),
 		),
 		// Detect environment automatically (K8s, Docker, host, process)
-		resource.WithFromEnv(), // Read OTEL_RESOURCE_ATTRIBUTES env var
-		// resource.WithContainer(), // Add container.* attributes
+		resource.WithFromEnv(),   // Read OTEL_RESOURCE_ATTRIBUTES env var
 		resource.WithHost(),      // Add host.* attributes
 		resource.WithDetectors(), // Use all default detectors
 	)
@@ -89,9 +88,11 @@ func Init(ctx context.Context, config *Config, logger *log.Logger) (ShutdownFunc
 
 		// Initialize runtime metrics if enabled
 		if config.RuntimeMetricsEnabled {
-			runtimeotel.Start(
+			if err := runtimeotel.Start(
 				runtimeotel.WithMeterProvider(meterProvider),
-			)
+			); err != nil {
+				return nil, fmt.Errorf("failed to start runtime metrics: %w", err)
+			}
 		}
 	} else {
 		// Use noop provider
@@ -120,11 +121,12 @@ func initTracing(ctx context.Context, config *Config, res *resource.Resource) (*
 
 	// Create sampler based on sampling rate
 	var sampler sdktrace.Sampler
-	if config.SamplingRate >= 1.0 {
+	switch {
+	case config.SamplingRate >= 1.0:
 		sampler = sdktrace.AlwaysSample()
-	} else if config.SamplingRate <= 0.0 {
+	case config.SamplingRate <= 0.0:
 		sampler = sdktrace.NeverSample()
-	} else {
+	default:
 		sampler = sdktrace.TraceIDRatioBased(config.SamplingRate)
 	}
 
@@ -174,6 +176,7 @@ func initMetrics(ctx context.Context, config *Config, res *resource.Resource) (*
 	)
 
 	// Set global meter provider
+	// new provider will delegate to existed meters automatically (already defined in init() in metric.go of each module)
 	otel.SetMeterProvider(provider)
 
 	return provider, nil
@@ -183,15 +186,12 @@ func initMetrics(ctx context.Context, config *Config, res *resource.Resource) (*
 func (p *providers) shutdown(ctx context.Context) error {
 	var errs []error
 
-	// TODO: stop runtime metrics
-
-	if p.config.TracingEnabled && p.tracerProvider != nil {
+	if p.tracerProvider != nil {
 		if err := p.tracerProvider.Shutdown(ctx); err != nil {
 			errs = append(errs, fmt.Errorf("failed to shutdown tracer provider: %w", err))
 		}
 	}
-
-	if p.config.MetricsEnabled && p.meterProvider != nil {
+	if p.meterProvider != nil {
 		if err := p.meterProvider.Shutdown(ctx); err != nil {
 			errs = append(errs, fmt.Errorf("failed to shutdown meter provider: %w", err))
 		}

@@ -34,7 +34,7 @@ func TestRoomsStateMem_CreateRoomUser(t *testing.T) {
 	}{
 		{
 			name:   "create new user in new room",
-			setup:  func(r *roomsStateMem) {},
+			setup:  func(_ *roomsStateMem) {},
 			roomID: "room1",
 			userID: "user1",
 			user: &users.User{
@@ -188,7 +188,7 @@ func TestRoomsStateMem_SetUserStatus(t *testing.T) {
 		// },
 		{
 			name:   "set status for non-existent room",
-			setup:  func(r *roomsStateMem) {},
+			setup:  func(_ *roomsStateMem) {},
 			roomID: "room1",
 			userID: "user1",
 			user: &users.User{
@@ -197,7 +197,7 @@ func TestRoomsStateMem_SetUserStatus(t *testing.T) {
 				TS:     now,
 			},
 			wantOk:   false,
-			validate: func(t *testing.T, r *roomsStateMem) {},
+			validate: func(_ *testing.T, _ *roomsStateMem) {},
 		},
 		{
 			name: "set status for non-existent user",
@@ -212,7 +212,7 @@ func TestRoomsStateMem_SetUserStatus(t *testing.T) {
 				TS:     now,
 			},
 			wantOk:   false,
-			validate: func(t *testing.T, r *roomsStateMem) {},
+			validate: func(_ *testing.T, _ *roomsStateMem) {},
 		},
 		{
 			name: "set status for user without role",
@@ -230,7 +230,7 @@ func TestRoomsStateMem_SetUserStatus(t *testing.T) {
 				TS:     now,
 			},
 			wantOk:   false,
-			validate: func(t *testing.T, r *roomsStateMem) {},
+			validate: func(_ *testing.T, _ *roomsStateMem) {},
 		},
 	}
 
@@ -295,12 +295,12 @@ func TestRoomsStateMem_RemoveRoomUser(t *testing.T) {
 		},
 		{
 			name:         "remove from non-existent room",
-			setup:        func(r *roomsStateMem) {},
+			setup:        func(_ *roomsStateMem) {},
 			roomID:       "room1",
 			userID:       "user1",
 			wantOk:       false,
 			wantLastUser: false,
-			validate:     func(t *testing.T, r *roomsStateMem) {},
+			validate:     func(_ *testing.T, _ *roomsStateMem) {},
 		},
 		{
 			name: "remove non-existent user from room",
@@ -367,7 +367,7 @@ func TestRoomsStateMem_GetRoomUsers(t *testing.T) {
 		},
 		{
 			name:   "get users from non-existent room",
-			setup:  func(r *roomsStateMem) {},
+			setup:  func(_ *roomsStateMem) {},
 			roomID: "room1",
 			validate: func(t *testing.T, users map[string]users.User) {
 				assert.Nil(t, users)

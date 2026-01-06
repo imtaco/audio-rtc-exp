@@ -10,7 +10,8 @@ on:
     branches: [ "main" ]
 
 jobs:
-
+  lint:
+    uses: ./.github/workflows/lint.yml
   build:
     runs-on: ubuntu-latest
     permissions:
@@ -20,12 +21,10 @@ jobs:
         working-directory: ./backend
     steps:
     - uses: actions/checkout@v6
-
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
         go-version: '1.24'
         cache-dependency-path: backend/go.sum
-
     - name: Test
       run: go test -count=1 -cover ./...

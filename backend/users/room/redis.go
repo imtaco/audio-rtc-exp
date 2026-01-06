@@ -125,16 +125,16 @@ func (r *roomStateRedis) roomsKey() string {
 	return fmt.Sprintf("%s:rooms", r.prefix)
 }
 
-func (r *roomStateRedis) userStatusKey(RoomID string) string {
-	return fmt.Sprintf("%s:r:%s:us", r.prefix, RoomID)
+func (r *roomStateRedis) userStatusKey(roomID string) string {
+	return fmt.Sprintf("%s:r:%s:us", r.prefix, roomID)
 }
 
-func statusField(userId string) string {
-	return fmt.Sprintf("s:%s", userId)
+func statusField(userID string) string {
+	return fmt.Sprintf("s:%s", userID)
 }
 
-func metaField(userId string) string {
-	return fmt.Sprintf("m:%s", userId)
+func metaField(userID string) string {
+	return fmt.Sprintf("m:%s", userID)
 }
 
 // TODO: better serialization/deserialization
@@ -167,13 +167,13 @@ func parseUsersData(data map[string]string) map[string]*users.User {
 	for field, value := range data {
 		if strings.HasPrefix(field, "m:") {
 			// Role field: m:<userId> -> <role>
-			userId := field[2:]
-			user := ensureUser(users, userId)
+			userID := field[2:]
+			user := ensureUser(users, userID)
 			user.Role = value
 		} else if strings.HasPrefix(field, "s:") {
 			// Status field: s:<userId> -> <ts>,<status>,<gen>
-			userId := field[2:]
-			user := ensureUser(users, userId)
+			userID := field[2:]
+			user := ensureUser(users, userID)
 
 			var err error
 			user.TS, user.Status, user.Gen, err = unpackStatus(value)

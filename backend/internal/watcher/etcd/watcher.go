@@ -203,12 +203,12 @@ func (w *BaseEtcdWatcher[T]) parseAndUpdateCache(key string, value []byte) (id, 
 	}
 
 	curState, _ := w.cache.Load(id)
-	if newState, err := w.stateTrans.NewState(id, keyType, value, curState); err != nil {
+	newState, err := w.stateTrans.NewState(id, keyType, value, curState)
+	if err != nil {
 		w.logger.Error("Error updating cache", log.String("key", key), log.Error(err))
 		return "", "", false
-	} else {
-		w.updateCache(id, newState)
 	}
+	w.updateCache(id, newState)
 
 	return id, keyType, true
 }
@@ -306,8 +306,6 @@ func (w *BaseEtcdWatcher[T]) getAndWatchOnce(ctx context.Context, getNotify chan
 	for id := range idsToProcess {
 		w.scheduler.Enqueue(id, 0)
 	}
-	// no longer needed
-	idsToProcess = nil
 
 	// need to get from last revision
 	nextRev := revision + 1

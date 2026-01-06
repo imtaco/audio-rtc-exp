@@ -46,7 +46,7 @@ func NewRoomWatcher(
 	id, mixerIP string,
 	portManager mixers.PortManager,
 	ffmpegManager mixers.FFmpegManager,
-	prefixRooms, prefixMixer string,
+	prefixRooms, _ string,
 	logger *log.Logger,
 ) *RoomWatcher {
 	w := &RoomWatcher{
@@ -234,16 +234,17 @@ func (w *RoomWatcher) processChange(ctx context.Context, roomID string, state *e
 		attribute.Bool("is_state_runner", isStateRunner),
 	)
 
-	if shouldBeRunning && !isRunning {
+	switch {
+	case shouldBeRunning && !isRunning:
 		// Must have livemeta here
 		return w.startRoomFFmpeg(ctx, roomID, livemeta)
-	} else if shouldBeRunning && isRunning && !isStateRunner {
+	case shouldBeRunning && isRunning && !isStateRunner:
 		return w.syncMixerData(ctx, roomID)
-	} else if !shouldBeRunning && isRunning {
+	case !shouldBeRunning && isRunning:
 		return w.stopRoomFFmpeg(ctx, roomID, isStateRunner)
+	default:
+		return nil
 	}
-
-	return nil
 }
 
 // GetActiveRooms returns the active rooms map

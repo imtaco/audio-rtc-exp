@@ -2,11 +2,11 @@ package validation
 
 import "github.com/go-playground/validator/v10"
 
-func FormatValidationError(err error) []ValidationError {
-	var errors []ValidationError
+func FormatValidationError(err error) []Error {
+	var errors []Error
 	if validationErrors, ok := err.(validator.ValidationErrors); ok {
 		for _, e := range validationErrors {
-			errors = append(errors, ValidationError{
+			errors = append(errors, Error{
 				Field:   e.Field(),
 				Message: e.Error(), // Use built-in error message
 			})
@@ -16,8 +16,8 @@ func FormatValidationError(err error) []ValidationError {
 	return errors
 }
 
-// ValidationError represents a validation error
-type ValidationError struct {
+// Error represents a validation error
+type Error struct {
 	Field   string `json:"field"`
 	Message string `json:"message"`
 }

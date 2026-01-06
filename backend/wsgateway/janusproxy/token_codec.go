@@ -38,8 +38,8 @@ func (c *janusIDCodec) Encode(roomKey string, sessionID, handleID int64) (string
 	plain := make([]byte, 18)
 	plain[0] = 'J'
 	plain[1] = 'T'
-	binary.BigEndian.PutUint64(plain[2:10], uint64(sessionID))
-	binary.BigEndian.PutUint64(plain[10:18], uint64(handleID))
+	binary.BigEndian.PutUint64(plain[2:10], uint64(sessionID))   // #nosec G115 -- sessionID is int64, conversion to uint64 is safe for binary encoding
+	binary.BigEndian.PutUint64(plain[10:18], uint64(handleID)) // #nosec G115 -- handleID is int64, conversion to uint64 is safe for binary encoding
 
 	block, err := aes.NewCipher(c.key)
 	if err != nil {
@@ -59,7 +59,8 @@ func (c *janusIDCodec) Encode(roomKey string, sessionID, handleID int64) (string
 	aad := []byte(roomKey)
 	ciphertext := gcm.Seal(nil, nonce, plain, aad)
 
-	raw := append(nonce, ciphertext...)
+	raw := nonce
+	raw = append(raw, ciphertext...)
 	return base64.StdEncoding.EncodeToString(raw), nil
 }
 
@@ -97,7 +98,7 @@ func (c *janusIDCodec) Decode(roomKey string, token string) (int64, int64, error
 		return 0, 0, errors.New("invalid janus token prefix")
 	}
 
-	sessionID := int64(binary.BigEndian.Uint64(plain[2:10]))
-	handleID := int64(binary.BigEndian.Uint64(plain[10:18]))
+	sessionID := int64(binary.BigEndian.Uint64(plain[2:10]))  // #nosec G115 -- uint64 to int64 conversion is safe, values come from our own encoding
+	handleID := int64(binary.BigEndian.Uint64(plain[10:18])) // #nosec G115 -- uint64 to int64 conversion is safe, values come from our own encoding
 	return sessionID, handleID, nil
 }

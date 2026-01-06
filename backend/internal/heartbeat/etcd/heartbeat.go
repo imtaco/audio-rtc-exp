@@ -14,7 +14,7 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-// EtcdHeartbeat maintains service presence in etcd by automatically renewing a lease-backed key.
+// Heartbeat maintains service presence in etcd by automatically renewing a lease-backed key.
 // It stores arbitrary data at a specified key and keeps the key alive by periodically refreshing
 // the lease. If the lease expires (e.g., due to network issues), it automatically recreates the
 // lease with exponential backoff retry logic.
@@ -34,7 +34,7 @@ import (
 //
 //	// The key will remain in etcd as long as the heartbeat is running
 //	// If this process dies, the key will be removed after TTL expires
-type EtcdHeartbeat[T any] struct {
+type Heartbeat[T any] struct {
 	client      *clientv3.Client
 	key         string
 	data        T
@@ -45,11 +45,11 @@ type EtcdHeartbeat[T any] struct {
 	logger      *log.Logger
 }
 
-func New[T any](client *clientv3.Client, key string, data T, ttl time.Duration, logger *log.Logger) *EtcdHeartbeat[T] {
+func New[T any](client *clientv3.Client, key string, data T, ttl time.Duration, logger *log.Logger) *Heartbeat[T] {
 	if ttl <= 0 {
 		panic("TTL must be greater than 0")
 	}
-	return &EtcdHeartbeat[T]{
+	return &Heartbeat[T]{
 		client: client,
 		key:    key,
 		data:   data,
@@ -58,7 +58,7 @@ func New[T any](client *clientv3.Client, key string, data T, ttl time.Duration, 
 	}
 }
 
-func (h *EtcdHeartbeat[T]) Start(ctx context.Context) error {
+func (h *Heartbeat[T]) Start(ctx context.Context) error {
 	ctx, h.cancel = context.WithCancel(ctx)
 
 	if err := h.setup(ctx); err != nil {
@@ -72,7 +72,7 @@ func (h *EtcdHeartbeat[T]) Start(ctx context.Context) error {
 	return nil
 }
 
-func (h *EtcdHeartbeat[T]) Stop(ctx context.Context) error {
+func (h *Heartbeat[T]) Stop(ctx context.Context) error {
 	if h.cancel != nil {
 		h.cancel()
 	}
@@ -93,7 +93,7 @@ func (h *EtcdHeartbeat[T]) Stop(ctx context.Context) error {
 	return nil
 }
 
-func (h *EtcdHeartbeat[T]) setup(ctx context.Context) error {
+func (h *Heartbeat[T]) setup(ctx context.Context) error {
 	h.logger.Debug("Creating heartbeat lease")
 
 	leaseResp, err := h.client.Grant(ctx, int64(h.ttl.Seconds()))
@@ -121,7 +121,7 @@ func (h *EtcdHeartbeat[T]) setup(ctx context.Context) error {
 	return nil
 }
 
-func (h *EtcdHeartbeat[T]) monitorKeepAlive(ctx context.Context) {
+func (h *Heartbeat[T]) monitorKeepAlive(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -131,7 +131,7 @@ func (h *EtcdHeartbeat[T]) monitorKeepAlive(ctx context.Context) {
 				h.logger.Warn("Keep-alive channel closed or response is nil, lease may have expired",
 					log.String("key", h.key))
 				// Channel closed, need to recreate lease
-				h.recreateLease(ctx)
+				_ = h.recreateLease(ctx)
 				continue
 			}
 			h.logger.Debug("Lease kept alive",
@@ -141,7 +141,7 @@ func (h *EtcdHeartbeat[T]) monitorKeepAlive(ctx context.Context) {
 	}
 }
 
-func (h *EtcdHeartbeat[T]) recreateLease(ctx context.Context) error {
+func (h *Heartbeat[T]) recreateLease(ctx context.Context) error {
 	operation := func() error {
 		select {
 		case <-ctx.Done():

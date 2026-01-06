@@ -13,9 +13,9 @@ import (
 )
 
 func NewWSHook(
-	connMgr *wsConnManager,
+	connMgr *WSConnManager,
 	connGuard ConnectionGuard,
-	jwtAuth jwt.JWTAuth,
+	jwtAuth jwt.Auth,
 	logger *log.Logger,
 ) wsrpc.ConnectionHooks[rtcContext] {
 	return &wsHookImpl{
@@ -27,9 +27,9 @@ func NewWSHook(
 }
 
 type wsHookImpl struct {
-	connMgr   *wsConnManager
+	connMgr   *WSConnManager
 	connGuard ConnectionGuard
-	jwtAuth   jwt.JWTAuth
+	jwtAuth   jwt.Auth
 	logger    *log.Logger
 }
 
@@ -50,9 +50,8 @@ func (h *wsHookImpl) OnVerify(r *http.Request) (*rtcContext, bool, error) {
 	if err != nil {
 		if errors.Is(err, jwt.ErrInvalidToken) || errors.Is(err, jwt.ErrNoToken) {
 			return nil, false, nil
-		} else {
-			return nil, false, err
 		}
+		return nil, false, err
 	}
 	rctCtx := &rtcContext{
 		userID: payload.UserID,

@@ -158,8 +158,16 @@ func (fm *ffmpegMgrImpl) StopFFmpeg(roomID string) error {
 	processInfo.Stop()
 
 	// Clean up resources
-	fm.sdpGen.Delete(roomID)
-	fm.encGen.Delete(roomID)
+	if err := fm.sdpGen.Delete(roomID); err != nil {
+		fm.logger.Error("Failed to delete SDP file",
+			log.String("roomId", roomID),
+			log.Error(err))
+	}
+	if err := fm.encGen.Delete(roomID); err != nil {
+		fm.logger.Error("Failed to delete encryption file",
+			log.String("roomId", roomID),
+			log.Error(err))
+	}
 
 	// Record metrics
 	processesStopped.Add(ctx, 1, attrs)
@@ -178,7 +186,7 @@ func (fm *ffmpegMgrImpl) Stop() error {
 	fm.logger.Info("Stopping all FFmpeg processes")
 
 	var roomIDs []string
-	fm.processes.Range(func(key, value interface{}) bool {
+	fm.processes.Range(func(key, _ interface{}) bool {
 		roomIDs = append(roomIDs, key.(string))
 		return true
 	})

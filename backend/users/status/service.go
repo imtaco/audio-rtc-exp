@@ -21,14 +21,14 @@ const (
 
 type userServiceImpl struct {
 	redisClient *redis.Client
-	jwtAuth     jwt.JWTAuth
+	jwtAuth     jwt.Auth
 	peerSvc     jsonrpc.Peer[interface{}]
 	logger      *log.Logger
 }
 
 func NewUserService(
 	redisClient *redis.Client,
-	jwtAuth jwt.JWTAuth,
+	jwtAuth jwt.Auth,
 	streamIn string,
 	streamOut string,
 	logger *log.Logger,
@@ -60,16 +60,16 @@ func (s *userServiceImpl) Start(ctx context.Context) error {
 
 func (s *userServiceImpl) CreateUser(
 	ctx context.Context,
-	roomId string,
-	userId string,
+	roomID string,
+	userID string,
 	role string,
 ) (string, string, error) {
 	userCreatesRequested.Add(ctx, 1)
 
 	// Send RPC request and wait for reply
 	request := &users.CreateUserRequest{
-		RoomID: roomId,
-		UserID: userId,
+		RoomID: roomID,
+		UserID: userID,
 		Role:   role,
 		TS:     time.Now(),
 	}
@@ -82,21 +82,21 @@ func (s *userServiceImpl) CreateUser(
 	rpcCallsSuccess.Add(ctx, 1)
 
 	// Generate JWT token
-	token, err := s.jwtAuth.Sign(userId, roomId)
+	token, err := s.jwtAuth.Sign(userID, roomID)
 	if err != nil {
 		tokensFailed.Add(ctx, 1)
 		return "", "", fmt.Errorf("failed to sign JWT: %w", err)
 	}
 	tokensGenerated.Add(ctx, 1)
 
-	return userId, token, nil
+	return userID, token, nil
 }
 
-func (s *userServiceImpl) DeleteUser(ctx context.Context, roomId, userId string) error {
+func (s *userServiceImpl) DeleteUser(ctx context.Context, roomID, userID string) error {
 	// Send RPC request and wait for reply
 	request := &users.DeleteUserRequest{
-		RoomID: roomId,
-		UserID: userId,
+		RoomID: roomID,
+		UserID: userID,
 		TS:     time.Now(),
 	}
 	if err := s.peerSvc.Call(ctx, "deleteUser", request, nil); err != nil {
@@ -107,13 +107,13 @@ func (s *userServiceImpl) DeleteUser(ctx context.Context, roomId, userId string)
 
 func (s *userServiceImpl) SetUserStatus(
 	ctx context.Context,
-	roomId, userId string,
+	roomID, userID string,
 	status constants.AnchorStatus,
 	gen int32,
 ) error {
 	event := &users.SetStatusUserRequest{
-		RoomID: roomId,
-		UserID: userId,
+		RoomID: roomID,
+		UserID: userID,
 		Status: status,
 		Gen:    gen,
 		TS:     time.Now(),
@@ -121,6 +121,9 @@ func (s *userServiceImpl) SetUserStatus(
 	return s.peerSvc.Notify(ctx, "setUserStatus", event)
 }
 
-func (s *userServiceImpl) GetActiveRoomUsers(ctx context.Context, roomId string) ([]*users.RoomUser, error) {
+func (s *userServiceImpl) GetActiveRoomUsers(
+	_ context.Context,
+	_ string,
+) ([]*users.RoomUser, error) {
 	return nil, nil
 }

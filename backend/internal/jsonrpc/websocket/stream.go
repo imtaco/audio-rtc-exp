@@ -102,25 +102,27 @@ func (ws *wsStream) close(err error) {
 		closed := false
 		code := websocket.StatusNormalClosure
 
-		if err == nil {
+		switch {
+		case err == nil:
 			ws.logger.Error("connect closed normally")
 			code = websocket.StatusNormalClosure
-		} else if closeErr, ok := errors.As[websocket.CloseError](err); ok {
+		case func() bool { closeErr, ok := errors.As[websocket.CloseError](err); return ok && closeErr != nil }():
+			closeErr, _ := errors.As[websocket.CloseError](err)
 			ws.logger.Error("connect closed", log.Any("code", closeErr.Code))
 			closed = true
-		} else if errors.Is(err, net.ErrClosed) {
+		case errors.Is(err, net.ErrClosed):
 			ws.logger.Error("connect closed, net.ErrClosed")
 			closed = true
-		} else if errors.Is(err, ErrBufferFull) {
+		case errors.Is(err, ErrBufferFull):
 			ws.logger.Error("connect closed due to buffer full")
 			code = websocket.StatusPolicyViolation
-		} else {
+		default:
 			ws.logger.Error("connect closed due to unknown error", log.Error(err))
 			code = websocket.StatusInternalError
 		}
 
 		if closed {
-			ws.conn.CloseNow()
+			_ = ws.conn.CloseNow()
 		} else {
 			ws.conn.Close(code, "bye")
 		}

@@ -19,11 +19,11 @@ import (
 	usermocks "github.com/imtaco/audio-rtc-exp/users/mocks"
 )
 
-func setupRouter(t *testing.T) (*Router, *usermocks.MockUserService, *jwtmocks.MockJWTAuth) {
+func setupRouter(t *testing.T) (*Router, *usermocks.MockUserService, *jwtmocks.MockAuth) {
 	gin.SetMode(gin.TestMode)
 	ctrl := gomock.NewController(t)
 	mockUserService := usermocks.NewMockUserService(ctrl)
-	mockJWTAuth := jwtmocks.NewMockJWTAuth(ctrl)
+	mockJWTAuth := jwtmocks.NewMockAuth(ctrl)
 	router := NewRouter(mockUserService, mockJWTAuth, log.NewTest(t))
 	return router, mockUserService, mockJWTAuth
 }
@@ -51,7 +51,7 @@ func TestCreateUser(t *testing.T) {
 		role := "host"
 		expectedToken := "jwt-token"
 
-		mockUserService.EXPECT().CreateUser(gomock.Any(), roomID, gomock.Any(), role).DoAndReturn(func(ctx context.Context, rID, uID, r string) (string, string, error) {
+		mockUserService.EXPECT().CreateUser(gomock.Any(), roomID, gomock.Any(), role).DoAndReturn(func(_ context.Context, rID, uID, r string) (string, string, error) {
 			assert.Equal(t, roomID, rID)
 			assert.Equal(t, role, r)
 			assert.NotEmpty(t, uID) // UserID is generated inside handler

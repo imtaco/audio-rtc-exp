@@ -38,9 +38,8 @@ func (l *Logger) Module(name string) *Logger {
 func NewLogger(configFile string) (*Logger, error) {
 	if configFile == "" {
 		return newDefaultLogger(), nil
-	} else {
-		return loadLoggerFromFile(configFile)
 	}
+	return loadLoggerFromFile(configFile)
 }
 
 func loadLoggerFromFile(configFile string) (*Logger, error) {
@@ -141,7 +140,7 @@ func NewNop() *Logger {
 	logger := zap.NewNop()
 	return &Logger{
 		Logger: logger,
-		moduleFunc: func(names []string) *zap.Logger {
+		moduleFunc: func(_ []string) *zap.Logger {
 			return logger
 		},
 	}

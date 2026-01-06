@@ -23,13 +23,13 @@ func TestProcessInfoWithTestCommand(t *testing.T) {
 	keyInfoPath := filepath.Join(tmpDir, "enc.keyinfo")
 
 	// Create necessary files
-	err = os.WriteFile(sdpPath, []byte("v=0\n"), 0644)
+	err = os.WriteFile(sdpPath, []byte("v=0\n"), 0600)
 	require.NoError(t, err)
 
 	err = os.MkdirAll(hlsDir, 0755)
 	require.NoError(t, err)
 
-	err = os.WriteFile(keyInfoPath, []byte("key\n"), 0644)
+	err = os.WriteFile(keyInfoPath, []byte("key\n"), 0600)
 	require.NoError(t, err)
 
 	t.Run("can start and stop with echo command", func(t *testing.T) {
@@ -45,7 +45,7 @@ func TestProcessInfoWithTestCommand(t *testing.T) {
 
 		started := make(chan struct{})
 		// Use echo command instead of ffmpeg (exits immediately)
-		processInfo.SpawnFFmpeg = func(sdpPath, hlsDir string, startNumber int, keyInfoPath string) *exec.Cmd {
+		processInfo.SpawnFFmpeg = func(_, _ string, _ int, _ string) *exec.Cmd {
 			close(started)
 			return exec.Command("echo", "test")
 		}
@@ -77,7 +77,7 @@ func TestProcessInfoWithTestCommand(t *testing.T) {
 
 		started := make(chan struct{})
 		// Use sleep command (runs for a while)
-		processInfo.SpawnFFmpeg = func(sdpPath, hlsDir string, startNumber int, keyInfoPath string) *exec.Cmd {
+		processInfo.SpawnFFmpeg = func(_, _ string, _ int, _ string) *exec.Cmd {
 			close(started)
 			return exec.Command("sleep", "10")
 		}
@@ -130,7 +130,7 @@ func TestProcessInfoWithTestCommand(t *testing.T) {
 
 		started := make(chan struct{})
 		// Use true command (exits successfully immediately)
-		processInfo.SpawnFFmpeg = func(sdpPath, hlsDir string, startNumber int, keyInfoPath string) *exec.Cmd {
+		processInfo.SpawnFFmpeg = func(_, _ string, _ int, _ string) *exec.Cmd {
 			close(started)
 			return exec.Command("true")
 		}
@@ -159,7 +159,7 @@ func TestProcessInfoWithTestCommand(t *testing.T) {
 
 		started := make(chan struct{})
 		// Use false command (exits with failure immediately)
-		processInfo.SpawnFFmpeg = func(sdpPath, hlsDir string, startNumber int, keyInfoPath string) *exec.Cmd {
+		processInfo.SpawnFFmpeg = func(_, _ string, _ int, _ string) *exec.Cmd {
 			close(started)
 			return exec.Command("false")
 		}
@@ -211,7 +211,7 @@ func TestFFmpegManagerWithTestCommand(t *testing.T) {
 		require.True(t, exists)
 
 		processInfo := val.(*ProcessInfo)
-		processInfo.SpawnFFmpeg = func(sdpPath, hlsDir string, startNumber int, keyInfoPath string) *exec.Cmd {
+		processInfo.SpawnFFmpeg = func(_, _ string, _ int, _ string) *exec.Cmd {
 			return exec.Command("echo", "mock ffmpeg")
 		}
 
@@ -262,7 +262,7 @@ func TestFFmpegManagerWithTestCommand(t *testing.T) {
 			val, _ := mgr.processes.Load(room.roomID)
 			processInfo := val.(*ProcessInfo)
 			cmdFunc := room.cmdFunc
-			processInfo.SpawnFFmpeg = func(sdpPath, hlsDir string, startNumber int, keyInfoPath string) *exec.Cmd {
+			processInfo.SpawnFFmpeg = func(_, _ string, _ int, _ string) *exec.Cmd {
 				return cmdFunc()
 			}
 		}

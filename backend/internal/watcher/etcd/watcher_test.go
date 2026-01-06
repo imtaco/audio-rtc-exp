@@ -36,7 +36,7 @@ func (s *WatcherTestSuite) newWatcher(mockTrans watcher.StateTransformer[TestDat
 		PrefixToWatch:    "/test/prefix/",
 		AllowedKeyTypes:  []string{"data", "config"},
 		Logger:           logger,
-		ProcessChange:    func(ctx context.Context, id string, state *TestData) error { return nil },
+		ProcessChange:    func(_ context.Context, _ string, _ *TestData) error { return nil },
 		StateTransformer: mockTrans,
 	})
 	return w.(*BaseEtcdWatcher[TestData])
@@ -49,7 +49,7 @@ func (s *WatcherTestSuite) newWatcherWithClient(mockClient *etcdmock.MockWatcher
 		PrefixToWatch:    "/test/prefix/",
 		AllowedKeyTypes:  []string{"data", "config"},
 		Logger:           logger,
-		ProcessChange:    func(ctx context.Context, id string, state *TestData) error { return nil },
+		ProcessChange:    func(_ context.Context, _ string, _ *TestData) error { return nil },
 		StateTransformer: mockTrans,
 	})
 	return w.(*BaseEtcdWatcher[TestData])
@@ -86,7 +86,7 @@ func (s *WatcherTestSuite) TestStart_Success() {
 	s.NoError(err)
 
 	// cleanup
-	watcher.Stop()
+	_ = watcher.Stop()
 	close(watchCh)
 }
 
@@ -173,13 +173,13 @@ func (s *WatcherTestSuite) TestRunLoop_WatchEvents() {
 	stateUpdated := make(chan struct{})
 	mockTrans.EXPECT().
 		NewState("server1", "data", jsonData, gomock.Any()).
-		DoAndReturn(func(id, keyType string, jsonData []byte, current *TestData) (*TestData, error) {
+		DoAndReturn(func(_, _ string, _ []byte, _ *TestData) (*TestData, error) {
 			defer close(stateUpdated)
 			return data, nil
 		})
 
 	s.NoError(watcher.Start(context.Background()))
-	defer watcher.Stop()
+	defer func() { _ = watcher.Stop() }()
 
 	// Send event
 	watchCh <- clientv3.WatchResponse{
@@ -238,7 +238,7 @@ func (s *WatcherTestSuite) TestRunLoop_SchedulerEvents() {
 	// Setup ProcessChange expectation
 	// We need to override the ProcessChange function in the watcher
 	processed := make(chan struct{})
-	watcher.processChange = func(ctx context.Context, id string, state *TestData) error {
+	watcher.processChange = func(_ context.Context, id string, state *TestData) error {
 		if id == "server1" && state == data {
 			close(processed)
 		}
@@ -246,7 +246,7 @@ func (s *WatcherTestSuite) TestRunLoop_SchedulerEvents() {
 	}
 
 	s.NoError(watcher.Start(context.Background()))
-	defer watcher.Stop()
+	defer func() { _ = watcher.Stop() }()
 
 	// Enqueue item to scheduler manually (simulating internal trigger)
 	watcher.scheduler.Enqueue("server1", 0)
@@ -293,7 +293,7 @@ func (s *WatcherTestSuite) TestRunLoop_WatchError() {
 	)
 
 	s.NoError(watcher.Start(context.Background()))
-	defer watcher.Stop()
+	defer func() { _ = watcher.Stop() }()
 
 	// Send error on first watch channel by setting CompactRevision
 	// This makes Err() return ErrCompacted
@@ -309,7 +309,7 @@ func (s *WatcherTestSuite) TestRunLoop_WatchError() {
 	stateUpdated := make(chan struct{})
 	mockTrans.EXPECT().
 		NewState("server1", "data", jsonData, gomock.Any()).
-		DoAndReturn(func(id, keyType string, jsonData []byte, current *TestData) (*TestData, error) {
+		DoAndReturn(func(_, _ string, _ []byte, _ *TestData) (*TestData, error) {
 			close(stateUpdated)
 			return data, nil
 		})
@@ -933,7 +933,7 @@ func (s *WatcherTestSuite) TestParseAndUpdateCache_AllowAllKeyTypes() {
 		PrefixToWatch:    "/test/prefix/",
 		AllowedKeyTypes:  []string{},
 		Logger:           logger,
-		ProcessChange:    func(ctx context.Context, id string, state *TestData) error { return nil },
+		ProcessChange:    func(_ context.Context, _ string, _ *TestData) error { return nil },
 		StateTransformer: mockTrans,
 	})
 	watcher := w.(*BaseEtcdWatcher[TestData])
@@ -1056,7 +1056,7 @@ func (s *WatcherTestSuite) TestNew_ConfigInitialization() {
 	mockTrans := mocks.NewMockStateTransformer[TestData](ctrl)
 
 	logger := log.NewTest(s.T())
-	processChange := func(ctx context.Context, id string, state *TestData) error {
+	processChange := func(_ context.Context, _ string, _ *TestData) error {
 		return nil
 	}
 
@@ -1312,7 +1312,7 @@ func (s *WatcherTestSuite) TestRestart_CancelsCurrentWatch() {
 	watcher.Restart()
 
 	// Stop the watcher and wait for it to complete
-	watcher.Stop()
+	_ = watcher.Stop()
 }
 
 func (s *WatcherTestSuite) TestRestart_BeforeStart() {
@@ -1353,7 +1353,7 @@ func (s *WatcherTestSuite) TestRestart_DoesNotPanicWhenCalledMultipleTimes() {
 		Return((clientv3.WatchChan)(watchCh))
 
 	s.NoError(watcher.Start(context.Background()))
-	defer watcher.Stop()
+	defer func() { _ = watcher.Stop() }()
 
 	// Call Restart multiple times - should not panic
 	s.NotPanics(func() {
@@ -1385,11 +1385,12 @@ func (s *WatcherTestSuite) TestRestart_TriggersNewGetAndWatchCycle() {
 	secondGetCh := make(chan struct{})
 	mockClient.EXPECT().
 		Get(gomock.Any(), "/test/prefix/", gomock.Any()).
-		DoAndReturn(func(ctx context.Context, key string, opts ...clientv3.OpOption) (*clientv3.GetResponse, error) {
+		DoAndReturn(func(_ context.Context, _ string, _ ...clientv3.OpOption) (*clientv3.GetResponse, error) {
 			getCalled++
-			if getCalled == 1 {
+			switch getCalled {
+			case 1:
 				close(firstGetCh)
-			} else if getCalled == 2 {
+			case 2:
 				close(secondGetCh)
 			}
 			return getResponse, nil
@@ -1399,11 +1400,12 @@ func (s *WatcherTestSuite) TestRestart_TriggersNewGetAndWatchCycle() {
 	rebuildStartCalled := 0
 	firstRebuildCh := make(chan struct{})
 	secondRebuildCh := make(chan struct{})
-	mockTrans.EXPECT().RebuildStart(gomock.Any()).DoAndReturn(func(ctx context.Context) error {
+	mockTrans.EXPECT().RebuildStart(gomock.Any()).DoAndReturn(func(_ context.Context) error {
 		rebuildStartCalled++
-		if rebuildStartCalled == 1 {
+		switch rebuildStartCalled {
+		case 1:
 			close(firstRebuildCh)
-		} else if rebuildStartCalled == 2 {
+		case 2:
 			close(secondRebuildCh)
 		}
 		return nil
@@ -1417,7 +1419,7 @@ func (s *WatcherTestSuite) TestRestart_TriggersNewGetAndWatchCycle() {
 	watchCalled := 0
 	mockClient.EXPECT().
 		Watch(gomock.Any(), "/test/prefix/", gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, key string, opts ...clientv3.OpOption) clientv3.WatchChan {
+		DoAndReturn(func(_ context.Context, _ string, _ ...clientv3.OpOption) clientv3.WatchChan {
 			watchCalled++
 			if watchCalled == 1 {
 				return (clientv3.WatchChan)(watchCh1)
@@ -1426,7 +1428,7 @@ func (s *WatcherTestSuite) TestRestart_TriggersNewGetAndWatchCycle() {
 		}).Times(2)
 
 	s.NoError(watcher.Start(context.Background()))
-	defer watcher.Stop()
+	defer func() { _ = watcher.Stop() }()
 
 	// Wait for initial setup to complete
 	<-firstGetCh
@@ -1474,7 +1476,7 @@ func (s *WatcherTestSuite) TestRestart_AfterStop() {
 	s.NoError(watcher.Start(context.Background()))
 
 	// Stop the watcher
-	watcher.Stop()
+	_ = watcher.Stop()
 
 	// Restart after stop should not panic
 	s.NotPanics(func() {

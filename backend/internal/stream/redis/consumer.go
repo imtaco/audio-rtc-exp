@@ -126,9 +126,8 @@ func (sc *consumerImpl) ensureConsumerGroup(ctx context.Context) error {
 func (sc *consumerImpl) read(ctx context.Context, count int64) ([]redis.XStream, error) {
 	if sc.useGroup() {
 		return sc.readWithGroup(ctx, count)
-	} else {
-		return sc.readWihtoutGroup(ctx, count)
 	}
+	return sc.readWihtoutGroup(ctx, count)
 }
 
 func (sc *consumerImpl) readWihtoutGroup(ctx context.Context, count int64) ([]redis.XStream, error) {

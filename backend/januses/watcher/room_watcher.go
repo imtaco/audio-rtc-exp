@@ -115,7 +115,7 @@ func (w *RoomWatcher) createRoom(ctx context.Context, roomID, pin string) (int64
 		if err != nil {
 			return 0, fmt.Errorf("failed to generate random room ID: %w", err)
 		}
-		janusRoomID := int64(100000 + randNum)
+		janusRoomID := 100000 + randNum
 
 		err = w.janusAdmin.CreateRoom(ctx, janusRoomID, roomID, pin)
 		if err == nil {
@@ -174,11 +174,12 @@ func (w *RoomWatcher) stopRtpForwarder(ctx context.Context, roomID string, activ
 	w.logger.Info("Stopping RTP forwarder for room", log.String("roomId", roomID))
 
 	err := w.janusAdmin.StopRTPForwarder(ctx, activeRoom.JanusRoomID, activeRoom.StreamID)
-	if err == nil {
+	switch {
+	case err == nil:
 		w.logger.Info("Stopped RTP forwarder for room", log.String("roomId", roomID))
-	} else if errors.Is(err, janus.ErrNotFound) {
+	case errors.Is(err, janus.ErrNotFound):
 		w.logger.Info("RTP forwarder not found in Janus, assuming already stopped", log.String("roomId", roomID))
-	} else {
+	default:
 		w.logger.Error("Failed to stop RTP forwarder for room", log.String("roomId", roomID), log.Error(err))
 		return err
 	}
@@ -191,7 +192,7 @@ func (w *RoomWatcher) stopRtpForwarder(ctx context.Context, roomID string, activ
 }
 
 // processChange processes a room change event
-func (w *RoomWatcher) processChange(ctx context.Context, roomID string, state *etcdstate.RoomState) error {
+func (w *RoomWatcher) processChange(_ context.Context, roomID string, state *etcdstate.RoomState) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
@@ -215,7 +216,8 @@ func (w *RoomWatcher) processChange(ctx context.Context, roomID string, state *e
 	shouldHaveForwarder := isAssignedToUs && mixer != nil && mixer.Port != 0
 
 	// Handle room creation/removal
-	if isAssignedToUs && !hasJanusRoom {
+	switch {
+	case isAssignedToUs && !hasJanusRoom:
 		// Ensure Janus room exists
 		janusRoomID, err := w.createRoom(ctx, roomID, meta.Pin)
 		if err != nil {
@@ -227,7 +229,7 @@ func (w *RoomWatcher) processChange(ctx context.Context, roomID string, state *e
 		activeRoom = &ActiveRoom{JanusRoomID: janusRoomID}
 		w.activeRooms.Store(roomID, activeRoom)
 
-	} else if !isAssignedToUs && hasJanusRoom {
+	case !isAssignedToUs && hasJanusRoom:
 		// No longer assigned to us, remove from active rooms
 		if err := w.destroyRoom(ctx, activeRoom.JanusRoomID); err != nil {
 			return err
@@ -237,7 +239,7 @@ func (w *RoomWatcher) processChange(ctx context.Context, roomID string, state *e
 		}
 		w.activeRooms.Delete(roomID)
 		return nil
-	} else if !isAssignedToUs && !hasJanusRoom {
+	case !isAssignedToUs && !hasJanusRoom:
 		// not our business
 		return nil
 	}
@@ -250,7 +252,8 @@ func (w *RoomWatcher) processChange(ctx context.Context, roomID string, state *e
 	}
 
 	// Handle forwarder creation/removal/update
-	if shouldHaveForwarder && !hasRTPForwarder {
+	switch {
+	case shouldHaveForwarder && !hasRTPForwarder:
 		// Create RTP forwarder
 		if err := w.createRtpForwarder(ctx, roomID, activeRoom, mixer.IP, mixer.Port); err != nil {
 			return err
@@ -259,7 +262,7 @@ func (w *RoomWatcher) processChange(ctx context.Context, roomID string, state *e
 			return err
 		}
 
-	} else if !shouldHaveForwarder && hasRTPForwarder {
+	case !shouldHaveForwarder && hasRTPForwarder:
 		if err := w.stopRtpForwarder(ctx, roomID, activeRoom); err != nil {
 			return err
 		}
@@ -267,7 +270,7 @@ func (w *RoomWatcher) processChange(ctx context.Context, roomID string, state *e
 			return err
 		}
 
-	} else if shouldHaveForwarder && hasRTPForwarder {
+	case shouldHaveForwarder && hasRTPForwarder:
 		// Check if mixer endpoint changed
 		if activeRoom.FwIP != mixer.IP || activeRoom.FwPort != mixer.Port {
 			w.logger.Info("Mixer endpoint changed, recreating forwarder", log.String("roomId", roomID))
@@ -346,13 +349,13 @@ func (w *RoomWatcher) RebuildStart(ctx context.Context) error {
 }
 
 // RebuildEnd is called after rebuild
-func (w *RoomWatcher) RebuildEnd(ctx context.Context) error {
+func (w *RoomWatcher) RebuildEnd(_ context.Context) error {
 	w.logger.Info("Completed rebuild of RoomWatcher")
 	return nil
 }
 
 // rebuildState is called for each room during rebuild
-func (w *RoomWatcher) RebuildState(ctx context.Context, roomID string, stateData *etcdstate.RoomState) error {
+func (w *RoomWatcher) RebuildState(_ context.Context, roomID string, stateData *etcdstate.RoomState) error {
 	val, ok := w.activeRooms.Load(roomID)
 	if !ok {
 		return nil // no active room, nothing to do
@@ -379,9 +382,9 @@ func (w *RoomWatcher) RebuildState(ctx context.Context, roomID string, stateData
 	return nil
 }
 
-// cryptoRandInt generates a cryptographically secure random integer in range [0, max)
-func cryptoRandInt(max int64) (int64, error) {
-	nBig, err := rand.Int(rand.Reader, big.NewInt(max))
+// cryptoRandInt generates a cryptographically secure random integer in range [0, maxVal)
+func cryptoRandInt(maxVal int64) (int64, error) {
+	nBig, err := rand.Int(rand.Reader, big.NewInt(maxVal))
 	if err != nil {
 		return 0, err
 	}

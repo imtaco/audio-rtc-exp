@@ -38,7 +38,7 @@ a=rtpmap:100 opus/48000/2
 	}
 
 	sdpPath := filepath.Join(sg.sdpDir, fmt.Sprintf("%s.sdp", roomID))
-	if err := os.WriteFile(sdpPath, []byte(sdpContent), 0644); err != nil {
+	if err := os.WriteFile(sdpPath, []byte(sdpContent), 0600); err != nil {
 		return "", fmt.Errorf("failed to write SDP file: %w", err)
 	}
 

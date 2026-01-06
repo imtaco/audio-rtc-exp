@@ -9,14 +9,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewJWTAuth(t *testing.T) {
-	auth := NewJWTAuth("test-secret").(*jwtAuthImpl)
+func TestNewAuth(t *testing.T) {
+	auth := NewAuth("test-secret").(*jwtAuthImpl)
 	assert.NotNil(t, auth)
 	assert.Equal(t, jwt.SigningMethodHS256, auth.signingMethod)
 	assert.True(t, auth.allowedMethods["HS256"])
 }
 
-func TestNewJWTAuthWithAlgorithm(t *testing.T) {
+func TestNewAuthWithAlgorithm(t *testing.T) {
 	testCases := []struct {
 		name   string
 		method jwt.SigningMethod
@@ -29,7 +29,7 @@ func TestNewJWTAuthWithAlgorithm(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			auth := NewJWTAuthWithAlgorithm("test-secret", tc.method).(*jwtAuthImpl)
+			auth := NewAuthWithAlgorithm("test-secret", tc.method).(*jwtAuthImpl)
 			assert.NotNil(t, auth)
 			assert.Equal(t, tc.method, auth.signingMethod)
 			assert.True(t, auth.allowedMethods[tc.alg])
@@ -39,7 +39,7 @@ func TestNewJWTAuthWithAlgorithm(t *testing.T) {
 }
 
 func TestSign(t *testing.T) {
-	auth := NewJWTAuth("test-secret")
+	auth := NewAuth("test-secret")
 
 	t.Run("successful sign", func(t *testing.T) {
 		token, err := auth.Sign("user123", "room456")
@@ -70,7 +70,7 @@ func TestSign(t *testing.T) {
 }
 
 func TestVerify(t *testing.T) {
-	auth := NewJWTAuth("test-secret")
+	auth := NewAuth("test-secret")
 
 	t.Run("verify valid token", func(t *testing.T) {
 		token, err := auth.Sign("user123", "room456")
@@ -105,7 +105,7 @@ func TestVerify(t *testing.T) {
 		token, err := auth.Sign("user123", "room456")
 		require.NoError(t, err)
 
-		wrongAuth := NewJWTAuth("wrong-secret")
+		wrongAuth := NewAuth("wrong-secret")
 		claims, err := wrongAuth.Verify(token)
 		assert.ErrorIs(t, err, ErrInvalidToken)
 		assert.Nil(t, claims)
@@ -113,11 +113,11 @@ func TestVerify(t *testing.T) {
 }
 
 func TestAlgorithmMismatchAttack(t *testing.T) {
-	auth := NewJWTAuth("test-secret")
+	auth := NewAuth("test-secret")
 
 	t.Run("reject HS384 token when expecting HS256", func(t *testing.T) {
 		// Create a token with HS384
-		authHS384 := NewJWTAuthWithAlgorithm("test-secret", jwt.SigningMethodHS384)
+		authHS384 := NewAuthWithAlgorithm("test-secret", jwt.SigningMethodHS384)
 		token, err := authHS384.Sign("user123", "room456")
 		require.NoError(t, err)
 
@@ -131,7 +131,7 @@ func TestAlgorithmMismatchAttack(t *testing.T) {
 
 	t.Run("reject HS512 token when expecting HS256", func(t *testing.T) {
 		// Create a token with HS512
-		authHS512 := NewJWTAuthWithAlgorithm("test-secret", jwt.SigningMethodHS512)
+		authHS512 := NewAuthWithAlgorithm("test-secret", jwt.SigningMethodHS512)
 		token, err := authHS512.Sign("user123", "room456")
 		require.NoError(t, err)
 
@@ -144,7 +144,7 @@ func TestAlgorithmMismatchAttack(t *testing.T) {
 	})
 
 	t.Run("accept matching algorithm", func(t *testing.T) {
-		authHS384 := NewJWTAuthWithAlgorithm("test-secret", jwt.SigningMethodHS384)
+		authHS384 := NewAuthWithAlgorithm("test-secret", jwt.SigningMethodHS384)
 		token, err := authHS384.Sign("user123", "room456")
 		require.NoError(t, err)
 
@@ -157,11 +157,11 @@ func TestAlgorithmMismatchAttack(t *testing.T) {
 }
 
 func TestTokenWithMissingFields(t *testing.T) {
-	auth := NewJWTAuth("test-secret")
+	auth := NewAuth("test-secret")
 
 	t.Run("token missing userID", func(t *testing.T) {
 		// Manually create a token without userID
-		claims := &JWTPayload{
+		claims := &Payload{
 			UserID: "",
 			RoomID: "room456",
 		}
@@ -178,7 +178,7 @@ func TestTokenWithMissingFields(t *testing.T) {
 
 	t.Run("token missing roomID", func(t *testing.T) {
 		// Manually create a token without roomID
-		claims := &JWTPayload{
+		claims := &Payload{
 			UserID: "user123",
 			RoomID: "",
 		}
@@ -195,7 +195,7 @@ func TestTokenWithMissingFields(t *testing.T) {
 
 	t.Run("token missing both fields", func(t *testing.T) {
 		// Manually create a token without any fields
-		claims := &JWTPayload{
+		claims := &Payload{
 			UserID: "",
 			RoomID: "",
 		}
@@ -223,7 +223,7 @@ func TestSignAndVerifyRoundTrip(t *testing.T) {
 
 	for _, alg := range algorithms {
 		t.Run(alg.name, func(t *testing.T) {
-			auth := NewJWTAuthWithAlgorithm("test-secret", alg.method)
+			auth := NewAuthWithAlgorithm("test-secret", alg.method)
 
 			// Sign
 			token, err := auth.Sign("user123", "room456")
@@ -240,7 +240,7 @@ func TestSignAndVerifyRoundTrip(t *testing.T) {
 }
 
 func TestConcurrentSignAndVerify(t *testing.T) {
-	auth := NewJWTAuth("test-secret")
+	auth := NewAuth("test-secret")
 	concurrency := 100
 
 	errChan := make(chan error, concurrency)
@@ -248,7 +248,7 @@ func TestConcurrentSignAndVerify(t *testing.T) {
 
 	// Concurrent signing
 	for i := 0; i < concurrency; i++ {
-		go func(index int) {
+		go func(_ int) {
 			token, err := auth.Sign("user123", "room456")
 			if err != nil {
 				errChan <- err
@@ -274,7 +274,7 @@ func TestConcurrentSignAndVerify(t *testing.T) {
 	assert.Len(t, tokens, concurrency)
 
 	// Verify all tokens concurrently
-	verifyChan := make(chan *JWTPayload, concurrency)
+	verifyChan := make(chan *Payload, concurrency)
 	verifyErrChan := make(chan error, concurrency)
 
 	for _, token := range tokens {
@@ -289,7 +289,7 @@ func TestConcurrentSignAndVerify(t *testing.T) {
 	}
 
 	// Collect verification results
-	var verifiedClaims []*JWTPayload
+	var verifiedClaims []*Payload
 	var verifyErrors []error
 	for i := 0; i < concurrency; i++ {
 		select {

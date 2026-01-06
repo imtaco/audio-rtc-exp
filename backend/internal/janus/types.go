@@ -31,9 +31,9 @@ type Admin interface {
 
 type Anchor interface {
 	Base
-	Join(ctx context.Context, roomID int64, pin string, displayName string, jsep *JSEP) (*JanusResponse, error)
-	Leave(ctx context.Context) (*JanusResponse, error)
-	IceCandidate(ctx context.Context, candidate ICECandidate) (*JanusResponse, error)
+	Join(ctx context.Context, roomID int64, pin string, displayName string, jsep *JSEP) (*Response, error)
+	Leave(ctx context.Context) (*Response, error)
+	IceCandidate(ctx context.Context, candidate ICECandidate) (*Response, error)
 	Check(ctx context.Context) (bool, error)
 }
 
@@ -41,35 +41,35 @@ type Base interface {
 	GetSessionID() int64
 	GetHandleID() int64
 	Close()
-	GetEvents(ctx context.Context, maxEvents int) ([]*JanusResponse, error)
+	GetEvents(ctx context.Context, maxEvents int) ([]*Response, error)
 	Destroy(ctx context.Context) error
 	KeepAlive(ctx context.Context) error
 	StartKeepalive()
 	StopKeepalive()
 }
 
-// JanusResponse models the subset of Janus fields this client cares about.
-type JanusResponse struct {
+// Response models the subset of Janus fields this client cares about.
+type Response struct {
 	Janus      string           `json:"janus"`
 	SessionID  int64            `json:"session_id,omitempty"`
 	Sender     int64            `json:"sender,omitempty"`
-	Data       *JanusData       `json:"data,omitempty"`
-	Plugindata *JanusPluginData `json:"plugindata,omitempty"`
+	Data       *Data            `json:"data,omitempty"`
+	Plugindata *PluginData      `json:"plugindata,omitempty"`
 	JSEP       *json.RawMessage `json:"jsep,omitempty"`
 }
 
 // JanusData contains Janus identifiers present in many responses.
-type JanusData struct {
+type Data struct {
 	ID int64 `json:"id"`
 }
 
-// JanusPluginData wraps plugin-specific payloads.
-type JanusPluginData struct {
+// PluginData wraps plugin-specific payloads.
+type PluginData struct {
 	Data json.RawMessage `json:"data"`
 }
 
 // DecodePluginData unmarshals the plugin data payload into v.
-func (r *JanusResponse) DecodePluginData(v interface{}) error {
+func (r *Response) DecodePluginData(v interface{}) error {
 	if r == nil || r.Plugindata == nil {
 		return errors.New(ErrInvalidResponse, "plugin data unavailable")
 	}
@@ -79,7 +79,7 @@ func (r *JanusResponse) DecodePluginData(v interface{}) error {
 	return json.Unmarshal(r.Plugindata.Data, v)
 }
 
-func checkSuccess(resp *JanusResponse) error {
+func checkSuccess(resp *Response) error {
 	if resp == nil {
 		return errors.Newf(ErrInvalidResponse, "janus is nil")
 	}
@@ -89,7 +89,7 @@ func checkSuccess(resp *JanusResponse) error {
 	return errors.Newf(ErrNoneSuccessResponse, "janus not success: (resp %v)", resp)
 }
 
-func pluginErrorCode(resp *JanusResponse) (int, bool) {
+func pluginErrorCode(resp *Response) (int, bool) {
 	if resp == nil || resp.Plugindata == nil || len(resp.Plugindata.Data) == 0 {
 		return 0, false
 	}

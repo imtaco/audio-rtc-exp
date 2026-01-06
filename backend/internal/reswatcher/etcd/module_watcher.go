@@ -83,26 +83,26 @@ func (w *healthModuleWatcherImpl) Get(id string) (etcdstate.ModuleState, bool) {
 // GetAllHealthy returns all healthy module IDs
 func (w *healthModuleWatcherImpl) GetAllHealthy() []string {
 	var healthyIDs []string
-	w.healths.Range(func(key, value interface{}) bool {
+	w.healths.Range(func(key, _ interface{}) bool {
 		healthyIDs = append(healthyIDs, key.(string))
 		return true
 	})
 	return healthyIDs
 }
 
-func (w *healthModuleWatcherImpl) RebuildStart(ctx context.Context) error {
+func (w *healthModuleWatcherImpl) RebuildStart(_ context.Context) error {
 	w.logger.Info("Starting rebuild of healthModuleWatcherImpl")
 	w.healths = sync.Map{}
 	return nil
 }
 
-func (w *healthModuleWatcherImpl) RebuildEnd(ctx context.Context) error {
+func (w *healthModuleWatcherImpl) RebuildEnd(_ context.Context) error {
 	w.logger.Info("Starting rebuild of healthModuleWatcherImpl")
 	return nil
 }
 
 // rebuild is called after initial data fetch but before processing
-func (w *healthModuleWatcherImpl) RebuildState(ctx context.Context, id string, state *etcdstate.ModuleState) error {
+func (w *healthModuleWatcherImpl) RebuildState(_ context.Context, id string, state *etcdstate.ModuleState) error {
 	w.logger.Debug("found during rebuild", log.String("id", id))
 	if state.IsHealthy() {
 		w.logger.Debug("healthy during rebuild", log.String("id", id))
@@ -114,7 +114,7 @@ func (w *healthModuleWatcherImpl) RebuildState(ctx context.Context, id string, s
 }
 
 // processChange is called when a module state changes
-func (w *healthModuleWatcherImpl) processChange(ctx context.Context, id string, state *etcdstate.ModuleState) error {
+func (w *healthModuleWatcherImpl) processChange(_ context.Context, id string, state *etcdstate.ModuleState) error {
 	if state.IsHealthy() {
 		w.logger.Debug("healthy", log.String("id", id))
 		w.healths.Store(id, state)
@@ -128,7 +128,8 @@ func (w *healthModuleWatcherImpl) processChange(ctx context.Context, id string, 
 
 // processChange is called when a module state changes
 func (w *healthModuleWatcherImpl) NewState(
-	id, keyType string,
+	_ string,
+	keyType string,
 	data []byte,
 	curState *etcdstate.ModuleState,
 ) (*etcdstate.ModuleState, error) {

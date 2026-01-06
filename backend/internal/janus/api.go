@@ -111,7 +111,7 @@ func (api *apiImpl) attach(ctx context.Context, sessionID int64) (int64, error) 
 	return resp.Data.ID, nil
 }
 
-func (api *apiImpl) post(ctx context.Context, path string, payload map[string]interface{}) (*JanusResponse, error) {
+func (api *apiImpl) post(ctx context.Context, path string, payload map[string]interface{}) (*Response, error) {
 	if payload == nil {
 		payload = make(map[string]interface{})
 	}
@@ -120,7 +120,7 @@ func (api *apiImpl) post(ctx context.Context, path string, payload map[string]in
 	}
 	api.logger.Debug("janus req", log.String("path", path), log.Any("body", payload))
 
-	var respPayload JanusResponse
+	var respPayload Response
 	resp, err := client.R().
 		SetContext(ctx).
 		SetBody(payload).

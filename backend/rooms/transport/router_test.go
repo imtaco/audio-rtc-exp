@@ -153,7 +153,7 @@ func TestCreateRoom(t *testing.T) {
 		router, mockService, _ := setupRouter(t)
 
 		// Expect CreateRoom to be called with ANY string for roomID and pin, and default maxAnchors
-		mockService.EXPECT().CreateRoom(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, roomID, pin string, maxAnchors int) (*rooms.RoomResponse, error) {
+		mockService.EXPECT().CreateRoom(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, roomID, pin string, maxAnchors int) (*rooms.RoomResponse, error) {
 			assert.Len(t, roomID, 20)                      // Generated roomID is 10 bytes = 20 hex chars
 			assert.Len(t, pin, 6)                          // Generated pin is 3 bytes = 6 hex chars
 			assert.Equal(t, defaultMaxAnchors, maxAnchors) // Should use default value

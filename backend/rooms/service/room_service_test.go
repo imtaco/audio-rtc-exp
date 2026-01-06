@@ -59,7 +59,7 @@ func (s *RoomServiceTestSuite) TestCreateRoom() {
 
 		s.mockStore.EXPECT().
 			CreateRoom(gomock.Any(), gomock.Eq(roomID), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, id string, data *etcdstate.Meta) (*etcdstate.Meta, error) {
+			DoAndReturn(func(_ context.Context, _ string, data *etcdstate.Meta) (*etcdstate.Meta, error) {
 				s.Assert().Equal(pin, data.Pin)
 				s.Assert().Equal("room1/stream.m3u8", data.HLSPath)
 				s.Assert().Equal(maxAnchors, data.MaxAnchors)
@@ -155,7 +155,7 @@ func (s *RoomServiceTestSuite) TestStartLive() {
 
 		s.mockStore.EXPECT().
 			CreateLiveMeta(gomock.Any(), roomID, mixerID, janusID, gomock.Any()).
-			DoAndReturn(func(ctx context.Context, roomID, mixerID, janusID, nonce string) error {
+			DoAndReturn(func(_ context.Context, _, _, _, nonce string) error {
 				s.Assert().NotEmpty(nonce)
 				s.Assert().Len(nonce, 20) // 10 bytes hex encoded = 20 chars
 				return nil

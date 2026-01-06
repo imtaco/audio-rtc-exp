@@ -82,7 +82,7 @@ func main() {
 	if err != nil {
 		log.Fatal("Failed to create logger", err)
 	}
-	defer logger.Sync()
+	defer func() { _ = logger.Sync() }()
 
 	ctx := context.Background()
 
@@ -104,7 +104,7 @@ func main() {
 		logger.Fatal("Failed to connect to Redis", log.Error(err))
 	}
 
-	jwtAuth := jwt.NewJWTAuth(config.JWTSecret)
+	jwtAuth := jwt.NewAuth(config.JWTSecret)
 
 	janusProxy, err := janusproxy.NewProxy(
 		etcdClient,
@@ -197,10 +197,10 @@ func main() {
 
 	// Graceful shutdown
 	cleanup := func(ctx context.Context) {
-		wsServer.Shutdown(ctx)
+		_ = wsServer.Shutdown(ctx)
 
 		signalServer.Close()
-		connMgr.Stop(ctx)
+		_ = connMgr.Stop(ctx)
 
 		if err := janusProxy.Close(); err != nil {
 			logger.Error("Error cleaning up Janus proxy", log.Error(err))

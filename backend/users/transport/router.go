@@ -16,12 +16,12 @@ import (
 
 type Router struct {
 	userService users.UserService
-	jwtAuth     jwt.JWTAuth
+	jwtAuth     jwt.Auth
 	engine      *gin.Engine
 	logger      *log.Logger
 }
 
-func NewRouter(userService users.UserService, jwtAuth jwt.JWTAuth, logger *log.Logger) *Router {
+func NewRouter(userService users.UserService, jwtAuth jwt.Auth, logger *log.Logger) *Router {
 	gin.SetMode(gin.ReleaseMode)
 	engine := gin.New()
 	engine.Use(gin.Recovery())

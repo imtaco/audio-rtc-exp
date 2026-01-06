@@ -270,7 +270,7 @@ func (s *ConsumerTestSuite) TestConsumerWithFakeClock() {
 	s.Require().NoError(err)
 	s.Assert().NotNil(consumer)
 
-	consumer.Open(context.Background())
+	_ = consumer.Open(context.Background())
 	defer consumer.Close()
 
 	// Verify the lastID is calculated correctly using the fake clock
@@ -427,14 +427,14 @@ func (s *ConsumerTestSuite) TestConsumerGroup_MessagesDistributedAmongConsumers(
 
 	go func() {
 		for msg := range consumer1.Channel() {
-			msg.Ack()
+			_ = msg.Ack()
 			c1 <- msg.ID
 		}
 	}()
 
 	go func() {
 		for msg := range consumer2.Channel() {
-			msg.Ack()
+			_ = msg.Ack()
 			c2 <- msg.ID
 		}
 	}()
@@ -552,7 +552,7 @@ func (s *ConsumerTestSuite) TestConsumerGroup_OldMessagesNotRedelivered() {
 		s.Assert().Equal(newMsgID, msg.ID, "should receive new message")
 		s.Assert().NotEqual(oldMsgID, msg.ID, "should not receive old message")
 		s.Assert().Equal("new-message", msg.Values["msg"])
-		msg.Ack()
+		_ = msg.Ack()
 	case <-time.After(500 * time.Millisecond):
 		s.Fail("timeout waiting for message")
 	}
@@ -579,7 +579,7 @@ func (s *ConsumerTestSuite) TestBroadcastMode_LateJoinerMissesOldMessages() {
 	s.Require().NoError(err)
 	defer consumer.Close()
 
-	// simluate to just pass the gap
+	// simulate to just pass the gap
 	time.Sleep(2 * time.Millisecond)
 
 	// Add a new message
