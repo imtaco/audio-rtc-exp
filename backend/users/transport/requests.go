@@ -8,7 +8,7 @@ type CreateUserURI struct {
 
 // CreateUserBody represents the request body for creating a user
 type CreateUserBody struct {
-	// Role: must be host, guest, or moderator (optional)
+	// Role: must be host, guest, or anchor (optional)
 	Role string `json:"role,omitempty" binding:"omitempty,role"`
 }
 

@@ -53,6 +53,9 @@ curl -sSL localhost:3100/api/token -X POST -H "Content-Type: application/json" -
 - [Components](docs/components.md) - Service components, security, frontend architecture
 - [Development](docs/development.md) - Tech stack, best practices, and optimization roadmap
 
+### API
+- [API](docs/api.md) - RESTful API document
+
 ## Key Features
 
 ### Reactive State Synchronization
