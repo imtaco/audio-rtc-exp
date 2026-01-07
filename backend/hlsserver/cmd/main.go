@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
 	"github.com/spf13/viper"
@@ -95,7 +96,7 @@ func main() {
 		logger.Module("RoomWatcher"),
 	)
 
-	if err = roomWatcher.Start(ctx); err != nil {
+	if err := roomWatcher.Start(ctx); err != nil {
 		logger.Fatal("Failed to start room watcher", log.Error(err))
 	}
 
@@ -110,7 +111,7 @@ func main() {
 		tokenServer = httputil.NewServer(&config.TokenServerHTTP, tokenRouter.Handler())
 		go func() {
 			logger.Info("Starting token server", log.String("addr", config.TokenServerHTTP.Addr))
-			if err := tokenServer.Listen(); err != nil && err != http.ErrServerClosed {
+			if err := tokenServer.Listen(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 				logger.Fatal("Failed to start token server", log.Error(err))
 			}
 		}()
@@ -120,7 +121,7 @@ func main() {
 		keyServer = httputil.NewServer(&config.KeyServerHTTP, keyRouter.Handler())
 		go func() {
 			logger.Info("Starting key server", log.String("addr", config.KeyServerHTTP.Addr))
-			if err := keyServer.Listen(); err != nil && err != http.ErrServerClosed {
+			if err := keyServer.Listen(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 				logger.Fatal("Failed to start key server", log.Error(err))
 			}
 		}()

@@ -19,7 +19,7 @@ type WSConnManager struct {
 	room2clients map[string]map[string]jsonrpc.Conn[rtcContext] // roomId -> connId -> Client
 	client2room  map[string]string                              // connId -> roomId
 	clientsMux   sync.RWMutex
-	peer2ws      jsonrpc.Peer[interface{}]
+	peer2ws      jsonrpc.Peer[any]
 	logger       *log.Logger
 }
 
@@ -28,7 +28,7 @@ func NewWSConnMgr(
 	wsStreamName string,
 	logger *log.Logger,
 ) (*WSConnManager, error) {
-	peer2ws, err := redisrpc.NewPeer[interface{}](
+	peer2ws, err := redisrpc.NewPeer[any](
 		redisClient,
 		"", // consumer only, no need to specify producer name
 		wsStreamName,
@@ -71,9 +71,9 @@ func (m *WSConnManager) register() {
 }
 
 func (m *WSConnManager) handleBroadcast(
-	_ jsonrpc.MethodContext[interface{}],
+	_ jsonrpc.MethodContext[any],
 	params *json.RawMessage,
-) (interface{}, error) {
+) (any, error) {
 
 	m.logger.Debug("Handle broadcastRoomStatus")
 
@@ -85,6 +85,7 @@ func (m *WSConnManager) handleBroadcast(
 	m.logger.Debug("broadcastRoomStatus request", log.Any("req", req))
 	m.notifyRoomLocalPeer(req.RoomID, "roomStatus", req.Members)
 
+	//nolint:nilnil
 	return nil, nil
 }
 
@@ -166,7 +167,7 @@ func (m *WSConnManager) getRoomConns(roomID string) []jsonrpc.Conn[rtcContext] {
 func (m *WSConnManager) notifyRoomLocalPeer(
 	roomID,
 	method string,
-	data interface{}) {
+	data any) {
 
 	conns := m.getRoomConns(roomID)
 	if conns == nil {

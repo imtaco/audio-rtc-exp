@@ -1,3 +1,4 @@
+//nolint:revive
 package utils
 
 import (
@@ -27,4 +28,9 @@ func ParseTime(timestamp string) (time.Time, error) {
 		return time.Time{}, fmt.Errorf("empty timestamp")
 	}
 	return time.Parse(time.RFC3339, timestamp)
+}
+
+// Ptr returns a pointer to the passed value.
+func Ptr[T any](t T) *T {
+	return &t
 }

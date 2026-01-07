@@ -26,14 +26,14 @@ func (pq priorityQueue[T]) Swap(i, j int) {
 	pq[j].index = j
 }
 
-func (pq *priorityQueue[T]) Push(x interface{}) {
+func (pq *priorityQueue[T]) Push(x any) {
 	n := len(*pq)
 	item := x.(*item[T])
 	item.index = n
 	*pq = append(*pq, item)
 }
 
-func (pq *priorityQueue[T]) Pop() interface{} {
+func (pq *priorityQueue[T]) Pop() any {
 	old := *pq
 	n := len(old)
 	item := old[n-1]

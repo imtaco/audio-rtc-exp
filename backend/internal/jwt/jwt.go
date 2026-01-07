@@ -51,7 +51,7 @@ func (j *jwtAuthImpl) Verify(tokenString string) (*Payload, error) {
 		return nil, ErrNoToken
 	}
 
-	token, err := jwt.ParseWithClaims(tokenString, &Payload{}, func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &Payload{}, func(token *jwt.Token) (any, error) {
 		// Strictly validate the algorithm matches what we expect
 		alg := token.Method.Alg()
 		if !j.allowedMethods[alg] {

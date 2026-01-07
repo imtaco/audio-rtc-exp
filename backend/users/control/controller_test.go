@@ -46,7 +46,7 @@ func (s *UserStatusControlTestSuite) SetupTest() {
 	s.mockRoomState = mocks.NewMockRoomsState(s.gomockCtrl)
 	s.mockRoomWatcher = etcdmocks.NewMockRoomWatcher(s.gomockCtrl)
 
-	peer2svc, err := redisrpc.NewPeer[interface{}](
+	peer2svc, err := redisrpc.NewPeer[any](
 		redisClient,
 		"test:stream:reply",
 		"test:stream:input",
@@ -55,7 +55,7 @@ func (s *UserStatusControlTestSuite) SetupTest() {
 	)
 	s.Require().NoError(err)
 
-	peer2ws, err := redisrpc.NewPeer[interface{}](
+	peer2ws, err := redisrpc.NewPeer[any](
 		redisClient,
 		"test:ws:stream",
 		"",
@@ -98,9 +98,9 @@ func TestUserStatusControlSuite(t *testing.T) {
 
 func (s *UserStatusControlTestSuite) TestNewUserStatusControl() {
 	s.Require().NotNil(s.ctrl.roomState)
-	s.Assert().NotNil(s.ctrl.peer2svc)
-	s.Assert().NotNil(s.ctrl.peer2ws)
-	s.Assert().NotNil(s.ctrl.userEventCh)
+	s.NotNil(s.ctrl.peer2svc)
+	s.NotNil(s.ctrl.peer2ws)
+	s.NotNil(s.ctrl.userEventCh)
 }
 
 func (s *UserStatusControlTestSuite) TestRebuildState() {
@@ -127,9 +127,9 @@ func (s *UserStatusControlTestSuite) TestHandleCreate() {
 		rawParams := json.RawMessage(params)
 
 		replyCalled := false
-		reply := func(_ interface{}, err error) {
+		reply := func(_ any, err error) {
 			replyCalled = true
-			s.Assert().NoError(err)
+			s.Require().NoError(err)
 		}
 
 		// Mock room watcher
@@ -146,18 +146,18 @@ func (s *UserStatusControlTestSuite) TestHandleCreate() {
 		// Expect CreateUser call
 		s.mockRoomState.EXPECT().CreateUser(gomock.Any(), req.RoomID, req.UserID, gomock.Any()).Return(true, nil)
 
-		methodCtx := jsonrpc.NewContext[interface{}](nil, nil)
+		methodCtx := jsonrpc.NewContext[any](nil, nil)
 		s.ctrl.handleCreate(methodCtx, &rawParams, reply)
 
 		select {
 		case event := <-s.ctrl.userEventCh:
 			err := event.action(ctx)
-			s.Assert().NoError(err)
+			s.Require().NoError(err)
 		case <-time.After(1 * time.Second):
 			s.T().Fatal("timeout waiting for event")
 		}
 
-		s.Assert().True(replyCalled)
+		s.True(replyCalled)
 	})
 
 	s.Run("handle create with invalid JSON", func() {
@@ -165,16 +165,16 @@ func (s *UserStatusControlTestSuite) TestHandleCreate() {
 
 		replyCalled := false
 		var replyErr error
-		reply := func(_ interface{}, err error) {
+		reply := func(_ any, err error) {
 			replyCalled = true
 			replyErr = err
 		}
 
-		methodCtx := jsonrpc.NewContext[interface{}](nil, nil)
+		methodCtx := jsonrpc.NewContext[any](nil, nil)
 		s.ctrl.handleCreate(methodCtx, &invalidParams, reply)
 
-		s.Assert().True(replyCalled)
-		s.Assert().Error(replyErr)
+		s.True(replyCalled)
+		s.Require().Error(replyErr)
 	})
 
 	s.Run("handle create when room not found", func() {
@@ -192,7 +192,7 @@ func (s *UserStatusControlTestSuite) TestHandleCreate() {
 
 		replyCalled := false
 		var replyErr error
-		reply := func(_ interface{}, err error) {
+		reply := func(_ any, err error) {
 			replyCalled = true
 			replyErr = err
 		}
@@ -200,11 +200,11 @@ func (s *UserStatusControlTestSuite) TestHandleCreate() {
 		// Mock room watcher returning room not found
 		s.mockRoomWatcher.EXPECT().GetCachedState(req.RoomID).Return(nil, false)
 
-		methodCtx := jsonrpc.NewContext[interface{}](nil, nil)
+		methodCtx := jsonrpc.NewContext[any](nil, nil)
 		s.ctrl.handleCreate(methodCtx, &rawParams, reply)
 
-		s.Assert().True(replyCalled)
-		s.Assert().Error(replyErr)
+		s.True(replyCalled)
+		s.Require().Error(replyErr)
 	})
 
 	s.Run("handle create when maxAnchors limit reached", func() {
@@ -222,7 +222,7 @@ func (s *UserStatusControlTestSuite) TestHandleCreate() {
 
 		replyCalled := false
 		var replyErr error
-		reply := func(_ interface{}, err error) {
+		reply := func(_ any, err error) {
 			replyCalled = true
 			replyErr = err
 		}
@@ -245,20 +245,20 @@ func (s *UserStatusControlTestSuite) TestHandleCreate() {
 		}
 		s.mockRoomState.EXPECT().GetRoomUsers(gomock.Any(), req.RoomID).Return(existingUsers)
 
-		methodCtx := jsonrpc.NewContext[interface{}](nil, nil)
+		methodCtx := jsonrpc.NewContext[any](nil, nil)
 		s.ctrl.handleCreate(methodCtx, &rawParams, reply)
 
 		select {
 		case event := <-s.ctrl.userEventCh:
 			err := event.action(ctx)
-			s.Assert().NoError(err)
+			s.Require().NoError(err)
 		case <-time.After(1 * time.Second):
 			s.T().Fatal("timeout waiting for event")
 		}
 
-		s.Assert().True(replyCalled)
-		s.Assert().Error(replyErr)
-		s.Assert().Contains(replyErr.Error(), "reached max anchors limit")
+		s.True(replyCalled)
+		s.Require().Error(replyErr)
+		s.Contains(replyErr.Error(), "reached max anchors limit")
 	})
 
 	s.Run("handle create with exactly maxAnchors users (edge case)", func() {
@@ -275,9 +275,9 @@ func (s *UserStatusControlTestSuite) TestHandleCreate() {
 		rawParams := json.RawMessage(params)
 
 		replyCalled := false
-		reply := func(_ interface{}, err error) {
+		reply := func(_ any, err error) {
 			replyCalled = true
-			s.Assert().NoError(err)
+			s.Require().NoError(err)
 		}
 
 		// Mock room watcher with maxAnchors = 3
@@ -298,18 +298,18 @@ func (s *UserStatusControlTestSuite) TestHandleCreate() {
 		// Expect CreateUser to be called since we haven't reached the limit yet
 		s.mockRoomState.EXPECT().CreateUser(gomock.Any(), req.RoomID, req.UserID, gomock.Any()).Return(true, nil)
 
-		methodCtx := jsonrpc.NewContext[interface{}](nil, nil)
+		methodCtx := jsonrpc.NewContext[any](nil, nil)
 		s.ctrl.handleCreate(methodCtx, &rawParams, reply)
 
 		select {
 		case event := <-s.ctrl.userEventCh:
 			err := event.action(ctx)
-			s.Assert().NoError(err)
+			s.Require().NoError(err)
 		case <-time.After(1 * time.Second):
 			s.T().Fatal("timeout waiting for event")
 		}
 
-		s.Assert().True(replyCalled)
+		s.True(replyCalled)
 	})
 }
 
@@ -329,7 +329,7 @@ func (s *UserStatusControlTestSuite) TestHandleDelete() {
 	rawParams := json.RawMessage(params)
 
 	replyCalled := false
-	reply := func(_ interface{}, _ error) {
+	reply := func(_ any, _ error) {
 		replyCalled = true
 	}
 
@@ -338,18 +338,18 @@ func (s *UserStatusControlTestSuite) TestHandleDelete() {
 	// Expect GetRoomUsers call (for notification)
 	s.mockRoomState.EXPECT().GetRoomUsers(gomock.Any(), req.RoomID).Return(map[string]users.User{})
 
-	methodCtx := jsonrpc.NewContext[interface{}](nil, nil)
+	methodCtx := jsonrpc.NewContext[any](nil, nil)
 	s.ctrl.handleDelete(methodCtx, &rawParams, reply)
 
 	select {
 	case event := <-s.ctrl.userEventCh:
 		err := event.action(ctx)
-		s.Assert().NoError(err)
+		s.Require().NoError(err)
 	case <-time.After(1 * time.Second):
 		s.T().Fatal("timeout waiting for event")
 	}
 
-	s.Assert().True(replyCalled)
+	s.True(replyCalled)
 }
 
 func (s *UserStatusControlTestSuite) TestHandleSetStatus() {
@@ -371,7 +371,7 @@ func (s *UserStatusControlTestSuite) TestHandleSetStatus() {
 		rawParams := json.RawMessage(params)
 
 		replyCalled := false
-		reply := func(_ interface{}, _ error) {
+		reply := func(_ any, _ error) {
 			replyCalled = true
 		}
 
@@ -382,18 +382,18 @@ func (s *UserStatusControlTestSuite) TestHandleSetStatus() {
 			"user1": {Status: constants.AnchorStatusOnAir, TS: time.Now()},
 		})
 
-		methodCtx := jsonrpc.NewContext[interface{}](nil, nil)
+		methodCtx := jsonrpc.NewContext[any](nil, nil)
 		s.ctrl.handleSetStatus(methodCtx, &rawParams, reply)
 
 		select {
 		case event := <-s.ctrl.userEventCh:
 			err := event.action(ctx)
-			s.Assert().NoError(err)
+			s.Require().NoError(err)
 		case <-time.After(1 * time.Second):
 			s.T().Fatal("timeout waiting for event")
 		}
 
-		s.Assert().True(replyCalled)
+		s.True(replyCalled)
 	})
 
 	s.Run("handle set status for non-existent user", func() {
@@ -411,14 +411,14 @@ func (s *UserStatusControlTestSuite) TestHandleSetStatus() {
 		rawParams := json.RawMessage(params)
 
 		replyCalled := false
-		reply := func(_ interface{}, _ error) {
+		reply := func(_ any, _ error) {
 			replyCalled = true
 		}
 
 		// Expect UpdateUserStatus call returning false (not updated)
 		s.mockRoomState.EXPECT().UpdateUserStatus(gomock.Any(), req.RoomID, req.UserID, gomock.Any()).Return(false, nil)
 
-		methodCtx := jsonrpc.NewContext[interface{}](nil, nil)
+		methodCtx := jsonrpc.NewContext[any](nil, nil)
 		s.ctrl.handleSetStatus(methodCtx, &rawParams, reply)
 
 		select {
@@ -428,7 +428,7 @@ func (s *UserStatusControlTestSuite) TestHandleSetStatus() {
 			s.T().Fatal("timeout waiting for event")
 		}
 
-		s.Assert().True(replyCalled)
+		s.True(replyCalled)
 	})
 }
 
@@ -440,7 +440,7 @@ func (s *UserStatusControlTestSuite) TestNotifyUserStatus() {
 		})
 
 		err := s.ctrl.notifyUserStatus(s.ctx, roomID)
-		s.Assert().NoError(err)
+		s.Require().NoError(err)
 	})
 
 	s.Run("notify with no active users", func() {
@@ -448,14 +448,14 @@ func (s *UserStatusControlTestSuite) TestNotifyUserStatus() {
 		s.mockRoomState.EXPECT().GetRoomUsers(gomock.Any(), roomID).Return(map[string]users.User{})
 
 		err := s.ctrl.notifyUserStatus(s.ctx, roomID)
-		s.Assert().NoError(err)
+		s.Require().NoError(err)
 	})
 }
 
 func (s *UserStatusControlTestSuite) TestStop() {
 	s.mockRoomWatcher.EXPECT().Stop().Return(nil)
 	err := s.ctrl.Stop()
-	s.Assert().NoError(err)
+	s.Require().NoError(err)
 }
 
 func (s *UserStatusControlTestSuite) TestUserEvent() {
@@ -470,12 +470,12 @@ func (s *UserStatusControlTestSuite) TestUserEvent() {
 		ts: now,
 	}
 
-	s.Assert().Equal(now, event.ts)
-	s.Assert().NotNil(event.action)
+	s.Equal(now, event.ts)
+	s.NotNil(event.action)
 
 	err := event.action(context.Background())
-	s.Assert().NoError(err)
-	s.Assert().True(called)
+	s.Require().NoError(err)
+	s.True(called)
 }
 
 func (s *UserStatusControlTestSuite) TestRegisterRPC() {

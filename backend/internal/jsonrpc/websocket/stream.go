@@ -45,7 +45,7 @@ type wsStream struct {
 }
 
 // only marshal error or buffer full returne error
-func (ws *wsStream) Write(ctx context.Context, obj interface{}) error {
+func (ws *wsStream) Write(ctx context.Context, obj any) error {
 	// rcp reply might not have chance to close the connetion ?
 
 	select {
@@ -69,7 +69,7 @@ func (ws *wsStream) Write(ctx context.Context, obj interface{}) error {
 	}
 }
 
-func (ws *wsStream) Read(ctx context.Context, v interface{}) error {
+func (ws *wsStream) Read(ctx context.Context, v any) error {
 	// read loop share the same read ctx
 	// read failure lead to connection close
 	if err := wsjson.Read(ctx, ws.conn, v); err != nil {
@@ -106,7 +106,7 @@ func (ws *wsStream) close(err error) {
 		case err == nil:
 			ws.logger.Error("connect closed normally")
 			code = websocket.StatusNormalClosure
-		case func() bool { closeErr, ok := errors.As[websocket.CloseError](err); return ok && closeErr != nil }():
+		case func() bool { closeErr, ok := errors.As[*websocket.CloseError](err); return ok && closeErr != nil }():
 			closeErr, _ := errors.As[websocket.CloseError](err)
 			ws.logger.Error("connect closed", log.Any("code", closeErr.Code))
 			closed = true

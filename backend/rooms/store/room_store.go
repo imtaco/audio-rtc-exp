@@ -10,8 +10,8 @@ import (
 	"github.com/imtaco/audio-rtc-exp/internal/etcd"
 	"github.com/imtaco/audio-rtc-exp/internal/etcdstate"
 	"github.com/imtaco/audio-rtc-exp/internal/log"
-	"github.com/imtaco/audio-rtc-exp/internal/utils"
 	"github.com/imtaco/audio-rtc-exp/rooms"
+	"github.com/imtaco/audio-rtc-exp/rooms/utils"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
@@ -82,6 +82,7 @@ func (rs *roomStoreImpl) GetRoom(ctx context.Context, roomID string) (*etcdstate
 	}
 
 	if len(resp.Kvs) == 0 {
+		//nolint:nilnil
 		return nil, nil
 	}
 
@@ -231,6 +232,7 @@ func (rs *roomStoreImpl) GetMixerData(ctx context.Context, roomID string) (*etcd
 	}
 
 	if len(resp.Kvs) == 0 {
+		//nolint:nilnil
 		return nil, nil
 	}
 

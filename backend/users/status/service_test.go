@@ -23,7 +23,7 @@ import (
 type UserServiceUnitTestSuite struct {
 	suite.Suite
 	ctrl     *gomock.Controller
-	mockPeer *jsonrpcmocks.MockPeer[interface{}]
+	mockPeer *jsonrpcmocks.MockPeer[any]
 	jwtAuth  jwt.Auth
 	svc      *userServiceImpl
 	ctx      context.Context
@@ -35,7 +35,7 @@ func TestUserServiceUnitSuite(t *testing.T) {
 
 func (s *UserServiceUnitTestSuite) SetupTest() {
 	s.ctrl = gomock.NewController(s.T())
-	s.mockPeer = jsonrpcmocks.NewMockPeer[interface{}](s.ctrl)
+	s.mockPeer = jsonrpcmocks.NewMockPeer[any](s.ctrl)
 	s.jwtAuth = jwt.NewAuth("test-secret-key")
 	s.ctx = context.Background()
 
@@ -55,28 +55,28 @@ func (s *UserServiceUnitTestSuite) TestCreateUser() {
 		// Expect Call with correct parameters
 		s.mockPeer.EXPECT().
 			Call(gomock.Any(), "createUser", gomock.Any(), nil).
-			DoAndReturn(func(_ context.Context, _ string, params, _ interface{}) error {
+			DoAndReturn(func(_ context.Context, _ string, params, _ any) error {
 				// Verify the request parameters
 				req, ok := params.(*users.CreateUserRequest)
 				s.Require().True(ok, "params should be *createUserRequest")
-				s.Assert().Equal("room1", req.RoomID)
-				s.Assert().Equal("user1", req.UserID)
-				s.Assert().Equal("anchor", req.Role)
-				s.Assert().WithinDuration(time.Now(), req.TS, 1*time.Second)
+				s.Equal("room1", req.RoomID)
+				s.Equal("user1", req.UserID)
+				s.Equal("anchor", req.Role)
+				s.WithinDuration(time.Now(), req.TS, 1*time.Second)
 				return nil
 			})
 
 		userID, token, err := s.svc.CreateUser(s.ctx, "room1", "user1", "anchor")
 
 		s.Require().NoError(err)
-		s.Assert().Equal("user1", userID)
-		s.Assert().NotEmpty(token)
+		s.Equal("user1", userID)
+		s.NotEmpty(token)
 
 		// Verify JWT token
 		claims, err := s.jwtAuth.Verify(token)
 		s.Require().NoError(err)
-		s.Assert().Equal("user1", claims.UserID)
-		s.Assert().Equal("room1", claims.RoomID)
+		s.Equal("user1", claims.UserID)
+		s.Equal("room1", claims.RoomID)
 	})
 
 	s.Run("RPC call fails", func() {
@@ -87,7 +87,7 @@ func (s *UserServiceUnitTestSuite) TestCreateUser() {
 		_, _, err := s.svc.CreateUser(s.ctx, "room2", "user2", "viewer")
 
 		s.Require().Error(err)
-		s.Assert().Contains(err.Error(), "failed to create user")
+		s.Contains(err.Error(), "failed to create user")
 	})
 }
 
@@ -95,12 +95,12 @@ func (s *UserServiceUnitTestSuite) TestDeleteUser() {
 	s.Run("delete user successfully", func() {
 		s.mockPeer.EXPECT().
 			Call(gomock.Any(), "deleteUser", gomock.Any(), nil).
-			DoAndReturn(func(_ context.Context, _ string, params, _ interface{}) error {
+			DoAndReturn(func(_ context.Context, _ string, params, _ any) error {
 				req, ok := params.(*users.DeleteUserRequest)
 				s.Require().True(ok, "params should be *deleteUserRequest")
-				s.Assert().Equal("room1", req.RoomID)
-				s.Assert().Equal("user1", req.UserID)
-				s.Assert().WithinDuration(time.Now(), req.TS, 1*time.Second)
+				s.Equal("room1", req.RoomID)
+				s.Equal("user1", req.UserID)
+				s.WithinDuration(time.Now(), req.TS, 1*time.Second)
 				return nil
 			})
 
@@ -117,7 +117,7 @@ func (s *UserServiceUnitTestSuite) TestDeleteUser() {
 		err := s.svc.DeleteUser(s.ctx, "room2", "user2")
 
 		s.Require().Error(err)
-		s.Assert().Contains(err.Error(), "failed to delete user")
+		s.Contains(err.Error(), "failed to delete user")
 	})
 }
 
@@ -125,14 +125,14 @@ func (s *UserServiceUnitTestSuite) TestSetUserStatus() {
 	s.Run("set status successfully", func() {
 		s.mockPeer.EXPECT().
 			Notify(gomock.Any(), "setUserStatus", gomock.Any()).
-			DoAndReturn(func(_ context.Context, _ string, params interface{}) error {
+			DoAndReturn(func(_ context.Context, _ string, params any) error {
 				req, ok := params.(*users.SetStatusUserRequest)
 				s.Require().True(ok, "params should be *SetStatusUserRequest")
-				s.Assert().Equal("room1", req.RoomID)
-				s.Assert().Equal("user1", req.UserID)
-				s.Assert().Equal(constants.AnchorStatusOnAir, req.Status)
-				s.Assert().Equal(int32(1), req.Gen)
-				s.Assert().WithinDuration(time.Now(), req.TS, 1*time.Second)
+				s.Equal("room1", req.RoomID)
+				s.Equal("user1", req.UserID)
+				s.Equal(constants.AnchorStatusOnAir, req.Status)
+				s.Equal(int32(1), req.Gen)
+				s.WithinDuration(time.Now(), req.TS, 1*time.Second)
 				return nil
 			})
 
@@ -154,9 +154,9 @@ func (s *UserServiceUnitTestSuite) TestSetUserStatus() {
 	s.Run("empty status", func() {
 		s.mockPeer.EXPECT().
 			Notify(gomock.Any(), "setUserStatus", gomock.Any()).
-			DoAndReturn(func(_ context.Context, _ string, params interface{}) error {
+			DoAndReturn(func(_ context.Context, _ string, params any) error {
 				req := params.(*users.SetStatusUserRequest)
-				s.Assert().Equal(constants.AnchorStatus(""), req.Status)
+				s.Equal(constants.AnchorStatus(""), req.Status)
 				return nil
 			})
 
@@ -170,13 +170,13 @@ func (s *UserServiceUnitTestSuite) TestCreateUserRequestMarshaling() {
 	s.Run("request can be marshaled to JSON", func() {
 		s.mockPeer.EXPECT().
 			Call(gomock.Any(), "createUser", gomock.Any(), nil).
-			DoAndReturn(func(_ context.Context, _ string, params, _ interface{}) error {
+			DoAndReturn(func(_ context.Context, _ string, params, _ any) error {
 				// Verify the struct can be marshaled
 				data, err := json.Marshal(params)
 				s.Require().NoError(err)
-				s.Assert().Contains(string(data), "room1")
-				s.Assert().Contains(string(data), "user1")
-				s.Assert().Contains(string(data), "anchor")
+				s.Contains(string(data), "room1")
+				s.Contains(string(data), "user1")
+				s.Contains(string(data), "anchor")
 				return nil
 			})
 
@@ -194,7 +194,7 @@ func (s *UserServiceUnitTestSuite) TestMultipleOperations() {
 
 		_, token, err := s.svc.CreateUser(s.ctx, "room1", "user1", "anchor")
 		s.Require().NoError(err)
-		s.Assert().NotEmpty(token)
+		s.NotEmpty(token)
 
 		// Set status
 		s.mockPeer.EXPECT().
@@ -291,7 +291,7 @@ func TestCreateUserJWTSigningFailure(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockPeer := jsonrpcmocks.NewMockPeer[interface{}](ctrl)
+	mockPeer := jsonrpcmocks.NewMockPeer[any](ctrl)
 	mockJWT := jwtmocks.NewMockAuth(ctrl)
 	ctx := context.Background()
 

@@ -41,7 +41,7 @@ func (s *TrimerTestSuite) TearDownTest() {
 
 func (s *TrimerTestSuite) TestNewTrimer() {
 	trimer := NewTrimer(s.client, "test-stream", s.logger)
-	s.Assert().NotNil(trimer)
+	s.NotNil(trimer)
 }
 
 func (s *TrimerTestSuite) TestTrimByMaxLen() {
@@ -50,12 +50,12 @@ func (s *TrimerTestSuite) TestTrimByMaxLen() {
 	for i := 0; i < 10; i++ {
 		s.client.XAdd(ctx, &redis.XAddArgs{
 			Stream: "test-stream",
-			Values: map[string]interface{}{"msg": i},
+			Values: map[string]any{"msg": i},
 		})
 	}
 
 	length := s.client.XLen(ctx, "test-stream").Val()
-	s.Assert().Equal(int64(10), length)
+	s.Equal(int64(10), length)
 
 	trimer := NewTrimer(s.client, "test-stream", s.logger)
 
@@ -72,7 +72,7 @@ func (s *TrimerTestSuite) TestTrimByTime() {
 	for i := 0; i < 5; i++ {
 		s.client.XAdd(ctx, &redis.XAddArgs{
 			Stream: "test-stream",
-			Values: map[string]interface{}{"msg": i},
+			Values: map[string]any{"msg": i},
 		})
 	}
 
@@ -113,7 +113,7 @@ func (s *TrimerTestSuite) TestTrimByMaxLenZero() {
 	for i := 0; i < 5; i++ {
 		s.client.XAdd(ctx, &redis.XAddArgs{
 			Stream: "test-stream",
-			Values: map[string]interface{}{"msg": i},
+			Values: map[string]any{"msg": i},
 		})
 	}
 
@@ -131,7 +131,7 @@ func (s *TrimerTestSuite) TestTrimerWithFakeClock() {
 	fakeClock := clockwork.NewFakeClockAt(time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC))
 
 	trimer := NewTrimer(s.client, "test-stream", s.logger)
-	s.Assert().NotNil(trimer)
+	s.NotNil(trimer)
 	trimer.(*trimerImpl).clock = fakeClock
 
 	// Verify the minID calculation is deterministic with fake clock
@@ -142,5 +142,5 @@ func (s *TrimerTestSuite) TestTrimerWithFakeClock() {
 	expectedTime := fakeClock.Now().Add(maxAge).UnixMilli()
 	expectedID := fmt.Sprintf("%d-0", expectedTime)
 
-	s.Assert().Equal(expectedID, minID)
+	s.Equal(expectedID, minID)
 }

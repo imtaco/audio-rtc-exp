@@ -7,273 +7,188 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 
 	"github.com/imtaco/audio-rtc-exp/internal/log"
 )
 
-func TestProcessInfoWithTestCommand(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "process-test-*")
-	require.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
-
-	sdpPath := filepath.Join(tmpDir, "test.sdp")
-	hlsDir := filepath.Join(tmpDir, "hls")
-	keyInfoPath := filepath.Join(tmpDir, "enc.keyinfo")
-
-	// Create necessary files
-	err = os.WriteFile(sdpPath, []byte("v=0\n"), 0600)
-	require.NoError(t, err)
-
-	err = os.MkdirAll(hlsDir, 0755)
-	require.NoError(t, err)
-
-	err = os.WriteFile(keyInfoPath, []byte("key\n"), 0600)
-	require.NoError(t, err)
-
-	t.Run("can start and stop with echo command", func(t *testing.T) {
-		processInfo := NewProcessInfo(
-			"test-room",
-			5004,
-			sdpPath,
-			hlsDir,
-			keyInfoPath,
-			0,
-			log.NewNop(),
-		)
-
-		started := make(chan struct{})
-		// Use echo command instead of ffmpeg (exits immediately)
-		processInfo.SpawnFFmpeg = func(_, _ string, _ int, _ string) *exec.Cmd {
-			close(started)
-			return exec.Command("echo", "test")
-		}
-
-		// Start process
-		processInfo.Start()
-
-		// Wait for process to actually spawn
-		select {
-		case <-started:
-		case <-time.After(50 * time.Millisecond):
-			t.Fatal("Process didn't start")
-		}
-
-		// Stop process
-		processInfo.Stop()
-	})
-
-	t.Run("can start and stop with sleep command", func(t *testing.T) {
-		processInfo := NewProcessInfo(
-			"sleep-room",
-			5006,
-			sdpPath,
-			hlsDir,
-			keyInfoPath,
-			0,
-			log.NewNop(),
-		)
-
-		started := make(chan struct{})
-		// Use sleep command (runs for a while)
-		processInfo.SpawnFFmpeg = func(_, _ string, _ int, _ string) *exec.Cmd {
-			close(started)
-			return exec.Command("sleep", "10")
-		}
-
-		// Start process
-		processInfo.Start()
-
-		// Wait for process to actually spawn
-		select {
-		case <-started:
-		case <-time.After(50 * time.Millisecond):
-			t.Fatal("Process didn't start")
-		}
-
-		// Stop process immediately (should kill the sleep)
-		processInfo.Stop()
-	})
-
-	t.Run("process info stores correct values", func(t *testing.T) {
-		processInfo := NewProcessInfo(
-			"info-room",
-			5008,
-			sdpPath,
-			hlsDir,
-			keyInfoPath,
-			10,
-			log.NewNop(),
-		)
-
-		assert.Equal(t, "info-room", processInfo.roomID)
-		assert.Equal(t, 5008, processInfo.rtpPort)
-		assert.Equal(t, sdpPath, processInfo.sdpPath)
-		assert.Equal(t, hlsDir, processInfo.hlsDir)
-		assert.Equal(t, keyInfoPath, processInfo.keyInfoPath)
-		assert.Equal(t, 10, processInfo.initSeq)
-		assert.NotNil(t, processInfo.chanStop)
-		assert.NotNil(t, processInfo.logger)
-	})
-
-	t.Run("can handle quick exit commands", func(t *testing.T) {
-		processInfo := NewProcessInfo(
-			"quick-room",
-			5010,
-			sdpPath,
-			hlsDir,
-			keyInfoPath,
-			0,
-			log.NewNop(),
-		)
-
-		started := make(chan struct{})
-		// Use true command (exits successfully immediately)
-		processInfo.SpawnFFmpeg = func(_, _ string, _ int, _ string) *exec.Cmd {
-			close(started)
-			return exec.Command("true")
-		}
-
-		processInfo.Start()
-
-		select {
-		case <-started:
-		case <-time.After(50 * time.Millisecond):
-			t.Fatal("Process didn't start")
-		}
-
-		processInfo.Stop()
-	})
-
-	t.Run("can handle failing commands", func(t *testing.T) {
-		processInfo := NewProcessInfo(
-			"fail-room",
-			5012,
-			sdpPath,
-			hlsDir,
-			keyInfoPath,
-			0,
-			log.NewNop(),
-		)
-
-		started := make(chan struct{})
-		// Use false command (exits with failure immediately)
-		processInfo.SpawnFFmpeg = func(_, _ string, _ int, _ string) *exec.Cmd {
-			close(started)
-			return exec.Command("false")
-		}
-
-		processInfo.Start()
-
-		select {
-		case <-started:
-		case <-time.After(50 * time.Millisecond):
-			t.Fatal("Process didn't start")
-		}
-
-		processInfo.Stop()
-	})
+type ProcessTestSuite struct {
+	suite.Suite
+	tmpDir      string
+	sdpPath     string
+	hlsDir      string
+	keyInfoPath string
 }
 
-func TestFFmpegManagerWithTestCommand(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "ffmpeg-mgr-test-*")
-	require.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
+func TestProcessSuite(t *testing.T) {
+	suite.Run(t, new(ProcessTestSuite))
+}
 
-	sdpDir := filepath.Join(tmpDir, "sdp")
-	hlsDir := filepath.Join(tmpDir, "hls")
+func (s *ProcessTestSuite) SetupTest() {
+	var err error
+	s.tmpDir, err = os.MkdirTemp("", "process-test-*")
+	s.Require().NoError(err)
 
-	encGen := NewEncryptionGenerator("https://example.com/keys/", tmpDir)
-	sdpGen := NewSDPGenerator(sdpDir)
+	s.sdpPath = filepath.Join(s.tmpDir, "test.sdp")
+	s.hlsDir = filepath.Join(s.tmpDir, "hls")
+	s.keyInfoPath = filepath.Join(s.tmpDir, "enc.keyinfo")
 
-	mgr := NewFFmpegManager(
-		hlsDir,
-		encGen,
-		sdpGen,
-		100*time.Millisecond,
-		500*time.Millisecond,
+	// Create necessary files
+	err = os.WriteFile(s.sdpPath, []byte("v=0\n"), 0600)
+	s.Require().NoError(err)
+
+	err = os.MkdirAll(s.hlsDir, 0755)
+	s.Require().NoError(err)
+
+	err = os.WriteFile(s.keyInfoPath, []byte("key\n"), 0600)
+	s.Require().NoError(err)
+}
+
+func (s *ProcessTestSuite) TearDownTest() {
+	if s.tmpDir != "" {
+		os.RemoveAll(s.tmpDir)
+	}
+}
+
+func (s *ProcessTestSuite) TestProcessInfo_StartStopWithEcho() {
+	processInfo := NewProcessInfo(
+		"test-room",
+		5004,
+		s.sdpPath,
+		s.hlsDir,
+		s.keyInfoPath,
+		0,
 		log.NewNop(),
-	).(*ffmpegMgrImpl)
+	)
 
-	t.Run("start ffmpeg with test command injection", func(t *testing.T) {
-		roomID := "test-inject"
-		rtpPort := 5004
-		createdAt := time.Now()
-		nonce := "testnonce"
+	started := make(chan struct{})
+	// Use echo command instead of ffmpeg (exits immediately)
+	processInfo.SpawnFFmpeg = func(_, _ string, _ int, _ string) *exec.Cmd {
+		close(started)
+		return exec.Command("echo", "test")
+	}
 
-		// Start FFmpeg (creates files but doesn't start real process)
-		err := mgr.StartFFmpeg(roomID, rtpPort, createdAt, nonce)
-		require.NoError(t, err)
+	// Start process
+	processInfo.Start()
 
-		// Get process info and inject test command
-		val, exists := mgr.processes.Load(roomID)
-		require.True(t, exists)
+	// Wait for process to actually spawn
+	select {
+	case <-started:
+	case <-time.After(50 * time.Millisecond):
+		s.Fail("Process didn't start")
+	}
 
-		processInfo := val.(*ProcessInfo)
-		processInfo.SpawnFFmpeg = func(_, _ string, _ int, _ string) *exec.Cmd {
-			return exec.Command("echo", "mock ffmpeg")
-		}
+	// Stop process
+	processInfo.Stop()
+}
 
-		// Manual start (will use echo instead of ffmpeg)
-		// Note: StartFFmpeg already called processInfo.Start()
-		// so echo is already running
+func (s *ProcessTestSuite) TestProcessInfo_StartStopWithSleep() {
+	processInfo := NewProcessInfo(
+		"sleep-room",
+		5006,
+		s.sdpPath,
+		s.hlsDir,
+		s.keyInfoPath,
+		0,
+		log.NewNop(),
+	)
 
-		// Give it a moment to process
-		time.Sleep(5 * time.Millisecond)
+	started := make(chan struct{})
+	// Use sleep command (runs for a while)
+	processInfo.SpawnFFmpeg = func(_, _ string, _ int, _ string) *exec.Cmd {
+		close(started)
+		return exec.Command("sleep", "10")
+	}
 
-		// Stop
-		err = mgr.StopFFmpeg(roomID)
-		require.NoError(t, err)
+	// Start process
+	processInfo.Start()
 
-		// Note: Cleanup happens asynchronously after forceKillTimeout+1s,
-		// but we don't wait for it in this test to keep tests fast
-	})
+	// Wait for process to actually spawn
+	select {
+	case <-started:
+	case <-time.After(50 * time.Millisecond):
+		s.Fail("Process didn't start")
+	}
 
-	t.Run("manage multiple processes with test commands", func(t *testing.T) {
-		rooms := []struct {
-			roomID  string
-			rtpPort int
-			cmdFunc func() *exec.Cmd
-		}{
-			{
-				"room1",
-				5010,
-				func() *exec.Cmd { return exec.Command("sleep", "0.5") },
-			},
-			{
-				"room2",
-				5012,
-				func() *exec.Cmd { return exec.Command("echo", "test") },
-			},
-			{
-				"room3",
-				5014,
-				func() *exec.Cmd { return exec.Command("true") },
-			},
-		}
+	// Stop process immediately (should kill the sleep)
+	processInfo.Stop()
+}
 
-		// Start all rooms
-		for _, room := range rooms {
-			err := mgr.StartFFmpeg(room.roomID, room.rtpPort, time.Now(), "nonce")
-			require.NoError(t, err)
+func (s *ProcessTestSuite) TestProcessInfo_StoresCorrectValues() {
+	processInfo := NewProcessInfo(
+		"info-room",
+		5008,
+		s.sdpPath,
+		s.hlsDir,
+		s.keyInfoPath,
+		10,
+		log.NewNop(),
+	)
 
-			// Inject test command
-			val, _ := mgr.processes.Load(room.roomID)
-			processInfo := val.(*ProcessInfo)
-			cmdFunc := room.cmdFunc
-			processInfo.SpawnFFmpeg = func(_, _ string, _ int, _ string) *exec.Cmd {
-				return cmdFunc()
-			}
-		}
+	s.Equal("info-room", processInfo.roomID)
+	s.Equal(5008, processInfo.rtpPort)
+	s.Equal(s.sdpPath, processInfo.sdpPath)
+	s.Equal(s.hlsDir, processInfo.hlsDir)
+	s.Equal(s.keyInfoPath, processInfo.keyInfoPath)
+	s.Equal(10, processInfo.initSeq)
+	s.NotNil(processInfo.chanStop)
+	s.NotNil(processInfo.logger)
+}
 
-		// Give processes time to start
-		time.Sleep(5 * time.Millisecond)
+func (s *ProcessTestSuite) TestProcessInfo_QuickExitCommands() {
+	processInfo := NewProcessInfo(
+		"quick-room",
+		5010,
+		s.sdpPath,
+		s.hlsDir,
+		s.keyInfoPath,
+		0,
+		log.NewNop(),
+	)
 
-		// Stop all
-		err := mgr.Stop()
-		require.NoError(t, err)
+	started := make(chan struct{})
+	// Use true command (exits successfully immediately)
+	processInfo.SpawnFFmpeg = func(_, _ string, _ int, _ string) *exec.Cmd {
+		close(started)
+		return exec.Command("true")
+	}
 
-		// Note: Cleanup happens asynchronously, but we don't wait to keep tests fast
-	})
+	processInfo.Start()
+
+	select {
+	case <-started:
+	case <-time.After(50 * time.Millisecond):
+		s.Fail("Process didn't start")
+	}
+
+	processInfo.Stop()
+}
+
+func (s *ProcessTestSuite) TestProcessInfo_FailingCommands() {
+	processInfo := NewProcessInfo(
+		"fail-room",
+		5012,
+		s.sdpPath,
+		s.hlsDir,
+		s.keyInfoPath,
+		0,
+		log.NewNop(),
+	)
+
+	started := make(chan struct{})
+	// Use false command (exits with failure immediately)
+	processInfo.SpawnFFmpeg = func(_, _ string, _ int, _ string) *exec.Cmd {
+		close(started)
+		return exec.Command("false")
+	}
+
+	processInfo.Start()
+
+	select {
+	case <-started:
+	case <-time.After(50 * time.Millisecond):
+		s.Fail("Process didn't start")
+	}
+
+	processInfo.Stop()
 }

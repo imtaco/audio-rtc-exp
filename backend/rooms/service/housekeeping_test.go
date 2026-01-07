@@ -10,9 +10,9 @@ import (
 	"github.com/imtaco/audio-rtc-exp/internal/etcdstate"
 	"github.com/imtaco/audio-rtc-exp/internal/log"
 	watchermocks "github.com/imtaco/audio-rtc-exp/internal/reswatcher/etcd/mocks"
-	"github.com/imtaco/audio-rtc-exp/internal/utils"
 	roomsmocks "github.com/imtaco/audio-rtc-exp/rooms/mocks"
 	servicemocks "github.com/imtaco/audio-rtc-exp/rooms/service/mocks"
+	"github.com/imtaco/audio-rtc-exp/rooms/utils"
 
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/mock/gomock"
@@ -66,7 +66,7 @@ func (s *HouseKeeperTestSuite) TestCheckStaleRooms_Success() {
 		Return(map[string]*etcdstate.Meta{}, nil)
 
 	err := s.rm.checkStaleRooms(s.ctx)
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 func (s *HouseKeeperTestSuite) TestCheckStaleRooms_GetAllRoomsError() {
@@ -75,7 +75,7 @@ func (s *HouseKeeperTestSuite) TestCheckStaleRooms_GetAllRoomsError() {
 		Return(nil, errors.New("get all rooms error"))
 
 	err := s.rm.checkStaleRooms(s.ctx)
-	s.Error(err)
+	s.Require().Error(err)
 }
 
 func (s *HouseKeeperTestSuite) TestCheckStaleRooms_DeletesMalformedRoom() {
@@ -99,7 +99,7 @@ func (s *HouseKeeperTestSuite) TestCheckStaleRooms_DeletesMalformedRoom() {
 		Return(true, nil)
 
 	err := s.rm.checkStaleRooms(s.ctx)
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 func (s *HouseKeeperTestSuite) TestCheckStaleRooms_DeletesInactiveRoomAfterTimeout() {
@@ -128,7 +128,7 @@ func (s *HouseKeeperTestSuite) TestCheckStaleRooms_DeletesInactiveRoomAfterTimeo
 		Return(true, nil)
 
 	err := s.rm.checkStaleRooms(s.ctx)
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 func (s *HouseKeeperTestSuite) TestCheckStaleRooms_KeepsRecentInactiveRoom() {
@@ -155,7 +155,7 @@ func (s *HouseKeeperTestSuite) TestCheckStaleRooms_KeepsRecentInactiveRoom() {
 	// Should not delete - no mock expectation for DeleteRoom
 
 	err := s.rm.checkStaleRooms(s.ctx)
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 func (s *HouseKeeperTestSuite) TestCheckStaleRooms_DeletesRoomExceedingMaxAge() {
@@ -186,7 +186,7 @@ func (s *HouseKeeperTestSuite) TestCheckStaleRooms_DeletesRoomExceedingMaxAge() 
 		Return(true, nil)
 
 	err := s.rm.checkStaleRooms(s.ctx)
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 func (s *HouseKeeperTestSuite) TestCheckStaleRooms_DeletesRoomAfterGracePeriod() {
@@ -218,7 +218,7 @@ func (s *HouseKeeperTestSuite) TestCheckStaleRooms_DeletesRoomAfterGracePeriod()
 		Return(true, nil)
 
 	err := s.rm.checkStaleRooms(s.ctx)
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 func (s *HouseKeeperTestSuite) TestCheckStaleRooms_RoomNotFoundInWatcher() {
@@ -237,7 +237,7 @@ func (s *HouseKeeperTestSuite) TestCheckStaleRooms_RoomNotFoundInWatcher() {
 	// Should not delete - just skip
 
 	err := s.rm.checkStaleRooms(s.ctx)
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 // CheckRoomModules Tests
@@ -248,7 +248,7 @@ func (s *HouseKeeperTestSuite) TestCheckRoomModules_Success() {
 		Return(map[string]*etcdstate.Meta{}, nil)
 
 	err := s.rm.checkRoomModules(s.ctx)
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 func (s *HouseKeeperTestSuite) TestCheckRoomModules_GetAllRoomsError() {
@@ -257,7 +257,7 @@ func (s *HouseKeeperTestSuite) TestCheckRoomModules_GetAllRoomsError() {
 		Return(nil, errors.New("get all rooms error"))
 
 	err := s.rm.checkRoomModules(s.ctx)
-	s.Error(err)
+	s.Require().Error(err)
 }
 
 func (s *HouseKeeperTestSuite) TestCheckRoomModules_RoomNotFoundInWatcher() {
@@ -274,7 +274,7 @@ func (s *HouseKeeperTestSuite) TestCheckRoomModules_RoomNotFoundInWatcher() {
 		Return(nil, false)
 
 	err := s.rm.checkRoomModules(s.ctx)
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 func (s *HouseKeeperTestSuite) TestCheckRoomModules_NoLiveMeta() {
@@ -293,7 +293,7 @@ func (s *HouseKeeperTestSuite) TestCheckRoomModules_NoLiveMeta() {
 		}, true)
 
 	err := s.rm.checkRoomModules(s.ctx)
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 func (s *HouseKeeperTestSuite) TestCheckRoomModules_RoomNotOnAir() {
@@ -314,7 +314,7 @@ func (s *HouseKeeperTestSuite) TestCheckRoomModules_RoomNotOnAir() {
 		}, true)
 
 	err := s.rm.checkRoomModules(s.ctx)
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 func (s *HouseKeeperTestSuite) TestCheckRoomModules_MixerUnhealthy() {
@@ -358,7 +358,7 @@ func (s *HouseKeeperTestSuite) TestCheckRoomModules_MixerUnhealthy() {
 		}, true)
 
 	err := s.rm.checkRoomModules(s.ctx)
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 func (s *HouseKeeperTestSuite) TestCheckRoomModules_JanusUnhealthy() {
@@ -402,7 +402,7 @@ func (s *HouseKeeperTestSuite) TestCheckRoomModules_JanusUnhealthy() {
 		}, true)
 
 	err := s.rm.checkRoomModules(s.ctx)
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 func (s *HouseKeeperTestSuite) TestCheckRoomModules_BothModulesHealthy() {
@@ -449,7 +449,7 @@ func (s *HouseKeeperTestSuite) TestCheckRoomModules_BothModulesHealthy() {
 		}, true)
 
 	err := s.rm.checkRoomModules(s.ctx)
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 func (s *HouseKeeperTestSuite) TestCheckRoomModules_MixerNotFound() {
@@ -486,7 +486,7 @@ func (s *HouseKeeperTestSuite) TestCheckRoomModules_MixerNotFound() {
 		}, true)
 
 	err := s.rm.checkRoomModules(s.ctx)
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 // Test housekeepOnce
@@ -593,7 +593,7 @@ func (s *HouseKeeperTestSuite) TestCheckStaleRooms_ErrorLogging() {
 		Return(false, errors.New("delete failed"))
 
 	err := s.rm.checkStaleRooms(s.ctx)
-	s.NoError(err) // checkStaleRooms doesn't propagate individual room errors
+	s.Require().NoError(err) // checkStaleRooms doesn't propagate individual room errors
 }
 
 // Test error handling in checkRoomModules
@@ -649,5 +649,5 @@ func (s *HouseKeeperTestSuite) TestCheckRoomModules_ErrorLogging() {
 		}, true)
 
 	err := s.rm.checkRoomModules(s.ctx)
-	s.NoError(err) // checkRoomModules doesn't propagate individual room errors
+	s.Require().NoError(err) // checkRoomModules doesn't propagate individual room errors
 }

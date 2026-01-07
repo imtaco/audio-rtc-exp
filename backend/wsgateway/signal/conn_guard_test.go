@@ -68,11 +68,11 @@ func (s *ConnLockSuite) TestMustHold_Success() {
 	mctx := jsonrpc.NewContext(conn, &rtcCtx)
 
 	ok, err := s.guard.MustHold(mctx)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.True(ok)
 
 	value, err := s.client.Get(ctx, "test:c:user1").Result()
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.Equal("server1:nonce1", value)
 }
 
@@ -96,15 +96,15 @@ func (s *ConnLockSuite) TestMustHold_AlreadyLocked() {
 	conn2.EXPECT().Close().Return(nil)
 
 	ok, err := s.guard.MustHold(mctx1)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.True(ok)
 
 	ok, err = s.guard.MustHold(mctx2)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.False(ok)
 
 	value, err := s.client.Get(ctx, "test:c:user1").Result()
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.Equal("server1:nonce1", value)
 }
 
@@ -118,11 +118,11 @@ func (s *ConnLockSuite) TestMustHold_Reacquire() {
 	mctx := jsonrpc.NewContext(conn, &rtcCtx)
 
 	ok, err := s.guard.MustHold(mctx)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.True(ok)
 
 	ok, err = s.guard.MustHold(mctx)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.True(ok)
 }
 
@@ -146,16 +146,16 @@ func (s *ConnLockSuite) TestMustHold_WrongNonce() {
 	conn2.EXPECT().Close().Return(nil)
 
 	ok, err := s.guard.MustHold(mctx1)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.True(ok)
 
 	ok, err = s.guard.MustHold(mctx2)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.False(ok)
 
 	// still exists with original value
 	value, err := s.client.Get(ctx, "test:c:user1").Result()
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.Equal("server1:nonce1", value)
 }
 
@@ -170,11 +170,11 @@ func (s *ConnLockSuite) TestRelease_Success() {
 	mctx := jsonrpc.NewContext(conn, &rtcCtx)
 
 	ok, err := s.guard.MustHold(mctx)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.True(ok)
 
 	err = s.guard.Release(mctx)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	_, err = s.client.Get(ctx, "test:c:user1").Result()
 	s.Equal(redis.Nil, err)
@@ -199,15 +199,15 @@ func (s *ConnLockSuite) TestRelease_WrongNonce() {
 	mctx2 := jsonrpc.NewContext(conn2, &rtcCtx2)
 
 	ok, err := s.guard.MustHold(mctx1)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.True(ok)
 
 	err = s.guard.Release(mctx2)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	// still exists with original value
 	value, err := s.client.Get(ctx, "test:c:user1").Result()
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.Equal("server1:nonce1", value)
 }
 
@@ -221,7 +221,7 @@ func (s *ConnLockSuite) TestRelease_NotExists() {
 	mctx := jsonrpc.NewContext(conn, &rtcCtx)
 
 	err := s.guard.Release(mctx)
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 func (s *ConnLockSuite) TestMustHold_ServerStopped() {
@@ -237,10 +237,10 @@ func (s *ConnLockSuite) TestMustHold_ServerStopped() {
 	mctx1 := jsonrpc.NewContext(conn1, &rtcCtx1)
 
 	err := lock1.Start(ctx)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	ok, err := lock1.MustHold(mctx1)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.True(ok)
 
 	lock1.Stop()
@@ -255,10 +255,10 @@ func (s *ConnLockSuite) TestMustHold_ServerStopped() {
 	mctx2 := jsonrpc.NewContext(conn2, &rtcCtx2)
 
 	ok, err = lock2.MustHold(mctx2)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.True(ok)
 
 	value, err := s.client.Get(ctx, "test:c:user1").Result()
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.Equal("server2:nonce2", value)
 }

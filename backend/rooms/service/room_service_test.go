@@ -60,9 +60,9 @@ func (s *RoomServiceTestSuite) TestCreateRoom() {
 		s.mockStore.EXPECT().
 			CreateRoom(gomock.Any(), gomock.Eq(roomID), gomock.Any()).
 			DoAndReturn(func(_ context.Context, _ string, data *etcdstate.Meta) (*etcdstate.Meta, error) {
-				s.Assert().Equal(pin, data.Pin)
-				s.Assert().Equal("room1/stream.m3u8", data.HLSPath)
-				s.Assert().Equal(maxAnchors, data.MaxAnchors)
+				s.Equal(pin, data.Pin)
+				s.Equal("room1/stream.m3u8", data.HLSPath)
+				s.Equal(maxAnchors, data.MaxAnchors)
 				return &etcdstate.Meta{
 					Pin:        pin,
 					HLSPath:    "room1/stream.m3u8",
@@ -74,10 +74,10 @@ func (s *RoomServiceTestSuite) TestCreateRoom() {
 		resp, err := s.svc.CreateRoom(s.ctx, roomID, pin, maxAnchors)
 
 		s.Require().NoError(err)
-		s.Assert().Equal(roomID, resp.RoomID)
-		s.Assert().Equal(pin, resp.Pin)
-		s.Assert().Equal("https://example.com/hls/room1/stream.m3u8", resp.HLSURL)
-		s.Assert().Equal(now, resp.CreatedAt)
+		s.Equal(roomID, resp.RoomID)
+		s.Equal(pin, resp.Pin)
+		s.Equal("https://example.com/hls/room1/stream.m3u8", resp.HLSURL)
+		s.Equal(now, resp.CreatedAt)
 	})
 
 	s.Run("room already exists", func() {
@@ -92,10 +92,10 @@ func (s *RoomServiceTestSuite) TestCreateRoom() {
 		resp, err := s.svc.CreateRoom(s.ctx, roomID, pin, maxAnchors)
 
 		s.Require().Error(err)
-		s.Assert().Nil(resp)
+		s.Nil(resp)
 		var roomExistsErr *rooms.RoomExistsError
-		s.Assert().ErrorAs(err, &roomExistsErr)
-		s.Assert().Equal(roomID, roomExistsErr.RoomID)
+		s.Require().ErrorAs(err, &roomExistsErr)
+		s.Equal(roomID, roomExistsErr.RoomID)
 	})
 
 	s.Run("exists check fails", func() {
@@ -110,8 +110,8 @@ func (s *RoomServiceTestSuite) TestCreateRoom() {
 		resp, err := s.svc.CreateRoom(s.ctx, roomID, pin, maxAnchors)
 
 		s.Require().Error(err)
-		s.Assert().Nil(resp)
-		s.Assert().Contains(err.Error(), "failed to check room existence")
+		s.Nil(resp)
+		s.Contains(err.Error(), "failed to check room existence")
 	})
 
 	s.Run("create room fails", func() {
@@ -130,8 +130,8 @@ func (s *RoomServiceTestSuite) TestCreateRoom() {
 		resp, err := s.svc.CreateRoom(s.ctx, roomID, pin, maxAnchors)
 
 		s.Require().Error(err)
-		s.Assert().Nil(resp)
-		s.Assert().Contains(err.Error(), "failed to create room")
+		s.Nil(resp)
+		s.Contains(err.Error(), "failed to create room")
 	})
 }
 
@@ -156,8 +156,8 @@ func (s *RoomServiceTestSuite) TestStartLive() {
 		s.mockStore.EXPECT().
 			CreateLiveMeta(gomock.Any(), roomID, mixerID, janusID, gomock.Any()).
 			DoAndReturn(func(_ context.Context, _, _, _, nonce string) error {
-				s.Assert().NotEmpty(nonce)
-				s.Assert().Len(nonce, 20) // 10 bytes hex encoded = 20 chars
+				s.NotEmpty(nonce)
+				s.Len(nonce, 20) // 10 bytes hex encoded = 20 chars
 				return nil
 			})
 
@@ -174,7 +174,7 @@ func (s *RoomServiceTestSuite) TestStartLive() {
 		err := s.svc.StartLive(s.ctx, "room1")
 
 		s.Require().Error(err)
-		s.Assert().Contains(err.Error(), "no available mixer")
+		s.Contains(err.Error(), "no available mixer")
 	})
 
 	s.Run("mixer returns empty string", func() {
@@ -185,7 +185,7 @@ func (s *RoomServiceTestSuite) TestStartLive() {
 		err := s.svc.StartLive(s.ctx, "room1")
 
 		s.Require().Error(err)
-		s.Assert().Contains(err.Error(), "no available mixer")
+		s.Contains(err.Error(), "no available mixer")
 	})
 
 	s.Run("no available janus", func() {
@@ -200,7 +200,7 @@ func (s *RoomServiceTestSuite) TestStartLive() {
 		err := s.svc.StartLive(s.ctx, "room1")
 
 		s.Require().Error(err)
-		s.Assert().Contains(err.Error(), "no available Janus server")
+		s.Contains(err.Error(), "no available Janus server")
 	})
 
 	s.Run("janus returns empty string", func() {
@@ -215,7 +215,7 @@ func (s *RoomServiceTestSuite) TestStartLive() {
 		err := s.svc.StartLive(s.ctx, "room1")
 
 		s.Require().Error(err)
-		s.Assert().Contains(err.Error(), "no available Janus server")
+		s.Contains(err.Error(), "no available Janus server")
 	})
 
 	s.Run("room not found", func() {
@@ -237,8 +237,8 @@ func (s *RoomServiceTestSuite) TestStartLive() {
 
 		s.Require().Error(err)
 		var roomNotFoundErr *rooms.RoomNotFoundError
-		s.Assert().ErrorAs(err, &roomNotFoundErr)
-		s.Assert().Equal(roomID, roomNotFoundErr.RoomID)
+		s.Require().ErrorAs(err, &roomNotFoundErr)
+		s.Equal(roomID, roomNotFoundErr.RoomID)
 	})
 
 	s.Run("exists check fails", func() {
@@ -257,7 +257,7 @@ func (s *RoomServiceTestSuite) TestStartLive() {
 		err := s.svc.StartLive(s.ctx, "room1")
 
 		s.Require().Error(err)
-		s.Assert().Contains(err.Error(), "failed to check room existence")
+		s.Contains(err.Error(), "failed to check room existence")
 	})
 
 	s.Run("create live meta fails", func() {
@@ -282,7 +282,7 @@ func (s *RoomServiceTestSuite) TestStartLive() {
 		err := s.svc.StartLive(s.ctx, roomID)
 
 		s.Require().Error(err)
-		s.Assert().Contains(err.Error(), "meta creation failed")
+		s.Contains(err.Error(), "meta creation failed")
 	})
 }
 
@@ -307,10 +307,10 @@ func (s *RoomServiceTestSuite) TestGetRoom() {
 		resp, err := s.svc.GetRoom(s.ctx, roomID)
 
 		s.Require().NoError(err)
-		s.Assert().Equal(roomID, resp.RoomID)
-		s.Assert().Equal("https://example.com/hls/room1/stream.m3u8", resp.HLSURL)
-		s.Assert().Equal(now, resp.CreatedAt)
-		s.Assert().Nil(resp.RTPPort)
+		s.Equal(roomID, resp.RoomID)
+		s.Equal("https://example.com/hls/room1/stream.m3u8", resp.HLSURL)
+		s.Equal(now, resp.CreatedAt)
+		s.Nil(resp.RTPPort)
 	})
 
 	s.Run("get room successfully with mixer data", func() {
@@ -337,9 +337,9 @@ func (s *RoomServiceTestSuite) TestGetRoom() {
 		resp, err := s.svc.GetRoom(s.ctx, roomID)
 
 		s.Require().NoError(err)
-		s.Assert().Equal(roomID, resp.RoomID)
-		s.Assert().NotNil(resp.RTPPort)
-		s.Assert().Equal(port, *resp.RTPPort)
+		s.Equal(roomID, resp.RoomID)
+		s.NotNil(resp.RTPPort)
+		s.Equal(port, *resp.RTPPort)
 	})
 
 	s.Run("get room with zero port in mixer data", func() {
@@ -364,7 +364,7 @@ func (s *RoomServiceTestSuite) TestGetRoom() {
 		resp, err := s.svc.GetRoom(s.ctx, roomID)
 
 		s.Require().NoError(err)
-		s.Assert().Nil(resp.RTPPort)
+		s.Nil(resp.RTPPort)
 	})
 
 	s.Run("room not found - nil returned", func() {
@@ -377,10 +377,10 @@ func (s *RoomServiceTestSuite) TestGetRoom() {
 		resp, err := s.svc.GetRoom(s.ctx, roomID)
 
 		s.Require().Error(err)
-		s.Assert().Nil(resp)
+		s.Nil(resp)
 		var roomNotFoundErr *rooms.RoomNotFoundError
-		s.Assert().ErrorAs(err, &roomNotFoundErr)
-		s.Assert().Equal(roomID, roomNotFoundErr.RoomID)
+		s.Require().ErrorAs(err, &roomNotFoundErr)
+		s.Equal(roomID, roomNotFoundErr.RoomID)
 	})
 
 	s.Run("get room fails", func() {
@@ -393,8 +393,8 @@ func (s *RoomServiceTestSuite) TestGetRoom() {
 		resp, err := s.svc.GetRoom(s.ctx, roomID)
 
 		s.Require().Error(err)
-		s.Assert().Nil(resp)
-		s.Assert().Contains(err.Error(), "failed to get room")
+		s.Nil(resp)
+		s.Contains(err.Error(), "failed to get room")
 	})
 }
 
@@ -419,18 +419,18 @@ func (s *RoomServiceTestSuite) TestListRooms() {
 		resp, err := s.svc.ListRooms(s.ctx)
 
 		s.Require().NoError(err)
-		s.Assert().Equal(2, resp.Count)
-		s.Assert().Len(resp.Rooms, 2)
+		s.Equal(2, resp.Count)
+		s.Len(resp.Rooms, 2)
 
 		// Check that both rooms are present (order is not guaranteed due to map iteration)
 		roomIDs := []string{resp.Rooms[0].RoomID, resp.Rooms[1].RoomID}
-		s.Assert().Contains(roomIDs, "room1")
-		s.Assert().Contains(roomIDs, "room2")
+		s.Contains(roomIDs, "room1")
+		s.Contains(roomIDs, "room2")
 
 		// Verify each room has correct HLSURL
 		for _, room := range resp.Rooms {
 			expectedURL := "https://example.com/hls/" + room.RoomID + "/stream.m3u8"
-			s.Assert().Equal(expectedURL, room.HLSURL)
+			s.Equal(expectedURL, room.HLSURL)
 		}
 	})
 
@@ -442,8 +442,8 @@ func (s *RoomServiceTestSuite) TestListRooms() {
 		resp, err := s.svc.ListRooms(s.ctx)
 
 		s.Require().NoError(err)
-		s.Assert().Equal(0, resp.Count)
-		s.Assert().Empty(resp.Rooms)
+		s.Equal(0, resp.Count)
+		s.Empty(resp.Rooms)
 	})
 
 	s.Run("list rooms fails", func() {
@@ -454,8 +454,8 @@ func (s *RoomServiceTestSuite) TestListRooms() {
 		resp, err := s.svc.ListRooms(s.ctx)
 
 		s.Require().Error(err)
-		s.Assert().Nil(resp)
-		s.Assert().Contains(err.Error(), "failed to list rooms")
+		s.Nil(resp)
+		s.Contains(err.Error(), "failed to list rooms")
 	})
 }
 
@@ -479,7 +479,7 @@ func (s *RoomServiceTestSuite) TestDeleteRoom() {
 		resp, err := s.svc.DeleteRoom(s.ctx, roomID)
 
 		s.Require().NoError(err)
-		s.Assert().Contains(resp.Message, "Room room1 stopped")
+		s.Contains(resp.Message, "Room room1 stopped")
 	})
 
 	s.Run("room not found", func() {
@@ -492,10 +492,10 @@ func (s *RoomServiceTestSuite) TestDeleteRoom() {
 		resp, err := s.svc.DeleteRoom(s.ctx, roomID)
 
 		s.Require().Error(err)
-		s.Assert().Nil(resp)
+		s.Nil(resp)
 		var roomNotFoundErr *rooms.RoomNotFoundError
-		s.Assert().ErrorAs(err, &roomNotFoundErr)
-		s.Assert().Equal(roomID, roomNotFoundErr.RoomID)
+		s.Require().ErrorAs(err, &roomNotFoundErr)
+		s.Equal(roomID, roomNotFoundErr.RoomID)
 	})
 
 	s.Run("get room fails", func() {
@@ -508,8 +508,8 @@ func (s *RoomServiceTestSuite) TestDeleteRoom() {
 		resp, err := s.svc.DeleteRoom(s.ctx, roomID)
 
 		s.Require().Error(err)
-		s.Assert().Nil(resp)
-		s.Assert().Contains(err.Error(), "failed to get room")
+		s.Nil(resp)
+		s.Contains(err.Error(), "failed to get room")
 	})
 
 	s.Run("stop room fails", func() {
@@ -531,8 +531,8 @@ func (s *RoomServiceTestSuite) TestDeleteRoom() {
 		resp, err := s.svc.DeleteRoom(s.ctx, roomID)
 
 		s.Require().Error(err)
-		s.Assert().Nil(resp)
-		s.Assert().Contains(err.Error(), "failed to stop room")
+		s.Nil(resp)
+		s.Contains(err.Error(), "failed to stop room")
 	})
 }
 
@@ -550,8 +550,8 @@ func (s *RoomServiceTestSuite) TestGetStats() {
 		resp, err := s.svc.GetStats(s.ctx)
 
 		s.Require().NoError(err)
-		s.Assert().Equal(10, resp.Rooms.Total)
-		s.Assert().Equal(25, resp.Rooms.TotalParticipants)
+		s.Equal(10, resp.Rooms.Total)
+		s.Equal(25, resp.Rooms.TotalParticipants)
 	})
 
 	s.Run("get stats with zero values", func() {
@@ -567,8 +567,8 @@ func (s *RoomServiceTestSuite) TestGetStats() {
 		resp, err := s.svc.GetStats(s.ctx)
 
 		s.Require().NoError(err)
-		s.Assert().Equal(0, resp.Rooms.Total)
-		s.Assert().Equal(0, resp.Rooms.TotalParticipants)
+		s.Equal(0, resp.Rooms.Total)
+		s.Equal(0, resp.Rooms.TotalParticipants)
 	})
 
 	s.Run("get stats fails", func() {
@@ -579,8 +579,8 @@ func (s *RoomServiceTestSuite) TestGetStats() {
 		resp, err := s.svc.GetStats(s.ctx)
 
 		s.Require().Error(err)
-		s.Assert().Nil(resp)
-		s.Assert().Contains(err.Error(), "failed to get stats")
+		s.Nil(resp)
+		s.Contains(err.Error(), "failed to get stats")
 	})
 }
 
@@ -593,21 +593,21 @@ func (s *RoomServiceTestSuite) TestNewRoomService() {
 			log.NewNop(),
 		).(*roomSvcImpl)
 
-		s.Assert().NotNil(svc)
-		s.Assert().Equal(s.mockStore, svc.roomStore)
-		s.Assert().Equal(s.mockResMgr, svc.resMgr)
-		s.Assert().Equal("https://test.com/", svc.hlsAdvURL)
+		s.NotNil(svc)
+		s.Equal(s.mockStore, svc.roomStore)
+		s.Equal(s.mockResMgr, svc.resMgr)
+		s.Equal("https://test.com/", svc.hlsAdvURL)
 	})
 }
 
 func (s *RoomServiceTestSuite) TestErrorTypes() {
 	s.Run("RoomExistsError", func() {
 		err := &rooms.RoomExistsError{RoomID: "test-room"}
-		s.Assert().Equal("Room test-room already exists", err.Error())
+		s.Equal("Room test-room already exists", err.Error())
 	})
 
 	s.Run("RoomNotFoundError", func() {
 		err := &rooms.RoomNotFoundError{RoomID: "missing-room"}
-		s.Assert().Equal("Room missing-room not found", err.Error())
+		s.Equal("Room missing-room not found", err.Error())
 	})
 }

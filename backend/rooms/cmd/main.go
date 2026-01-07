@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
 	"github.com/spf13/viper"
@@ -102,7 +103,7 @@ func main() {
 	)
 
 	// Initialize resource manager
-	if err = resManager.Start(ctx); err != nil {
+	if err := resManager.Start(ctx); err != nil {
 		logger.Fatal("Failed to start resource manager", log.Error(err))
 	}
 
@@ -113,7 +114,7 @@ func main() {
 	// Start HTTP server
 	go func() {
 		logger.Info("Starting HTTP server", log.String("addr", config.HTTP.Addr))
-		if err := server.Listen(); err != nil && err != http.ErrServerClosed {
+		if err := server.Listen(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Fatal("Failed to start HTTP server", log.Error(err))
 		}
 	}()

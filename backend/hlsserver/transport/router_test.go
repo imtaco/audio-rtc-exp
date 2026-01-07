@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/mock/gomock"
 
@@ -66,12 +65,12 @@ func (s *RouterSuite) TestTokenRouter_GenerateToken() {
 	s.Equal(http.StatusOK, w.Code)
 	var resp map[string]string
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.NotEmpty(resp["token"])
 
 	// Verify generated token
 	claims, err := s.jwtAuth.Verify(resp["token"])
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.Equal("room123", claims.RoomID)
 	s.NotEmpty(claims.UserID)
 
@@ -144,7 +143,7 @@ func (s *RouterSuite) TestKeyRouter_GetEncryptionKey() {
 	req.Header.Set("Authorization", "Bearer invalidtoken")
 	router.Handler().ServeHTTP(w, req)
 	s.Equal(http.StatusForbidden, w.Code)
-	assert.Contains(s.T(), w.Body.String(), "Access denied 1")
+	s.Contains(w.Body.String(), "Access denied 1")
 
 	// Case 4: Room Mismatch
 	tokenOtherRoom, _ := s.jwtAuth.Sign("user1", "otherRoom")
@@ -153,7 +152,7 @@ func (s *RouterSuite) TestKeyRouter_GetEncryptionKey() {
 	req.Header.Set("Authorization", "Bearer "+tokenOtherRoom)
 	router.Handler().ServeHTTP(w, req)
 	s.Equal(http.StatusForbidden, w.Code)
-	assert.Contains(s.T(), w.Body.String(), "Access denied 2")
+	s.Contains(w.Body.String(), "Access denied 2")
 
 	// Case 5: Room Not Active (and not in cache)
 	roomInactive := "inactiveRoom"
@@ -166,7 +165,7 @@ func (s *RouterSuite) TestKeyRouter_GetEncryptionKey() {
 	req.Header.Set("Authorization", "Bearer "+tokenInactive)
 	router.Handler().ServeHTTP(w, req)
 	s.Equal(http.StatusForbidden, w.Code)
-	assert.Contains(s.T(), w.Body.String(), "Access denied 3")
+	s.Contains(w.Body.String(), "Access denied 3")
 
 	// Case 6: Missing Auth Header
 	w = httptest.NewRecorder()

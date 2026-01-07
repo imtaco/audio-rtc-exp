@@ -22,7 +22,7 @@ const (
 type userServiceImpl struct {
 	redisClient *redis.Client
 	jwtAuth     jwt.Auth
-	peerSvc     jsonrpc.Peer[interface{}]
+	peerSvc     jsonrpc.Peer[any]
 	logger      *log.Logger
 }
 
@@ -34,7 +34,7 @@ func NewUserService(
 	logger *log.Logger,
 ) (users.UserService, error) {
 
-	peerSvc, err := redisRpc.NewPeer[interface{}](
+	peerSvc, err := redisRpc.NewPeer[any](
 		redisClient,
 		streamIn,
 		streamOut,
@@ -125,5 +125,6 @@ func (s *userServiceImpl) GetActiveRoomUsers(
 	_ context.Context,
 	_ string,
 ) ([]*users.RoomUser, error) {
+	//nolint:nilnil
 	return nil, nil
 }

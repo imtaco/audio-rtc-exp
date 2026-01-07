@@ -31,7 +31,7 @@ func (s *TokenCodecSuite) SetupTest() {
 func (s *TokenCodecSuite) TestNewJanusTokenCodec_ValidKey() {
 	key := make([]byte, 32)
 	codec, err := NewJanusTokenCodec(key)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.NotNil(codec)
 }
 
@@ -51,7 +51,7 @@ func (s *TokenCodecSuite) TestNewJanusTokenCodec_InvalidKeyLength() {
 		s.Run(tc.name, func() {
 			key := make([]byte, tc.keyLength)
 			codec, err := NewJanusTokenCodec(key)
-			s.Error(err)
+			s.Require().Error(err)
 			s.Nil(codec)
 			s.Contains(err.Error(), "key must be 32 bytes")
 		})
@@ -64,7 +64,7 @@ func (s *TokenCodecSuite) TestEncode_Success() {
 	handleID := int64(789012)
 
 	token, err := s.codec.Encode(roomKey, sessionID, handleID)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.NotEmpty(token)
 
 	// Token should be base64 encoded
@@ -120,12 +120,12 @@ func (s *TokenCodecSuite) TestEncodeDecode_RoundTrip() {
 		s.Run(tc.name, func() {
 			// Encode
 			token, err := s.codec.Encode(tc.roomKey, tc.sessionID, tc.handleID)
-			s.NoError(err)
+			s.Require().NoError(err)
 			s.NotEmpty(token)
 
 			// Decode
 			decodedSessionID, decodedHandleID, err := s.codec.Decode(tc.roomKey, token)
-			s.NoError(err)
+			s.Require().NoError(err)
 			s.Equal(tc.sessionID, decodedSessionID)
 			s.Equal(tc.handleID, decodedHandleID)
 		})
@@ -139,11 +139,11 @@ func (s *TokenCodecSuite) TestDecode_WrongRoomKey() {
 
 	// Encode with one roomKey
 	token, err := s.codec.Encode(roomKey, sessionID, handleID)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	// Try to decode with a different roomKey (should fail due to AAD mismatch)
 	_, _, err = s.codec.Decode("wrongRoom", token)
-	s.Error(err)
+	s.Require().Error(err)
 	s.Contains(err.Error(), "authentication failed")
 }
 
@@ -152,7 +152,7 @@ func (s *TokenCodecSuite) TestDecode_InvalidBase64() {
 	invalidToken := "this is not valid base64!!!"
 
 	_, _, err := s.codec.Decode(roomKey, invalidToken)
-	s.Error(err)
+	s.Require().Error(err)
 }
 
 func (s *TokenCodecSuite) TestDecode_TooShort() {
@@ -161,7 +161,7 @@ func (s *TokenCodecSuite) TestDecode_TooShort() {
 	shortToken := "YWJj" // "abc" in base64, which is only 3 bytes
 
 	_, _, err := s.codec.Decode(roomKey, shortToken)
-	s.Error(err)
+	s.Require().Error(err)
 	s.Contains(err.Error(), "token too short")
 }
 
@@ -172,14 +172,14 @@ func (s *TokenCodecSuite) TestDecode_TamperedToken() {
 
 	// Encode a valid token
 	token, err := s.codec.Encode(roomKey, sessionID, handleID)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	// Tamper with the token by changing a character
 	tamperedToken := token[:len(token)-5] + "XXXXX"
 
 	// Try to decode the tampered token
 	_, _, err = s.codec.Decode(roomKey, tamperedToken)
-	s.Error(err)
+	s.Require().Error(err)
 }
 
 func (s *TokenCodecSuite) TestDecode_InvalidPrefix() {
@@ -199,22 +199,22 @@ func (s *TokenCodecSuite) TestEncode_DifferentTokensForSameInput() {
 
 	// Encode the same values twice
 	token1, err := s.codec.Encode(roomKey, sessionID, handleID)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	token2, err := s.codec.Encode(roomKey, sessionID, handleID)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	// Tokens should be different due to random nonce
 	s.NotEqual(token1, token2)
 
 	// But both should decode to the same values
 	sessionID1, handleID1, err := s.codec.Decode(roomKey, token1)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.Equal(sessionID, sessionID1)
 	s.Equal(handleID, handleID1)
 
 	sessionID2, handleID2, err := s.codec.Decode(roomKey, token2)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.Equal(sessionID, sessionID2)
 	s.Equal(handleID, handleID2)
 }
@@ -240,11 +240,11 @@ func (s *TokenCodecSuite) TestDecode_WrongKey() {
 
 	// Encode with codec1
 	token, err := codec1.Encode(roomKey, sessionID, handleID)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	// Try to decode with codec2 (wrong key)
 	_, _, err = codec2.Decode(roomKey, token)
-	s.Error(err)
+	s.Require().Error(err)
 	s.Contains(err.Error(), "authentication failed")
 }
 
@@ -254,7 +254,7 @@ func (s *TokenCodecSuite) TestTokenFormat() {
 	handleID := int64(789012)
 
 	token, err := s.codec.Encode(roomKey, sessionID, handleID)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	// Token should be base64 standard encoding (not URL encoding)
 	// and should have reasonable length
@@ -278,11 +278,11 @@ func (s *TokenCodecSuite) TestConcurrentEncodeDecode() {
 
 			// Encode
 			token, err := s.codec.Encode(roomKey, int64(id)*sessionID, int64(id)*handleID)
-			s.NoError(err)
+			s.Require().NoError(err)
 
 			// Decode
 			decSessionID, decHandleID, err := s.codec.Decode(roomKey, token)
-			s.NoError(err)
+			s.Require().NoError(err)
 			s.Equal(int64(id)*sessionID, decSessionID)
 			s.Equal(int64(id)*handleID, decHandleID)
 		}(i)

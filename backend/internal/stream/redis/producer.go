@@ -10,8 +10,8 @@ import (
 )
 
 type Producer interface {
-	Add(ctx context.Context, values map[string]interface{}) (string, error)
-	AddWithID(ctx context.Context, id string, values map[string]interface{}) error
+	Add(ctx context.Context, values map[string]any) (string, error)
+	AddWithID(ctx context.Context, id string, values map[string]any) error
 }
 
 type producerImpl struct {
@@ -42,7 +42,7 @@ func NewProducer(
 	}, nil
 }
 
-func (sp *producerImpl) Add(ctx context.Context, values map[string]interface{}) (string, error) {
+func (sp *producerImpl) Add(ctx context.Context, values map[string]any) (string, error) {
 	id, err := sp.client.XAdd(ctx, &redis.XAddArgs{
 		Stream: sp.stream,
 		Values: values,
@@ -59,7 +59,7 @@ func (sp *producerImpl) Add(ctx context.Context, values map[string]interface{}) 
 	return id, nil
 }
 
-func (sp *producerImpl) AddWithID(ctx context.Context, id string, values map[string]interface{}) error {
+func (sp *producerImpl) AddWithID(ctx context.Context, id string, values map[string]any) error {
 	err := sp.client.XAdd(ctx, &redis.XAddArgs{
 		Stream: sp.stream,
 		ID:     id,

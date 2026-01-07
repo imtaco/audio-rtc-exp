@@ -26,8 +26,8 @@ type UserStatusControl struct {
 	roomState   users.RoomsState
 	roomWatcher etcdwatcher.RoomWatcher
 	// rpc
-	peer2svc            jsonrpc.Peer[interface{}]
-	peer2ws             jsonrpc.Peer[interface{}]
+	peer2svc            jsonrpc.Peer[any]
+	peer2ws             jsonrpc.Peer[any]
 	userEventCh         chan *userEvent
 	logger              *log.Logger
 	expireCheckInterval time.Duration
@@ -50,7 +50,7 @@ func NewUserStatusControl(
 ) (*UserStatusControl, error) {
 
 	// TODO: use forever client ?
-	peer2svc, err := redisrpc.NewPeer[interface{}](
+	peer2svc, err := redisrpc.NewPeer[any](
 		redisClient,
 		streamReply,
 		streamIn,
@@ -69,7 +69,7 @@ func NewUserStatusControl(
 		logger.Module("Room"),
 	)
 
-	peer2ws, err := redisrpc.NewPeer[interface{}](
+	peer2ws, err := redisrpc.NewPeer[any](
 		redisClient,
 		wsStreamName,
 		"",
@@ -124,7 +124,7 @@ func (c *UserStatusControl) registerRPC() {
 }
 
 func (c *UserStatusControl) handleCreate(
-	_ jsonrpc.MethodContext[interface{}],
+	_ jsonrpc.MethodContext[any],
 	params *json.RawMessage,
 	reply jsonrpc.Reply,
 ) {
@@ -211,7 +211,7 @@ func (c *UserStatusControl) handleCreate(
 }
 
 func (c *UserStatusControl) handleDelete(
-	_ jsonrpc.MethodContext[interface{}],
+	_ jsonrpc.MethodContext[any],
 	params *json.RawMessage,
 	reply jsonrpc.Reply,
 ) {
@@ -264,7 +264,7 @@ func (c *UserStatusControl) handleDelete(
 }
 
 func (c *UserStatusControl) handleSetStatus(
-	_ jsonrpc.MethodContext[interface{}],
+	_ jsonrpc.MethodContext[any],
 	params *json.RawMessage,
 	reply jsonrpc.Reply,
 ) {

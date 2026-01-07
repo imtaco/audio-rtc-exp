@@ -2,6 +2,7 @@ package redis
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -47,7 +48,7 @@ type consumerImpl struct {
 
 type Message struct {
 	ID     string
-	Values map[string]interface{}
+	Values map[string]any
 	sc     *consumerImpl
 	ctx    context.Context
 }
@@ -139,7 +140,8 @@ func (sc *consumerImpl) readWihtoutGroup(ctx context.Context, count int64) ([]re
 	}).Result()
 
 	if err != nil {
-		if err == redis.Nil {
+		if errors.Is(err, redis.Nil) {
+			//nolint:nilnil
 			return nil, nil
 		}
 		return nil, fmt.Errorf("failed to read from stream: %w", err)
@@ -154,7 +156,7 @@ func (sc *consumerImpl) readWihtoutGroup(ctx context.Context, count int64) ([]re
 }
 
 func (sc *consumerImpl) readWithGroup(ctx context.Context, count int64) ([]redis.XStream, error) {
-	startID := ""
+	var startID string
 	if sc.pendingMode {
 		startID = "0"
 	} else {
@@ -171,7 +173,8 @@ func (sc *consumerImpl) readWithGroup(ctx context.Context, count int64) ([]redis
 
 	if err != nil {
 		sc.logger.Info("xread err", log.Error(err))
-		if err == redis.Nil {
+		if errors.Is(err, redis.Nil) {
+			//nolint:nilnil
 			return nil, nil
 		}
 		return nil, fmt.Errorf("failed to read pending messages: %w", err)

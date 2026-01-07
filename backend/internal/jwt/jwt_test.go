@@ -5,18 +5,36 @@ import (
 	"testing"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 )
 
-func TestNewAuth(t *testing.T) {
-	auth := NewAuth("test-secret").(*jwtAuthImpl)
-	assert.NotNil(t, auth)
-	assert.Equal(t, jwt.SigningMethodHS256, auth.signingMethod)
-	assert.True(t, auth.allowedMethods["HS256"])
+type JWTTestSuite struct {
+	suite.Suite
+	auth   Auth
+	secret string
+	userID string
+	roomID string
 }
 
-func TestNewAuthWithAlgorithm(t *testing.T) {
+func TestJWTSuite(t *testing.T) {
+	suite.Run(t, new(JWTTestSuite))
+}
+
+func (s *JWTTestSuite) SetupTest() {
+	s.secret = "test-secret"
+	s.userID = "user123"
+	s.roomID = "room456"
+	s.auth = NewAuth(s.secret)
+}
+
+func (s *JWTTestSuite) TestNewAuth() {
+	auth := NewAuth(s.secret).(*jwtAuthImpl)
+	s.NotNil(auth)
+	s.Equal(jwt.SigningMethodHS256, auth.signingMethod)
+	s.True(auth.allowedMethods["HS256"])
+}
+
+func (s *JWTTestSuite) TestNewAuthWithAlgorithm() {
 	testCases := []struct {
 		name   string
 		method jwt.SigningMethod
@@ -28,190 +46,174 @@ func TestNewAuthWithAlgorithm(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			auth := NewAuthWithAlgorithm("test-secret", tc.method).(*jwtAuthImpl)
-			assert.NotNil(t, auth)
-			assert.Equal(t, tc.method, auth.signingMethod)
-			assert.True(t, auth.allowedMethods[tc.alg])
-			assert.Len(t, auth.allowedMethods, 1)
+		s.Run(tc.name, func() {
+			auth := NewAuthWithAlgorithm(s.secret, tc.method).(*jwtAuthImpl)
+			s.NotNil(auth)
+			s.Equal(tc.method, auth.signingMethod)
+			s.True(auth.allowedMethods[tc.alg])
+			s.Len(auth.allowedMethods, 1)
 		})
 	}
 }
 
-func TestSign(t *testing.T) {
-	auth := NewAuth("test-secret")
-
-	t.Run("successful sign", func(t *testing.T) {
-		token, err := auth.Sign("user123", "room456")
-		require.NoError(t, err)
-		assert.NotEmpty(t, token)
-		assert.True(t, strings.HasPrefix(token, "eyJ"))
-	})
-
-	t.Run("empty userID", func(t *testing.T) {
-		token, err := auth.Sign("", "room456")
-		assert.ErrorIs(t, err, ErrInvalidRequest)
-		assert.Empty(t, token)
-		assert.Contains(t, err.Error(), "required")
-	})
-
-	t.Run("empty roomID", func(t *testing.T) {
-		token, err := auth.Sign("user123", "")
-		assert.ErrorIs(t, err, ErrInvalidRequest)
-		assert.Empty(t, token)
-		assert.Contains(t, err.Error(), "required")
-	})
-
-	t.Run("both empty", func(t *testing.T) {
-		token, err := auth.Sign("", "")
-		assert.ErrorIs(t, err, ErrInvalidRequest)
-		assert.Empty(t, token)
-	})
+func (s *JWTTestSuite) TestSign_Successful() {
+	token, err := s.auth.Sign(s.userID, s.roomID)
+	s.Require().NoError(err)
+	s.NotEmpty(token)
+	s.True(strings.HasPrefix(token, "eyJ"))
 }
 
-func TestVerify(t *testing.T) {
-	auth := NewAuth("test-secret")
-
-	t.Run("verify valid token", func(t *testing.T) {
-		token, err := auth.Sign("user123", "room456")
-		require.NoError(t, err)
-
-		claims, err := auth.Verify(token)
-		assert.NoError(t, err)
-		assert.NotNil(t, claims)
-		assert.Equal(t, "user123", claims.UserID)
-		assert.Equal(t, "room456", claims.RoomID)
-	})
-
-	t.Run("verify empty token", func(t *testing.T) {
-		claims, err := auth.Verify("")
-		assert.ErrorIs(t, err, ErrNoToken)
-		assert.Nil(t, claims)
-	})
-
-	t.Run("verify invalid token format", func(t *testing.T) {
-		claims, err := auth.Verify("invalid-token")
-		assert.ErrorIs(t, err, ErrInvalidToken)
-		assert.Nil(t, claims)
-	})
-
-	t.Run("verify malformed token", func(t *testing.T) {
-		claims, err := auth.Verify("eyJ.invalid.token")
-		assert.ErrorIs(t, err, ErrInvalidToken)
-		assert.Nil(t, claims)
-	})
-
-	t.Run("verify wrong secret", func(t *testing.T) {
-		token, err := auth.Sign("user123", "room456")
-		require.NoError(t, err)
-
-		wrongAuth := NewAuth("wrong-secret")
-		claims, err := wrongAuth.Verify(token)
-		assert.ErrorIs(t, err, ErrInvalidToken)
-		assert.Nil(t, claims)
-	})
+func (s *JWTTestSuite) TestSign_EmptyUserID() {
+	token, err := s.auth.Sign("", s.roomID)
+	s.Require().ErrorIs(err, ErrInvalidRequest)
+	s.Empty(token)
+	s.Contains(err.Error(), "required")
 }
 
-func TestAlgorithmMismatchAttack(t *testing.T) {
-	auth := NewAuth("test-secret")
-
-	t.Run("reject HS384 token when expecting HS256", func(t *testing.T) {
-		// Create a token with HS384
-		authHS384 := NewAuthWithAlgorithm("test-secret", jwt.SigningMethodHS384)
-		token, err := authHS384.Sign("user123", "room456")
-		require.NoError(t, err)
-
-		// Try to verify with HS256 auth (should fail)
-		claims, err := auth.Verify(token)
-		assert.ErrorIs(t, err, ErrInvalidToken)
-		assert.Nil(t, claims)
-		assert.Contains(t, err.Error(), "unexpected signing method")
-		assert.Contains(t, err.Error(), "HS384")
-	})
-
-	t.Run("reject HS512 token when expecting HS256", func(t *testing.T) {
-		// Create a token with HS512
-		authHS512 := NewAuthWithAlgorithm("test-secret", jwt.SigningMethodHS512)
-		token, err := authHS512.Sign("user123", "room456")
-		require.NoError(t, err)
-
-		// Try to verify with HS256 auth (should fail)
-		claims, err := auth.Verify(token)
-		assert.ErrorIs(t, err, ErrInvalidToken)
-		assert.Nil(t, claims)
-		assert.Contains(t, err.Error(), "unexpected signing method")
-		assert.Contains(t, err.Error(), "HS512")
-	})
-
-	t.Run("accept matching algorithm", func(t *testing.T) {
-		authHS384 := NewAuthWithAlgorithm("test-secret", jwt.SigningMethodHS384)
-		token, err := authHS384.Sign("user123", "room456")
-		require.NoError(t, err)
-
-		// Verify with same algorithm should succeed
-		claims, err := authHS384.Verify(token)
-		assert.NoError(t, err)
-		assert.NotNil(t, claims)
-		assert.Equal(t, "user123", claims.UserID)
-	})
+func (s *JWTTestSuite) TestSign_EmptyRoomID() {
+	token, err := s.auth.Sign(s.userID, "")
+	s.Require().ErrorIs(err, ErrInvalidRequest)
+	s.Empty(token)
+	s.Contains(err.Error(), "required")
 }
 
-func TestTokenWithMissingFields(t *testing.T) {
-	auth := NewAuth("test-secret")
-
-	t.Run("token missing userID", func(t *testing.T) {
-		// Manually create a token without userID
-		claims := &Payload{
-			UserID: "",
-			RoomID: "room456",
-		}
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-		tokenString, err := token.SignedString([]byte("test-secret"))
-		require.NoError(t, err)
-
-		// Should fail verification
-		verifiedClaims, err := auth.Verify(tokenString)
-		assert.ErrorIs(t, err, ErrInvalidToken)
-		assert.Nil(t, verifiedClaims)
-		assert.Contains(t, err.Error(), "missing required fields")
-	})
-
-	t.Run("token missing roomID", func(t *testing.T) {
-		// Manually create a token without roomID
-		claims := &Payload{
-			UserID: "user123",
-			RoomID: "",
-		}
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-		tokenString, err := token.SignedString([]byte("test-secret"))
-		require.NoError(t, err)
-
-		// Should fail verification
-		verifiedClaims, err := auth.Verify(tokenString)
-		assert.ErrorIs(t, err, ErrInvalidToken)
-		assert.Nil(t, verifiedClaims)
-		assert.Contains(t, err.Error(), "missing required fields")
-	})
-
-	t.Run("token missing both fields", func(t *testing.T) {
-		// Manually create a token without any fields
-		claims := &Payload{
-			UserID: "",
-			RoomID: "",
-		}
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-		tokenString, err := token.SignedString([]byte("test-secret"))
-		require.NoError(t, err)
-
-		// Should fail verification
-		verifiedClaims, err := auth.Verify(tokenString)
-		assert.ErrorIs(t, err, ErrInvalidToken)
-		assert.Nil(t, verifiedClaims)
-		assert.Contains(t, err.Error(), "missing required fields")
-	})
+func (s *JWTTestSuite) TestSign_BothEmpty() {
+	token, err := s.auth.Sign("", "")
+	s.Require().ErrorIs(err, ErrInvalidRequest)
+	s.Empty(token)
 }
 
-func TestSignAndVerifyRoundTrip(t *testing.T) {
+func (s *JWTTestSuite) TestVerify_ValidToken() {
+	token, err := s.auth.Sign(s.userID, s.roomID)
+	s.Require().NoError(err)
+
+	claims, err := s.auth.Verify(token)
+	s.Require().NoError(err)
+	s.NotNil(claims)
+	s.Equal(s.userID, claims.UserID)
+	s.Equal(s.roomID, claims.RoomID)
+}
+
+func (s *JWTTestSuite) TestVerify_EmptyToken() {
+	claims, err := s.auth.Verify("")
+	s.Require().ErrorIs(err, ErrNoToken)
+	s.Nil(claims)
+}
+
+func (s *JWTTestSuite) TestVerify_InvalidTokenFormat() {
+	claims, err := s.auth.Verify("invalid-token")
+	s.Require().ErrorIs(err, ErrInvalidToken)
+	s.Nil(claims)
+}
+
+func (s *JWTTestSuite) TestVerify_MalformedToken() {
+	claims, err := s.auth.Verify("eyJ.invalid.token")
+	s.Require().ErrorIs(err, ErrInvalidToken)
+	s.Nil(claims)
+}
+
+func (s *JWTTestSuite) TestVerify_WrongSecret() {
+	token, err := s.auth.Sign(s.userID, s.roomID)
+	s.Require().NoError(err)
+
+	wrongAuth := NewAuth("wrong-secret")
+	claims, err := wrongAuth.Verify(token)
+	s.Require().ErrorIs(err, ErrInvalidToken)
+	s.Nil(claims)
+}
+
+func (s *JWTTestSuite) TestAlgorithmMismatch_RejectHS384() {
+	// Create a token with HS384
+	authHS384 := NewAuthWithAlgorithm(s.secret, jwt.SigningMethodHS384)
+	token, err := authHS384.Sign(s.userID, s.roomID)
+	s.Require().NoError(err)
+
+	// Try to verify with HS256 auth (should fail)
+	claims, err := s.auth.Verify(token)
+	s.Require().ErrorIs(err, ErrInvalidToken)
+	s.Nil(claims)
+	s.Contains(err.Error(), "unexpected signing method")
+	s.Contains(err.Error(), "HS384")
+}
+
+func (s *JWTTestSuite) TestAlgorithmMismatch_RejectHS512() {
+	// Create a token with HS512
+	authHS512 := NewAuthWithAlgorithm(s.secret, jwt.SigningMethodHS512)
+	token, err := authHS512.Sign(s.userID, s.roomID)
+	s.Require().NoError(err)
+
+	// Try to verify with HS256 auth (should fail)
+	claims, err := s.auth.Verify(token)
+	s.Require().ErrorIs(err, ErrInvalidToken)
+	s.Nil(claims)
+	s.Contains(err.Error(), "unexpected signing method")
+	s.Contains(err.Error(), "HS512")
+}
+
+func (s *JWTTestSuite) TestAlgorithmMismatch_AcceptMatching() {
+	authHS384 := NewAuthWithAlgorithm(s.secret, jwt.SigningMethodHS384)
+	token, err := authHS384.Sign(s.userID, s.roomID)
+	s.Require().NoError(err)
+
+	// Verify with same algorithm should succeed
+	claims, err := authHS384.Verify(token)
+	s.Require().NoError(err)
+	s.NotNil(claims)
+	s.Equal(s.userID, claims.UserID)
+}
+
+func (s *JWTTestSuite) TestTokenMissingFields_UserID() {
+	// Manually create a token without userID
+	claims := &Payload{
+		UserID: "",
+		RoomID: s.roomID,
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, err := token.SignedString([]byte(s.secret))
+	s.Require().NoError(err)
+
+	// Should fail verification
+	verifiedClaims, err := s.auth.Verify(tokenString)
+	s.Require().ErrorIs(err, ErrInvalidToken)
+	s.Nil(verifiedClaims)
+	s.Contains(err.Error(), "missing required fields")
+}
+
+func (s *JWTTestSuite) TestTokenMissingFields_RoomID() {
+	// Manually create a token without roomID
+	claims := &Payload{
+		UserID: s.userID,
+		RoomID: "",
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, err := token.SignedString([]byte(s.secret))
+	s.Require().NoError(err)
+
+	// Should fail verification
+	verifiedClaims, err := s.auth.Verify(tokenString)
+	s.Require().ErrorIs(err, ErrInvalidToken)
+	s.Nil(verifiedClaims)
+	s.Contains(err.Error(), "missing required fields")
+}
+
+func (s *JWTTestSuite) TestTokenMissingFields_BothFields() {
+	// Manually create a token without any fields
+	claims := &Payload{
+		UserID: "",
+		RoomID: "",
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, err := token.SignedString([]byte(s.secret))
+	s.Require().NoError(err)
+
+	// Should fail verification
+	verifiedClaims, err := s.auth.Verify(tokenString)
+	s.Require().ErrorIs(err, ErrInvalidToken)
+	s.Nil(verifiedClaims)
+	s.Contains(err.Error(), "missing required fields")
+}
+
+func (s *JWTTestSuite) TestSignAndVerifyRoundTrip() {
 	algorithms := []struct {
 		name   string
 		method jwt.SigningMethod
@@ -222,25 +224,24 @@ func TestSignAndVerifyRoundTrip(t *testing.T) {
 	}
 
 	for _, alg := range algorithms {
-		t.Run(alg.name, func(t *testing.T) {
-			auth := NewAuthWithAlgorithm("test-secret", alg.method)
+		s.Run(alg.name, func() {
+			auth := NewAuthWithAlgorithm(s.secret, alg.method)
 
 			// Sign
-			token, err := auth.Sign("user123", "room456")
-			require.NoError(t, err)
-			assert.NotEmpty(t, token)
+			token, err := auth.Sign(s.userID, s.roomID)
+			s.Require().NoError(err)
+			s.NotEmpty(token)
 
 			// Verify
 			claims, err := auth.Verify(token)
-			require.NoError(t, err)
-			assert.Equal(t, "user123", claims.UserID)
-			assert.Equal(t, "room456", claims.RoomID)
+			s.Require().NoError(err)
+			s.Equal(s.userID, claims.UserID)
+			s.Equal(s.roomID, claims.RoomID)
 		})
 	}
 }
 
-func TestConcurrentSignAndVerify(t *testing.T) {
-	auth := NewAuth("test-secret")
+func (s *JWTTestSuite) TestConcurrentSignAndVerify() {
 	concurrency := 100
 
 	errChan := make(chan error, concurrency)
@@ -249,7 +250,7 @@ func TestConcurrentSignAndVerify(t *testing.T) {
 	// Concurrent signing
 	for i := 0; i < concurrency; i++ {
 		go func(_ int) {
-			token, err := auth.Sign("user123", "room456")
+			token, err := s.auth.Sign(s.userID, s.roomID)
 			if err != nil {
 				errChan <- err
 			} else {
@@ -270,8 +271,8 @@ func TestConcurrentSignAndVerify(t *testing.T) {
 		}
 	}
 
-	assert.Empty(t, errors)
-	assert.Len(t, tokens, concurrency)
+	s.Empty(errors)
+	s.Len(tokens, concurrency)
 
 	// Verify all tokens concurrently
 	verifyChan := make(chan *Payload, concurrency)
@@ -279,7 +280,7 @@ func TestConcurrentSignAndVerify(t *testing.T) {
 
 	for _, token := range tokens {
 		go func(t string) {
-			claims, err := auth.Verify(t)
+			claims, err := s.auth.Verify(t)
 			if err != nil {
 				verifyErrChan <- err
 			} else {
@@ -300,12 +301,12 @@ func TestConcurrentSignAndVerify(t *testing.T) {
 		}
 	}
 
-	assert.Empty(t, verifyErrors)
-	assert.Len(t, verifiedClaims, concurrency)
+	s.Empty(verifyErrors)
+	s.Len(verifiedClaims, concurrency)
 
 	// Verify all claims are correct
 	for _, claims := range verifiedClaims {
-		assert.Equal(t, "user123", claims.UserID)
-		assert.Equal(t, "room456", claims.RoomID)
+		s.Equal(s.userID, claims.UserID)
+		s.Equal(s.roomID, claims.RoomID)
 	}
 }

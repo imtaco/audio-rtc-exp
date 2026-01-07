@@ -1,3 +1,4 @@
+# https://golangci-lint.run/docs/linters/configuration/
 version: "2"
 run:
   go: "1.24"
@@ -5,31 +6,65 @@ run:
   tests: true
 linters:
   enable:
+    - bodyclose
+    - errcheck
+    - errorlint
+    - depguard
+    - dupl
+    # - forcetypeassert
+    - goconst
     - gocritic
+    - gocyclo
     - gosec
+    - govet
+    - ineffassign
     - misspell
-    # - revive
+    - nilerr
+    - nilnil
+    - prealloc
+    - revive
+    - staticcheck
     - unconvert
-  disable:
-    - lll
+    - unused
+    - wastedassign
+  settings:
+    depguard:
+      rules:
+        main:
+          allow: []
+          deny:
+            # TODO: add more as we find them
+            - pkg: math/rand$
+              desc: use crypto/rand for better randomness
+            - pkg : io/ioutil
+              desc: use io and os packages instead
+            - pkg : log
+              desc: use internal/log package instead
   exclusions:
     generated: lax
+    rules:
+      - path: _test\.go
+        linters:
+          - dupl
+          - embeddedstructfieldcheck
+          - errcheck
+          - errorlint
+          - forcetypeassert
+          - goconst
+          - gocyclo
+          - gosec
+          - nilnil
+          - varnamelen
+      - path: metrics.go
+        linters:
+          - gochecknoglobals
     presets:
       - comments
       - common-false-positives
       - legacy
       - std-error-handling
     paths:
-      - third_party$
-      - builtin$
-      - examples$
+      - example
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
-formatters:
-  exclusions:
-    generated: lax
-    paths:
-      - third_party$
-      - builtin$
-      - examples$

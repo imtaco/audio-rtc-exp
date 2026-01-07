@@ -78,6 +78,7 @@ func (*roomWatcherImpl) NewState(
 	}
 
 	if curState.IsEmpty() {
+		//nolint:nilnil
 		return nil, nil
 	}
 

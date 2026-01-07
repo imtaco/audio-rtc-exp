@@ -38,29 +38,29 @@ func (s *ProducerTestSuite) TearDownTest() {
 
 func (s *ProducerTestSuite) TestNewProducer() {
 	producer, err := NewProducer(s.client, "test-stream", s.logger)
-	s.Assert().NoError(err)
-	s.Assert().NotNil(producer)
+	s.Require().NoError(err)
+	s.NotNil(producer)
 }
 
 func (s *ProducerTestSuite) TestNewProducerNilClient() {
 	producer, err := NewProducer(nil, "test-stream", s.logger)
-	s.Assert().Error(err)
-	s.Assert().Nil(producer)
-	s.Assert().Contains(err.Error(), "redis client is required")
+	s.Require().Error(err)
+	s.Nil(producer)
+	s.Contains(err.Error(), "redis client is required")
 }
 
 func (s *ProducerTestSuite) TestNewProducerEmptyStream() {
 	producer, err := NewProducer(s.client, "", s.logger)
-	s.Assert().Error(err)
-	s.Assert().Nil(producer)
-	s.Assert().Contains(err.Error(), "stream name is required")
+	s.Require().Error(err)
+	s.Nil(producer)
+	s.Contains(err.Error(), "stream name is required")
 }
 
 func (s *ProducerTestSuite) TestNewProducerNilLogger() {
 	producer, err := NewProducer(s.client, "test-stream", nil)
-	s.Assert().Error(err)
-	s.Assert().Nil(producer)
-	s.Assert().Contains(err.Error(), "logger is required")
+	s.Require().Error(err)
+	s.Nil(producer)
+	s.Contains(err.Error(), "logger is required")
 }
 
 func (s *ProducerTestSuite) TestAdd() {
@@ -68,17 +68,17 @@ func (s *ProducerTestSuite) TestAdd() {
 	s.Require().NoError(err)
 
 	ctx := context.Background()
-	values := map[string]interface{}{
+	values := map[string]any{
 		"key1": "value1",
 		"key2": "value2",
 	}
 
 	id, err := producer.Add(ctx, values)
-	s.Assert().NoError(err)
-	s.Assert().NotEmpty(id)
+	s.Require().NoError(err)
+	s.NotEmpty(id)
 
 	exists := s.mr.Exists("test-stream")
-	s.Assert().True(exists)
+	s.True(exists)
 }
 
 func (s *ProducerTestSuite) TestAddMultipleMessages() {
@@ -87,16 +87,16 @@ func (s *ProducerTestSuite) TestAddMultipleMessages() {
 
 	ctx := context.Background()
 
-	id1, err := producer.Add(ctx, map[string]interface{}{"msg": "first"})
-	s.Assert().NoError(err)
+	id1, err := producer.Add(ctx, map[string]any{"msg": "first"})
+	s.Require().NoError(err)
 
-	id2, err := producer.Add(ctx, map[string]interface{}{"msg": "second"})
-	s.Assert().NoError(err)
+	id2, err := producer.Add(ctx, map[string]any{"msg": "second"})
+	s.Require().NoError(err)
 
-	s.Assert().NotEqual(id1, id2)
+	s.NotEqual(id1, id2)
 
 	length := s.client.XLen(ctx, "test-stream").Val()
-	s.Assert().Equal(int64(2), length)
+	s.Equal(int64(2), length)
 }
 
 func (s *ProducerTestSuite) TestAddWithID() {
@@ -105,17 +105,17 @@ func (s *ProducerTestSuite) TestAddWithID() {
 
 	ctx := context.Background()
 	customID := "1234567890-0"
-	values := map[string]interface{}{
+	values := map[string]any{
 		"key1": "value1",
 	}
 
 	err = producer.AddWithID(ctx, customID, values)
-	s.Assert().NoError(err)
+	s.Require().NoError(err)
 
 	msgs, err := s.client.XRange(ctx, "test-stream", "-", "+").Result()
-	s.Assert().NoError(err)
-	s.Assert().Len(msgs, 1)
-	s.Assert().Equal(customID, msgs[0].ID)
+	s.Require().NoError(err)
+	s.Len(msgs, 1)
+	s.Equal(customID, msgs[0].ID)
 }
 
 func (s *ProducerTestSuite) TestAddWithIDInvalidID() {
@@ -123,8 +123,8 @@ func (s *ProducerTestSuite) TestAddWithIDInvalidID() {
 	s.Require().NoError(err)
 
 	ctx := context.Background()
-	err = producer.AddWithID(ctx, "invalid-id", map[string]interface{}{"key": "value"})
-	s.Assert().Error(err)
+	err = producer.AddWithID(ctx, "invalid-id", map[string]any{"key": "value"})
+	s.Require().Error(err)
 }
 
 func (s *ProducerTestSuite) TestAddWithIDDuplicate() {
@@ -133,13 +133,13 @@ func (s *ProducerTestSuite) TestAddWithIDDuplicate() {
 
 	ctx := context.Background()
 	customID := "1234567890-0"
-	values := map[string]interface{}{"key": "value"}
+	values := map[string]any{"key": "value"}
 
 	err = producer.AddWithID(ctx, customID, values)
-	s.Assert().NoError(err)
+	s.Require().NoError(err)
 
 	err = producer.AddWithID(ctx, customID, values)
-	s.Assert().Error(err)
+	s.Require().Error(err)
 }
 
 func (s *ProducerTestSuite) TestAddEmptyValues() {
@@ -147,8 +147,8 @@ func (s *ProducerTestSuite) TestAddEmptyValues() {
 	s.Require().NoError(err)
 
 	ctx := context.Background()
-	_, err = producer.Add(ctx, map[string]interface{}{})
-	s.Assert().Error(err, "XADD requires at least one field-value pair")
+	_, err = producer.Add(ctx, map[string]any{})
+	s.Require().Error(err, "XADD requires at least one field-value pair")
 }
 
 func (s *ProducerTestSuite) TestAddNilValues() {
@@ -157,7 +157,7 @@ func (s *ProducerTestSuite) TestAddNilValues() {
 
 	ctx := context.Background()
 	_, err = producer.Add(ctx, nil)
-	s.Assert().Error(err)
+	s.Require().Error(err)
 }
 
 func (s *ProducerTestSuite) TestAddWithIDEmptyID() {
@@ -166,7 +166,7 @@ func (s *ProducerTestSuite) TestAddWithIDEmptyID() {
 
 	ctx := context.Background()
 	// Empty ID will use auto-generated ID ("*"), which is valid
-	err = producer.AddWithID(ctx, "", map[string]interface{}{"key": "value"})
+	err = producer.AddWithID(ctx, "", map[string]any{"key": "value"})
 	// miniredis might handle this differently, so we just verify it doesn't panic
 	// In real Redis, empty ID defaults to "*" (auto-generate)
 	_ = err
@@ -179,12 +179,12 @@ func (s *ProducerTestSuite) TestAddWithIDMonotonicIncrease() {
 	ctx := context.Background()
 
 	// Add message with ID 2000000000-0
-	err = producer.AddWithID(ctx, "2000000000-0", map[string]interface{}{"msg": "first"})
-	s.Assert().NoError(err)
+	err = producer.AddWithID(ctx, "2000000000-0", map[string]any{"msg": "first"})
+	s.Require().NoError(err)
 
 	// Try to add message with older ID (should fail)
-	err = producer.AddWithID(ctx, "1000000000-0", map[string]interface{}{"msg": "second"})
-	s.Assert().Error(err, "Redis Stream IDs must be monotonically increasing")
+	err = producer.AddWithID(ctx, "1000000000-0", map[string]any{"msg": "second"})
+	s.Require().Error(err, "Redis Stream IDs must be monotonically increasing")
 }
 
 func (s *ProducerTestSuite) TestAddConcurrent() {
@@ -199,7 +199,7 @@ func (s *ProducerTestSuite) TestAddConcurrent() {
 
 	for i := range concurrentWrites {
 		go func(index int) {
-			id, err := producer.Add(ctx, map[string]interface{}{
+			id, err := producer.Add(ctx, map[string]any{
 				"msg":   "concurrent-test",
 				"index": index,
 			})
@@ -224,17 +224,17 @@ func (s *ProducerTestSuite) TestAddConcurrent() {
 		}
 	}
 
-	s.Assert().Empty(errors, "no errors should occur during concurrent writes")
-	s.Assert().Len(ids, concurrentWrites)
+	s.Empty(errors, "no errors should occur during concurrent writes")
+	s.Len(ids, concurrentWrites)
 
 	// Verify all messages were added
 	length := s.client.XLen(ctx, "test-stream").Val()
-	s.Assert().Equal(int64(concurrentWrites), length)
+	s.Equal(int64(concurrentWrites), length)
 
 	// Verify all IDs are unique
 	uniqueIDs := make(map[string]bool)
 	for _, id := range ids {
-		s.Assert().False(uniqueIDs[id], "ID %s should be unique", id)
+		s.False(uniqueIDs[id], "ID %s should be unique", id)
 		uniqueIDs[id] = true
 	}
 }

@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/imtaco/audio-rtc-exp/internal/errors"
-	"github.com/imtaco/audio-rtc-exp/internal/utils"
 )
 
 type messageType int
@@ -66,7 +65,7 @@ func (m *message) validate() {
 	}
 }
 
-func newRequestMessage(method string, params interface{}) (*message, error) {
+func newRequestMessage(method string, params any) (*message, error) {
 	id := newStringID(uuid.New().String())
 
 	bs, err := json.Marshal(params)
@@ -83,7 +82,7 @@ func newRequestMessage(method string, params interface{}) (*message, error) {
 	}, nil
 }
 
-func newNotificationMessage(method string, params interface{}) (*message, error) {
+func newNotificationMessage(method string, params any) (*message, error) {
 	bs, err := json.Marshal(params)
 	if err != nil {
 		return nil, errors.Wrap(ErrCodeParseError, err, "failed to marshal params")
@@ -97,14 +96,14 @@ func newNotificationMessage(method string, params interface{}) (*message, error)
 	}, nil
 }
 
-func newResponseMessage(id ID, result interface{}, err *Error) (*message, error) {
+func newResponseMessage(id ID, result any, err *Error) (*message, error) {
 	var resultRaw *json.RawMessage
 	if err == nil {
 		bs, marshalErr := json.Marshal(result)
 		if marshalErr != nil {
 			return nil, errors.Wrap(ErrCodeParseError, marshalErr, "failed to marshal result")
 		}
-		resultRaw = utils.Ptr(json.RawMessage(bs))
+		resultRaw = Ptr(json.RawMessage(bs))
 	}
 	return &message{
 		JSONRPC: jsonRPCVersion,

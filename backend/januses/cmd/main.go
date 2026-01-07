@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -172,7 +173,7 @@ func main() {
 
 	go func() {
 		logger.Info("Starting HTTP server", log.String("addr", config.HTTP.Addr))
-		if err := server.Listen(); err != nil && err != http.ErrServerClosed {
+		if err := server.Listen(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Fatal("Failed to start HTTP server", log.Error(err))
 		}
 	}()

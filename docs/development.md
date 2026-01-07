@@ -61,6 +61,7 @@
 4. **Error Messages** - Don't expose detailed error messages to end users
 5. **Throttling** - Message rate limiting and blocking users reconnect too frequently
 6. ~~**Observability** - Support OpenTelemetry~~
+7. ~~**Linter**~~
 
 ### Low Priority
 1. **Recording Feature** - Implement recording and upload to cloud storage

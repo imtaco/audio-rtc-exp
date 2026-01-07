@@ -186,7 +186,7 @@ func (fm *ffmpegMgrImpl) Stop() error {
 	fm.logger.Info("Stopping all FFmpeg processes")
 
 	var roomIDs []string
-	fm.processes.Range(func(key, _ interface{}) bool {
+	fm.processes.Range(func(key, _ any) bool {
 		roomIDs = append(roomIDs, key.(string))
 		return true
 	})

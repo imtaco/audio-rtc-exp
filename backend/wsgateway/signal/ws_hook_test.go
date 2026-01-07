@@ -64,7 +64,7 @@ func (s *WSHookSuite) TestOnVerify_Success() {
 	}, nil)
 
 	ctx, pass, err := s.hook.OnVerify(req)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.True(pass)
 	s.Equal("user1", ctx.userID)
 	s.Equal("room1", ctx.roomID)
@@ -80,7 +80,7 @@ func (s *WSHookSuite) TestOnVerify_BearerToken() {
 	}, nil)
 
 	ctx, pass, err := s.hook.OnVerify(req)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.True(pass)
 	s.Equal("user1", ctx.userID)
 }
@@ -89,14 +89,14 @@ func (s *WSHookSuite) TestOnVerify_Failures() {
 	// No token
 	req := httptest.NewRequest("GET", "/", nil)
 	_, pass, err := s.hook.OnVerify(req)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.False(pass)
 
 	// Invalid token
 	req = httptest.NewRequest("GET", "/?token=bad", nil)
 	s.jwtAuth.EXPECT().Verify("bad").Return(nil, errors.New(jwt.ErrInvalidToken, "invalid token"))
 	_, pass, err = s.hook.OnVerify(req)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.False(pass)
 }
 

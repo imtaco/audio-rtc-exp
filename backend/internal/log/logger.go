@@ -2,6 +2,7 @@ package log
 
 import (
 	"encoding/json"
+	//nolint:depguard
 	"log"
 	"os"
 	"strings"

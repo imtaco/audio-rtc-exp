@@ -83,7 +83,7 @@ func (s *WatcherTestSuite) TestStart_Success() {
 	mockTrans.EXPECT().RebuildEnd(gomock.Any()).Return(nil)
 
 	err := watcher.Start(context.Background())
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	// cleanup
 	_ = watcher.Stop()
@@ -109,7 +109,7 @@ func (s *WatcherTestSuite) TestStart_GetError() {
 
 	err := watcher.Start(ctx)
 	// Start returns ctx.Err() (deadline exceeded)
-	s.Error(err)
+	s.Require().Error(err)
 }
 
 func (s *WatcherTestSuite) TestStart_RebuildError() {
@@ -136,7 +136,7 @@ func (s *WatcherTestSuite) TestStart_RebuildError() {
 	defer cancel()
 
 	err := watcher.Start(ctx)
-	s.Error(err)
+	s.Require().Error(err)
 }
 
 func (s *WatcherTestSuite) TestRunLoop_WatchEvents() {
@@ -178,7 +178,7 @@ func (s *WatcherTestSuite) TestRunLoop_WatchEvents() {
 			return data, nil
 		})
 
-	s.NoError(watcher.Start(context.Background()))
+	s.Require().NoError(watcher.Start(context.Background()))
 	defer func() { _ = watcher.Stop() }()
 
 	// Send event
@@ -245,7 +245,7 @@ func (s *WatcherTestSuite) TestRunLoop_SchedulerEvents() {
 		return nil
 	}
 
-	s.NoError(watcher.Start(context.Background()))
+	s.Require().NoError(watcher.Start(context.Background()))
 	defer func() { _ = watcher.Stop() }()
 
 	// Enqueue item to scheduler manually (simulating internal trigger)
@@ -292,7 +292,7 @@ func (s *WatcherTestSuite) TestRunLoop_WatchError() {
 			Return((clientv3.WatchChan)(watchCh2)),
 	)
 
-	s.NoError(watcher.Start(context.Background()))
+	s.Require().NoError(watcher.Start(context.Background()))
 	defer func() { _ = watcher.Stop() }()
 
 	// Send error on first watch channel by setting CompactRevision
@@ -538,7 +538,7 @@ func (s *WatcherTestSuite) TestRebuild_Success() {
 
 	err := watcher.rebuild(context.Background())
 
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 func (s *WatcherTestSuite) TestRebuild_StartError() {
@@ -554,7 +554,7 @@ func (s *WatcherTestSuite) TestRebuild_StartError() {
 
 	err := watcher.rebuild(context.Background())
 
-	s.Error(err)
+	s.Require().Error(err)
 	s.Equal("start error", err.Error())
 }
 
@@ -574,7 +574,7 @@ func (s *WatcherTestSuite) TestRebuild_StateError() {
 
 	err := watcher.rebuild(context.Background())
 
-	s.Error(err)
+	s.Require().Error(err)
 	s.Equal("state error", err.Error())
 }
 
@@ -595,7 +595,7 @@ func (s *WatcherTestSuite) TestRebuild_EndError() {
 
 	err := watcher.rebuild(context.Background())
 
-	s.Error(err)
+	s.Require().Error(err)
 	s.Equal("end error", err.Error())
 }
 
@@ -849,7 +849,7 @@ func (s *WatcherTestSuite) TestStop_WithNilScheduler() {
 	watcher.scheduler = scheduler.NewKeyedScheduler(logger)
 
 	err := watcher.Stop()
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 func (s *WatcherTestSuite) TestGetCachedState_MultipleConcurrentReads() {
@@ -1047,7 +1047,7 @@ func (s *WatcherTestSuite) TestRebuild_EmptyCache() {
 
 	err := watcher.rebuild(context.Background())
 
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 func (s *WatcherTestSuite) TestNew_ConfigInitialization() {
@@ -1091,11 +1091,11 @@ func (s *WatcherTestSuite) TestStop_WithCancel() {
 	watcher.cancel = cancel
 
 	err := watcher.Stop()
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	// Context should be canceled immediately
 	<-ctx.Done()
-	s.Error(ctx.Err())
+	s.Require().Error(ctx.Err())
 }
 
 func (s *WatcherTestSuite) TestParseKey_EdgeCases() {
@@ -1275,7 +1275,7 @@ func (s *WatcherTestSuite) TestRebuild_MultipleStatesOrdered() {
 
 	err := watcher.rebuild(context.Background())
 
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 func (s *WatcherTestSuite) TestRestart_CancelsCurrentWatch() {
@@ -1303,7 +1303,7 @@ func (s *WatcherTestSuite) TestRestart_CancelsCurrentWatch() {
 		Watch(gomock.Any(), "/test/prefix/", gomock.Any(), gomock.Any()).
 		Return((clientv3.WatchChan)(watchCh))
 
-	s.NoError(watcher.Start(context.Background()))
+	s.Require().NoError(watcher.Start(context.Background()))
 
 	// Verify gawCancel is set after start
 	s.NotNil(watcher.gawCancel)
@@ -1352,7 +1352,7 @@ func (s *WatcherTestSuite) TestRestart_DoesNotPanicWhenCalledMultipleTimes() {
 		Watch(gomock.Any(), "/test/prefix/", gomock.Any(), gomock.Any()).
 		Return((clientv3.WatchChan)(watchCh))
 
-	s.NoError(watcher.Start(context.Background()))
+	s.Require().NoError(watcher.Start(context.Background()))
 	defer func() { _ = watcher.Stop() }()
 
 	// Call Restart multiple times - should not panic
@@ -1427,7 +1427,7 @@ func (s *WatcherTestSuite) TestRestart_TriggersNewGetAndWatchCycle() {
 			return (clientv3.WatchChan)(watchCh2)
 		}).Times(2)
 
-	s.NoError(watcher.Start(context.Background()))
+	s.Require().NoError(watcher.Start(context.Background()))
 	defer func() { _ = watcher.Stop() }()
 
 	// Wait for initial setup to complete
@@ -1473,7 +1473,7 @@ func (s *WatcherTestSuite) TestRestart_AfterStop() {
 		Watch(gomock.Any(), "/test/prefix/", gomock.Any(), gomock.Any()).
 		Return((clientv3.WatchChan)(watchCh))
 
-	s.NoError(watcher.Start(context.Background()))
+	s.Require().NoError(watcher.Start(context.Background()))
 
 	// Stop the watcher
 	_ = watcher.Stop()

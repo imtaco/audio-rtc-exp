@@ -89,7 +89,7 @@ func (s *CombinedRoomTestSuite) TestCreateUser() {
 			validate: func() {
 				users := s.room.GetRoomUsers(s.ctx, "room1")
 				s.Require().Contains(users, "user1")
-				s.Assert().Equal("anchor", users["user1"].Role)
+				s.Equal("anchor", users["user1"].Role)
 			},
 		},
 		{
@@ -112,7 +112,7 @@ func (s *CombinedRoomTestSuite) TestCreateUser() {
 			wantErr: false,
 			validate: func() {
 				users := s.room.GetRoomUsers(s.ctx, "room2")
-				s.Assert().Equal("anchor", users["user1"].Role)
+				s.Equal("anchor", users["user1"].Role)
 			},
 		},
 	}
@@ -126,12 +126,12 @@ func (s *CombinedRoomTestSuite) TestCreateUser() {
 			ok, err := s.room.CreateUser(s.ctx, tt.roomID, tt.userID, tt.user)
 
 			if tt.wantErr {
-				s.Assert().Error(err)
+				s.Require().Error(err)
 			} else {
-				s.Assert().NoError(err)
+				s.Require().NoError(err)
 			}
 
-			s.Assert().Equal(tt.wantOk, ok)
+			s.Equal(tt.wantOk, ok)
 
 			if tt.validate != nil {
 				tt.validate()
@@ -173,8 +173,8 @@ func (s *CombinedRoomTestSuite) TestUpdateUserStatus() {
 			wantErr: false,
 			validate: func() {
 				users := s.room.GetRoomUsers(s.ctx, "room1")
-				s.Assert().Equal(constants.AnchorStatusOnAir, users["user1"].Status)
-				s.Assert().Equal(int32(1), users["user1"].Gen)
+				s.Equal(constants.AnchorStatusOnAir, users["user1"].Status)
+				s.Equal(int32(1), users["user1"].Gen)
 			},
 		},
 		{
@@ -191,7 +191,7 @@ func (s *CombinedRoomTestSuite) TestUpdateUserStatus() {
 			wantErr: false,
 			validate: func() {
 				users := s.room.GetRoomUsers(s.ctx, "room1")
-				s.Assert().NotContains(users, "user999")
+				s.NotContains(users, "user999")
 			},
 		},
 	}
@@ -205,12 +205,12 @@ func (s *CombinedRoomTestSuite) TestUpdateUserStatus() {
 			ok, err := s.room.UpdateUserStatus(s.ctx, tt.roomID, tt.userID, tt.user)
 
 			if tt.wantErr {
-				s.Assert().Error(err)
+				s.Require().Error(err)
 			} else {
-				s.Assert().NoError(err)
+				s.Require().NoError(err)
 			}
 
-			s.Assert().Equal(tt.wantOk, ok)
+			s.Equal(tt.wantOk, ok)
 
 			if tt.validate != nil {
 				tt.validate()
@@ -251,8 +251,8 @@ func (s *CombinedRoomTestSuite) TestRemoveUser() {
 			wantErr: false,
 			validate: func() {
 				users := s.room.GetRoomUsers(s.ctx, "room1")
-				s.Assert().NotContains(users, "user1")
-				s.Assert().Contains(users, "user2")
+				s.NotContains(users, "user1")
+				s.Contains(users, "user2")
 			},
 		},
 		{
@@ -270,7 +270,7 @@ func (s *CombinedRoomTestSuite) TestRemoveUser() {
 			wantErr: false,
 			validate: func() {
 				users := s.room.GetRoomUsers(s.ctx, "room2")
-				s.Assert().Nil(users)
+				s.Nil(users)
 			},
 		},
 		{
@@ -293,12 +293,12 @@ func (s *CombinedRoomTestSuite) TestRemoveUser() {
 			ok, err := s.room.RemoveUser(s.ctx, tt.roomID, tt.userID)
 
 			if tt.wantErr {
-				s.Assert().Error(err)
+				s.Require().Error(err)
 			} else {
-				s.Assert().NoError(err)
+				s.Require().NoError(err)
 			}
 
-			s.Assert().Equal(tt.wantOk, ok)
+			s.Equal(tt.wantOk, ok)
 
 			if tt.validate != nil {
 				tt.validate()
@@ -326,16 +326,16 @@ func (s *CombinedRoomTestSuite) TestGetRoomUsers() {
 
 		users := s.room.GetRoomUsers(s.ctx, "room1")
 		s.Require().NotNil(users)
-		s.Assert().Len(users, 2)
-		s.Assert().Contains(users, "user1")
-		s.Assert().Contains(users, "user2")
+		s.Len(users, 2)
+		s.Contains(users, "user1")
+		s.Contains(users, "user2")
 	})
 
 	s.Run("get users from non-existent room", func() {
 		s.resetRoomState()
 
 		users := s.room.GetRoomUsers(s.ctx, "room999")
-		s.Assert().Nil(users)
+		s.Nil(users)
 	})
 }
 
@@ -347,7 +347,7 @@ func (s *CombinedRoomTestSuite) TestRebuild() {
 
 		err := s.room.Rebuild(s.ctx)
 		s.Require().NoError(err)
-		s.Assert().Len(s.room.memState.rooms, 0)
+		s.Len(s.room.memState.rooms, 0)
 	})
 
 	s.Run("rebuild from existing data", func() {
@@ -371,9 +371,9 @@ func (s *CombinedRoomTestSuite) TestRebuild() {
 
 		users := s.room.GetRoomUsers(s.ctx, "room1")
 		s.Require().NotNil(users)
-		s.Assert().Contains(users, "user1")
-		s.Assert().Equal("anchor", users["user1"].Role)
-		s.Assert().Equal(constants.AnchorStatusOnAir, users["user1"].Status)
+		s.Contains(users, "user1")
+		s.Equal("anchor", users["user1"].Role)
+		s.Equal(constants.AnchorStatusOnAir, users["user1"].Status)
 	})
 }
 
@@ -383,7 +383,7 @@ func (s *CombinedRoomTestSuite) TestCheckTimeout() {
 
 		roomIDs, err := s.room.CheckTimeout(s.ctx)
 		s.Require().NoError(err)
-		s.Assert().Len(roomIDs, 0)
+		s.Len(roomIDs, 0)
 	})
 
 	s.Run("check timeout with expired user", func() {
@@ -404,10 +404,10 @@ func (s *CombinedRoomTestSuite) TestCheckTimeout() {
 
 		roomIDs, err := s.room.CheckTimeout(s.ctx)
 		s.Require().NoError(err)
-		s.Assert().Contains(roomIDs, "room1")
+		s.Contains(roomIDs, "room1")
 
 		users := s.room.GetRoomUsers(s.ctx, "room1")
-		s.Assert().Equal(constants.AnchorStatus(""), users["user1"].Status)
+		s.Equal(constants.AnchorStatus(""), users["user1"].Status)
 	})
 
 	s.Run("check timeout with active user", func() {
@@ -428,9 +428,9 @@ func (s *CombinedRoomTestSuite) TestCheckTimeout() {
 
 		roomIDs, err := s.room.CheckTimeout(s.ctx)
 		s.Require().NoError(err)
-		s.Assert().Len(roomIDs, 0)
+		s.Len(roomIDs, 0)
 
 		users := s.room.GetRoomUsers(s.ctx, "room2")
-		s.Assert().Equal(constants.AnchorStatusOnAir, users["user2"].Status)
+		s.Equal(constants.AnchorStatusOnAir, users["user2"].Status)
 	})
 }

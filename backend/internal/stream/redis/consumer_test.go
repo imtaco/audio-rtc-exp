@@ -41,51 +41,51 @@ func (s *ConsumerTestSuite) TearDownTest() {
 
 func (s *ConsumerTestSuite) TestNewConsumer() {
 	consumer, err := NewConsumer(s.client, "test-stream", "test-group", "test-consumer", 1*time.Second, s.logger)
-	s.Assert().NoError(err)
-	s.Assert().NotNil(consumer)
+	s.Require().NoError(err)
+	s.NotNil(consumer)
 }
 
 func (s *ConsumerTestSuite) TestNewConsumerWithoutGroup() {
 	consumer, err := NewConsumer(s.client, "test-stream", "", "", 1*time.Second, s.logger)
-	s.Assert().NoError(err)
-	s.Assert().NotNil(consumer)
+	s.Require().NoError(err)
+	s.NotNil(consumer)
 }
 
 func (s *ConsumerTestSuite) TestNewConsumerNilClient() {
 	consumer, err := NewConsumer(nil, "test-stream", "test-group", "test-consumer", 1*time.Second, s.logger)
-	s.Assert().Error(err)
-	s.Assert().Nil(consumer)
-	s.Assert().Contains(err.Error(), "redis client is required")
+	s.Require().Error(err)
+	s.Nil(consumer)
+	s.Contains(err.Error(), "redis client is required")
 }
 
 func (s *ConsumerTestSuite) TestNewConsumerEmptyStream() {
 	consumer, err := NewConsumer(s.client, "", "test-group", "test-consumer", 1*time.Second, s.logger)
-	s.Assert().Error(err)
-	s.Assert().Nil(consumer)
-	s.Assert().Contains(err.Error(), "stream name is required")
+	s.Require().Error(err)
+	s.Nil(consumer)
+	s.Contains(err.Error(), "stream name is required")
 }
 
 func (s *ConsumerTestSuite) TestNewConsumerGroupWithoutName() {
 	consumer, err := NewConsumer(s.client, "test-stream", "test-group", "", 1*time.Second, s.logger)
-	s.Assert().Error(err)
-	s.Assert().Nil(consumer)
-	s.Assert().Contains(err.Error(), "consumer name is required")
+	s.Require().Error(err)
+	s.Nil(consumer)
+	s.Contains(err.Error(), "consumer name is required")
 }
 
 func (s *ConsumerTestSuite) TestNewConsumerNilLogger() {
 	consumer, err := NewConsumer(s.client, "test-stream", "test-group", "test-consumer", 1*time.Second, nil)
-	s.Assert().Error(err)
-	s.Assert().Nil(consumer)
-	s.Assert().Contains(err.Error(), "logger is required")
+	s.Require().Error(err)
+	s.Nil(consumer)
+	s.Contains(err.Error(), "logger is required")
 }
 
 func (s *ConsumerTestSuite) TestNewConsumerDefaultBlockTime() {
 	consumer, err := NewConsumer(s.client, "test-stream", "test-group", "test-consumer", 0, s.logger)
-	s.Assert().NoError(err)
-	s.Assert().NotNil(consumer)
+	s.Require().NoError(err)
+	s.NotNil(consumer)
 
 	impl := consumer.(*consumerImpl)
-	s.Assert().Equal(defaultBlockTime, impl.blockTime)
+	s.Equal(defaultBlockTime, impl.blockTime)
 }
 
 func (s *ConsumerTestSuite) TestOpenWithGroup() {
@@ -94,20 +94,20 @@ func (s *ConsumerTestSuite) TestOpenWithGroup() {
 
 	ctx := context.Background()
 	err = consumer.Open(ctx)
-	s.Assert().NoError(err)
+	s.Require().NoError(err)
 
 	defer consumer.Close()
 
 	groups, err := s.client.XInfoGroups(ctx, "test-stream").Result()
-	s.Assert().NoError(err)
-	s.Assert().Len(groups, 1)
-	s.Assert().Equal("test-group", groups[0].Name)
+	s.Require().NoError(err)
+	s.Len(groups, 1)
+	s.Equal("test-group", groups[0].Name)
 }
 
 func (s *ConsumerTestSuite) TestOpenWithoutGroup() {
 	s.client.XAdd(context.Background(), &redis.XAddArgs{
 		Stream: "test-stream",
-		Values: map[string]interface{}{"key": "value"},
+		Values: map[string]any{"key": "value"},
 	})
 
 	consumer, err := NewConsumer(s.client, "test-stream", "", "", 100*time.Millisecond, s.logger)
@@ -115,11 +115,11 @@ func (s *ConsumerTestSuite) TestOpenWithoutGroup() {
 
 	ctx := context.Background()
 	err = consumer.Open(ctx)
-	s.Assert().NoError(err)
+	s.Require().NoError(err)
 
 	defer consumer.Close()
 
-	s.Assert().NotNil(consumer.Channel())
+	s.NotNil(consumer.Channel())
 }
 
 func (s *ConsumerTestSuite) TestConsumeMessagesWithoutGroup() {
@@ -134,14 +134,14 @@ func (s *ConsumerTestSuite) TestConsumeMessagesWithoutGroup() {
 
 	s.client.XAdd(ctx, &redis.XAddArgs{
 		Stream: "test-stream",
-		Values: map[string]interface{}{"msg": "test"},
+		Values: map[string]any{"msg": "test"},
 	})
 
 	select {
 	case msg := <-consumer.Channel():
-		s.Assert().NotNil(msg)
-		s.Assert().NotEmpty(msg.ID)
-		s.Assert().Equal("test", msg.Values["msg"])
+		s.NotNil(msg)
+		s.NotEmpty(msg.ID)
+		s.Equal("test", msg.Values["msg"])
 	case <-time.After(100 * time.Millisecond):
 		s.Fail("timeout waiting for message")
 	}
@@ -160,14 +160,14 @@ func (s *ConsumerTestSuite) TestConsumeMessagesWithGroup() {
 	// protected by group, so add message after opening consumer immediately is ok
 	s.client.XAdd(ctx, &redis.XAddArgs{
 		Stream: "test-stream",
-		Values: map[string]interface{}{"msg": "test"},
+		Values: map[string]any{"msg": "test"},
 	})
 
 	select {
 	case msg := <-consumer.Channel():
-		s.Assert().NotNil(msg)
-		s.Assert().NotEmpty(msg.ID)
-		s.Assert().Equal("test", msg.Values["msg"])
+		s.NotNil(msg)
+		s.NotEmpty(msg.ID)
+		s.Equal("test", msg.Values["msg"])
 	case <-time.After(100 * time.Millisecond):
 		s.Fail("timeout waiting for message")
 	}
@@ -185,18 +185,18 @@ func (s *ConsumerTestSuite) TestAckMessage() {
 
 	id, err := s.client.XAdd(ctx, &redis.XAddArgs{
 		Stream: "test-stream",
-		Values: map[string]interface{}{"msg": "test"},
+		Values: map[string]any{"msg": "test"},
 	}).Result()
 	s.Require().NoError(err)
 
 	select {
 	case msg := <-consumer.Channel():
 		err = msg.Ack()
-		s.Assert().NoError(err)
+		s.Require().NoError(err)
 
 		pending, err := s.client.XPending(ctx, "test-stream", "test-group").Result()
-		s.Assert().NoError(err)
-		s.Assert().Equal(int64(0), pending.Count)
+		s.Require().NoError(err)
+		s.Equal(int64(0), pending.Count)
 	case <-time.After(500 * time.Millisecond):
 		s.Fail("timeout waiting for message")
 	}
@@ -211,7 +211,7 @@ func (s *ConsumerTestSuite) TestAckWithoutGroup() {
 	s.Require().NoError(err)
 
 	err = consumer.Ack(ctx, "123-0")
-	s.Assert().NoError(err)
+	s.Require().NoError(err)
 }
 
 func (s *ConsumerTestSuite) TestDeleteConsumer() {
@@ -225,7 +225,7 @@ func (s *ConsumerTestSuite) TestDeleteConsumer() {
 	defer consumer.Close()
 
 	err = consumer.DeleteConsumer(ctx)
-	s.Assert().NoError(err)
+	s.Require().NoError(err)
 }
 
 func (s *ConsumerTestSuite) TestCloseConsumer() {
@@ -240,7 +240,7 @@ func (s *ConsumerTestSuite) TestCloseConsumer() {
 
 	select {
 	case _, ok := <-consumer.Channel():
-		s.Assert().False(ok, "channel should be closed")
+		s.False(ok, "channel should be closed")
 	case <-time.After(100 * time.Millisecond):
 		s.Fail("timeout waiting for channel to close")
 	}
@@ -251,7 +251,7 @@ func (s *ConsumerTestSuite) TestChannel() {
 	s.Require().NoError(err)
 
 	ch := consumer.Channel()
-	s.Assert().NotNil(ch)
+	s.NotNil(ch)
 }
 
 func (s *ConsumerTestSuite) TestConsumerWithFakeClock() {
@@ -268,7 +268,7 @@ func (s *ConsumerTestSuite) TestConsumerWithFakeClock() {
 	)
 	consumer.(*consumerImpl).clock = fakeClock
 	s.Require().NoError(err)
-	s.Assert().NotNil(consumer)
+	s.NotNil(consumer)
 
 	_ = consumer.Open(context.Background())
 	defer consumer.Close()
@@ -276,7 +276,7 @@ func (s *ConsumerTestSuite) TestConsumerWithFakeClock() {
 	// Verify the lastID is calculated correctly using the fake clock
 	impl := consumer.(*consumerImpl)
 	expectedID := "1735732797000-0"
-	s.Assert().Equal(expectedID, impl.lastID)
+	s.Equal(expectedID, impl.lastID)
 }
 
 func (s *ConsumerTestSuite) TestBroadcastMode_MultipleConsumersReceiveSameMessages() {
@@ -298,7 +298,7 @@ func (s *ConsumerTestSuite) TestBroadcastMode_MultipleConsumersReceiveSameMessag
 	// Add a message to the stream
 	s.client.XAdd(ctx, &redis.XAddArgs{
 		Stream: "test-stream",
-		Values: map[string]interface{}{"msg": "broadcast-test", "id": "1"},
+		Values: map[string]any{"msg": "broadcast-test", "id": "1"},
 	})
 
 	// Both consumers should receive the same message
@@ -306,22 +306,22 @@ func (s *ConsumerTestSuite) TestBroadcastMode_MultipleConsumersReceiveSameMessag
 
 	select {
 	case msg1 = <-consumer1.Channel():
-		s.Assert().NotNil(msg1)
-		s.Assert().Equal("broadcast-test", msg1.Values["msg"])
+		s.NotNil(msg1)
+		s.Equal("broadcast-test", msg1.Values["msg"])
 	case <-time.After(500 * time.Millisecond):
 		s.Fail("consumer1 timeout waiting for message")
 	}
 
 	select {
 	case msg2 = <-consumer2.Channel():
-		s.Assert().NotNil(msg2)
-		s.Assert().Equal("broadcast-test", msg2.Values["msg"])
+		s.NotNil(msg2)
+		s.Equal("broadcast-test", msg2.Values["msg"])
 	case <-time.After(500 * time.Millisecond):
 		s.Fail("consumer2 timeout waiting for message")
 	}
 
 	// Both should have received the same message ID
-	s.Assert().Equal(msg1.ID, msg2.ID)
+	s.Equal(msg1.ID, msg2.ID)
 }
 
 func (s *ConsumerTestSuite) TestConsumerGroup_PendingMessagesAfterReconnection() {
@@ -336,7 +336,7 @@ func (s *ConsumerTestSuite) TestConsumerGroup_PendingMessagesAfterReconnection()
 	// Add a message
 	msgID, err := s.client.XAdd(ctx, &redis.XAddArgs{
 		Stream: "test-stream",
-		Values: map[string]interface{}{"msg": "pending-test", "seq": "1"},
+		Values: map[string]any{"msg": "pending-test", "seq": "1"},
 	}).Result()
 	s.Require().NoError(err)
 
@@ -344,9 +344,9 @@ func (s *ConsumerTestSuite) TestConsumerGroup_PendingMessagesAfterReconnection()
 	var msg1 *Message
 	select {
 	case msg1 = <-consumer1.Channel():
-		s.Assert().NotNil(msg1)
-		s.Assert().Equal("pending-test", msg1.Values["msg"])
-		s.Assert().Equal(msgID, msg1.ID)
+		s.NotNil(msg1)
+		s.Equal("pending-test", msg1.Values["msg"])
+		s.Equal(msgID, msg1.ID)
 		// Intentionally NOT calling msg1.Ack()
 	case <-time.After(500 * time.Millisecond):
 		s.Fail("consumer1 timeout waiting for message")
@@ -355,7 +355,7 @@ func (s *ConsumerTestSuite) TestConsumerGroup_PendingMessagesAfterReconnection()
 	// Verify message is now pending for consumer-1
 	pending, err := s.client.XPending(ctx, "test-stream", "test-group").Result()
 	s.Require().NoError(err)
-	s.Assert().Equal(int64(1), pending.Count)
+	s.Equal(int64(1), pending.Count)
 
 	// Close consumer1 (simulating disconnection)
 	consumer1.Close()
@@ -371,12 +371,12 @@ func (s *ConsumerTestSuite) TestConsumerGroup_PendingMessagesAfterReconnection()
 	var msg2 *Message
 	select {
 	case msg2 = <-consumer1Reconnected.Channel():
-		s.Assert().NotNil(msg2)
-		s.Assert().Equal("pending-test", msg2.Values["msg"])
-		s.Assert().Equal(msgID, msg2.ID)
+		s.NotNil(msg2)
+		s.Equal("pending-test", msg2.Values["msg"])
+		s.Equal(msgID, msg2.ID)
 		// Now ack it
 		err = msg2.Ack()
-		s.Assert().NoError(err)
+		s.Require().NoError(err)
 	case <-time.After(1 * time.Second):
 		// Check if message is still pending
 		pendingInfo, _ := s.client.XPending(ctx, "test-stream", "test-group").Result()
@@ -386,8 +386,8 @@ func (s *ConsumerTestSuite) TestConsumerGroup_PendingMessagesAfterReconnection()
 
 	// Verify the message was acked
 	pending, err = s.client.XPending(ctx, "test-stream", "test-group").Result()
-	s.Assert().NoError(err)
-	s.Assert().Equal(int64(0), pending.Count)
+	s.Require().NoError(err)
+	s.Equal(int64(0), pending.Count)
 }
 
 func (s *ConsumerTestSuite) TestConsumerGroup_MessagesDistributedAmongConsumers() {
@@ -411,7 +411,7 @@ func (s *ConsumerTestSuite) TestConsumerGroup_MessagesDistributedAmongConsumers(
 	for i := 0; i < messageCount; i++ {
 		s.client.XAdd(ctx, &redis.XAddArgs{
 			Stream: "test-stream",
-			Values: map[string]interface{}{"msg": fmt.Sprintf("test-%d", i), "seq": i},
+			Values: map[string]any{"msg": fmt.Sprintf("test-%d", i), "seq": i},
 		})
 	}
 
@@ -456,12 +456,12 @@ func (s *ConsumerTestSuite) TestConsumerGroup_MessagesDistributedAmongConsumers(
 	}
 
 	// Both consumers should have received messages (load distribution)
-	s.Assert().Greater(receivedByConsumer1, 0, "consumer1 should receive at least some messages")
-	s.Assert().Greater(receivedByConsumer2, 0, "consumer2 should receive at least some messages")
-	s.Assert().Equal(messageCount, receivedByConsumer1+receivedByConsumer2, "all messages should be consumed")
+	s.Greater(receivedByConsumer1, 0, "consumer1 should receive at least some messages")
+	s.Greater(receivedByConsumer2, 0, "consumer2 should receive at least some messages")
+	s.Equal(messageCount, receivedByConsumer1+receivedByConsumer2, "all messages should be consumed")
 
 	// Each message should be delivered exactly once
-	s.Assert().Equal(messageCount, len(seenIDs), "each message should be delivered exactly once")
+	s.Equal(messageCount, len(seenIDs), "each message should be delivered exactly once")
 }
 
 func (s *ConsumerTestSuite) TestConsumerGroup_MultipleAcksSameMessage() {
@@ -476,21 +476,21 @@ func (s *ConsumerTestSuite) TestConsumerGroup_MultipleAcksSameMessage() {
 	// Add a message
 	s.client.XAdd(ctx, &redis.XAddArgs{
 		Stream: "test-stream",
-		Values: map[string]interface{}{"msg": "test"},
+		Values: map[string]any{"msg": "test"},
 	})
 
 	// Consume and ack the message
 	select {
 	case msg := <-consumer.Channel():
-		s.Assert().NotNil(msg)
+		s.NotNil(msg)
 
 		// Ack the message once
 		err = msg.Ack()
-		s.Assert().NoError(err)
+		s.Require().NoError(err)
 
 		// Ack the same message again (should not error, idempotent)
 		err = msg.Ack()
-		s.Assert().NoError(err)
+		s.Require().NoError(err)
 	case <-time.After(500 * time.Millisecond):
 		s.Fail("timeout waiting for message")
 	}
@@ -507,15 +507,15 @@ func (s *ConsumerTestSuite) TestBroadcastMode_NoAckNeeded() {
 
 	s.client.XAdd(ctx, &redis.XAddArgs{
 		Stream: "test-stream",
-		Values: map[string]interface{}{"msg": "test"},
+		Values: map[string]any{"msg": "test"},
 	})
 
 	select {
 	case msg := <-consumer.Channel():
-		s.Assert().NotNil(msg)
+		s.NotNil(msg)
 		// In broadcast mode, Ack should be a no-op
 		err = msg.Ack()
-		s.Assert().NoError(err)
+		s.Require().NoError(err)
 	case <-time.After(500 * time.Millisecond):
 		s.Fail("timeout waiting for message")
 	}
@@ -527,7 +527,7 @@ func (s *ConsumerTestSuite) TestConsumerGroup_OldMessagesNotRedelivered() {
 	// Add a message BEFORE creating the consumer group
 	oldMsgID, err := s.client.XAdd(ctx, &redis.XAddArgs{
 		Stream: "test-stream",
-		Values: map[string]interface{}{"msg": "old-message"},
+		Values: map[string]any{"msg": "old-message"},
 	}).Result()
 	s.Require().NoError(err)
 
@@ -541,17 +541,17 @@ func (s *ConsumerTestSuite) TestConsumerGroup_OldMessagesNotRedelivered() {
 	// Add a new message AFTER opening consumer
 	newMsgID, err := s.client.XAdd(ctx, &redis.XAddArgs{
 		Stream: "test-stream",
-		Values: map[string]interface{}{"msg": "new-message"},
+		Values: map[string]any{"msg": "new-message"},
 	}).Result()
 	s.Require().NoError(err)
 
 	// Consumer should receive the new message, not the old one
 	select {
 	case msg := <-consumer.Channel():
-		s.Assert().NotNil(msg)
-		s.Assert().Equal(newMsgID, msg.ID, "should receive new message")
-		s.Assert().NotEqual(oldMsgID, msg.ID, "should not receive old message")
-		s.Assert().Equal("new-message", msg.Values["msg"])
+		s.NotNil(msg)
+		s.Equal(newMsgID, msg.ID, "should receive new message")
+		s.NotEqual(oldMsgID, msg.ID, "should not receive old message")
+		s.Equal("new-message", msg.Values["msg"])
 		_ = msg.Ack()
 	case <-time.After(500 * time.Millisecond):
 		s.Fail("timeout waiting for message")
@@ -565,7 +565,7 @@ func (s *ConsumerTestSuite) TestBroadcastMode_LateJoinerMissesOldMessages() {
 	for i := range 3 {
 		s.client.XAdd(ctx, &redis.XAddArgs{
 			Stream: "test-stream",
-			Values: map[string]interface{}{"msg": fmt.Sprintf("old-%d", i)},
+			Values: map[string]any{"msg": fmt.Sprintf("old-%d", i)},
 		})
 	}
 
@@ -585,14 +585,14 @@ func (s *ConsumerTestSuite) TestBroadcastMode_LateJoinerMissesOldMessages() {
 	// Add a new message
 	s.client.XAdd(ctx, &redis.XAddArgs{
 		Stream: "test-stream",
-		Values: map[string]interface{}{"msg": "new"},
+		Values: map[string]any{"msg": "new"},
 	})
 
 	// Consumer should only receive the new message
 	select {
 	case msg := <-consumer.Channel():
-		s.Assert().NotNil(msg)
-		s.Assert().Equal("new", msg.Values["msg"])
+		s.NotNil(msg)
+		s.Equal("new", msg.Values["msg"])
 	case <-time.After(100 * time.Millisecond):
 		s.Fail("timeout waiting for message")
 	}
@@ -620,13 +620,13 @@ func (s *ConsumerTestSuite) TestConsumerMultipleOpen() {
 
 	// Open multiple times should only start consumption once
 	err = consumer.Open(ctx)
-	s.Assert().NoError(err)
+	s.Require().NoError(err)
 
 	err = consumer.Open(ctx)
-	s.Assert().NoError(err)
+	s.Require().NoError(err)
 
 	err = consumer.Open(ctx)
-	s.Assert().NoError(err)
+	s.Require().NoError(err)
 
 	consumer.Close()
 }

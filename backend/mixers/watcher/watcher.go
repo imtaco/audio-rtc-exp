@@ -250,7 +250,7 @@ func (w *RoomWatcher) processChange(ctx context.Context, roomID string, state *e
 // GetActiveRooms returns the active rooms map
 func (w *RoomWatcher) GetActiveRooms() map[string]*ActiveRoom {
 	result := make(map[string]*ActiveRoom)
-	w.activeRooms.Range(func(key, value interface{}) bool {
+	w.activeRooms.Range(func(key, value any) bool {
 		result[key.(string)] = value.(*ActiveRoom)
 		return true
 	})

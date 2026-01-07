@@ -79,7 +79,7 @@ func (api *apiImpl) CreateAdminInstance(ctx context.Context, adminKey string) (A
 }
 
 func (api *apiImpl) createSession(ctx context.Context) (int64, error) {
-	body := map[string]interface{}{
+	body := map[string]any{
 		"janus": "create",
 	}
 	resp, err := api.post(ctx, "/janus", body)
@@ -94,7 +94,7 @@ func (api *apiImpl) createSession(ctx context.Context) (int64, error) {
 }
 
 func (api *apiImpl) attach(ctx context.Context, sessionID int64) (int64, error) {
-	body := map[string]interface{}{
+	body := map[string]any{
 		"janus":      "attach",
 		"session_id": sessionID,
 		"plugin":     janusPluginAudioBridge,
@@ -111,9 +111,9 @@ func (api *apiImpl) attach(ctx context.Context, sessionID int64) (int64, error) 
 	return resp.Data.ID, nil
 }
 
-func (api *apiImpl) post(ctx context.Context, path string, payload map[string]interface{}) (*Response, error) {
+func (api *apiImpl) post(ctx context.Context, path string, payload map[string]any) (*Response, error) {
 	if payload == nil {
-		payload = make(map[string]interface{})
+		payload = make(map[string]any)
 	}
 	if _, ok := payload["transaction"]; !ok {
 		payload["transaction"] = genTransaction()

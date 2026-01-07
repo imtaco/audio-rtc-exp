@@ -5,14 +5,26 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 
 	"github.com/imtaco/audio-rtc-exp/internal/constants"
 	"github.com/imtaco/audio-rtc-exp/users"
 )
 
-func TestStatusField(t *testing.T) {
+type RoomRedisTestSuite struct {
+	suite.Suite
+	testPrefix string
+}
+
+func TestRoomRedisSuite(t *testing.T) {
+	suite.Run(t, new(RoomRedisTestSuite))
+}
+
+func (s *RoomRedisTestSuite) SetupTest() {
+	s.testPrefix = "test-prefix"
+}
+
+func (s *RoomRedisTestSuite) TestStatusField() {
 	tests := []struct {
 		userID   string
 		expected string
@@ -23,14 +35,14 @@ func TestStatusField(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.userID, func(t *testing.T) {
+		s.Run(tt.userID, func() {
 			result := statusField(tt.userID)
-			assert.Equal(t, tt.expected, result)
+			s.Equal(tt.expected, result)
 		})
 	}
 }
 
-func TestMetaField(t *testing.T) {
+func (s *RoomRedisTestSuite) TestMetaField() {
 	tests := []struct {
 		userID   string
 		expected string
@@ -41,18 +53,18 @@ func TestMetaField(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.userID, func(t *testing.T) {
+		s.Run(tt.userID, func() {
 			result := metaField(tt.userID)
-			assert.Equal(t, tt.expected, result)
+			s.Equal(tt.expected, result)
 		})
 	}
 }
 
-func TestPackUnpackStatus(t *testing.T) {
+func (s *RoomRedisTestSuite) TestPackUnpackStatus() {
 	tests := []struct {
 		name   string
 		user   *users.User
-		verify func(*testing.T, string, time.Time, constants.AnchorStatus, int32)
+		verify func(string, time.Time, constants.AnchorStatus, int32)
 	}{
 		{
 			name: "pack and unpack valid status",
@@ -61,11 +73,11 @@ func TestPackUnpackStatus(t *testing.T) {
 				Status: constants.AnchorStatusIdle,
 				Gen:    5,
 			},
-			verify: func(t *testing.T, packed string, ts time.Time, status constants.AnchorStatus, gen int32) {
-				assert.Equal(t, "1234567890,idle,5", packed)
-				assert.Equal(t, time.Unix(1234567890, 0), ts)
-				assert.Equal(t, constants.AnchorStatusIdle, status)
-				assert.Equal(t, int32(5), gen)
+			verify: func(packed string, ts time.Time, status constants.AnchorStatus, gen int32) {
+				s.Equal("1234567890,idle,5", packed)
+				s.Equal(time.Unix(1234567890, 0), ts)
+				s.Equal(constants.AnchorStatusIdle, status)
+				s.Equal(int32(5), gen)
 			},
 		},
 		{
@@ -75,11 +87,11 @@ func TestPackUnpackStatus(t *testing.T) {
 				Status: constants.AnchorStatus(""),
 				Gen:    0,
 			},
-			verify: func(t *testing.T, packed string, ts time.Time, status constants.AnchorStatus, gen int32) {
-				assert.Equal(t, "9876543210,,0", packed)
-				assert.Equal(t, time.Unix(9876543210, 0), ts)
-				assert.Equal(t, constants.AnchorStatus(""), status)
-				assert.Equal(t, int32(0), gen)
+			verify: func(packed string, ts time.Time, status constants.AnchorStatus, gen int32) {
+				s.Equal("9876543210,,0", packed)
+				s.Equal(time.Unix(9876543210, 0), ts)
+				s.Equal(constants.AnchorStatus(""), status)
+				s.Equal(int32(0), gen)
 			},
 		},
 		{
@@ -89,28 +101,28 @@ func TestPackUnpackStatus(t *testing.T) {
 				Status: constants.AnchorStatusOnAir,
 				Gen:    10,
 			},
-			verify: func(t *testing.T, packed string, ts time.Time, status constants.AnchorStatus, gen int32) {
-				assert.Equal(t, "1111111111,onair,10", packed)
-				assert.Equal(t, time.Unix(1111111111, 0), ts)
-				assert.Equal(t, constants.AnchorStatusOnAir, status)
-				assert.Equal(t, int32(10), gen)
+			verify: func(packed string, ts time.Time, status constants.AnchorStatus, gen int32) {
+				s.Equal("1111111111,onair,10", packed)
+				s.Equal(time.Unix(1111111111, 0), ts)
+				s.Equal(constants.AnchorStatusOnAir, status)
+				s.Equal(int32(10), gen)
 			},
 		},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		s.Run(tt.name, func() {
 			packed := packStatus(tt.user)
 
 			ts, status, gen, err := unpackStatus(packed)
-			require.NoError(t, err)
+			s.Require().NoError(err)
 
-			tt.verify(t, packed, ts, status, gen)
+			tt.verify(packed, ts, status, gen)
 		})
 	}
 }
 
-func TestUnpackStatus_Errors(t *testing.T) {
+func (s *RoomRedisTestSuite) TestUnpackStatus_Errors() {
 	tests := []struct {
 		name    string
 		input   string
@@ -144,22 +156,22 @@ func TestUnpackStatus_Errors(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		s.Run(tt.name, func() {
 			_, _, _, err := unpackStatus(tt.input)
 			if tt.wantErr {
-				assert.Error(t, err)
+				s.Require().Error(err)
 			} else {
-				assert.NoError(t, err)
+				s.Require().NoError(err)
 			}
 		})
 	}
 }
 
-func TestParseUsersData(t *testing.T) {
+func (s *RoomRedisTestSuite) TestParseUsersData() {
 	tests := []struct {
 		name     string
 		input    map[string]string
-		validate func(*testing.T, map[string]*users.User)
+		validate func(map[string]*users.User)
 	}{
 		{
 			name: "parse single user with role and status",
@@ -167,13 +179,13 @@ func TestParseUsersData(t *testing.T) {
 				"m:user1": "anchor",
 				"s:user1": "1234567890,onair,5",
 			},
-			validate: func(t *testing.T, users map[string]*users.User) {
-				require.Len(t, users, 1)
-				require.Contains(t, users, "user1")
-				assert.Equal(t, "anchor", users["user1"].Role)
-				assert.Equal(t, constants.AnchorStatusOnAir, users["user1"].Status)
-				assert.Equal(t, time.Unix(1234567890, 0), users["user1"].TS)
-				assert.Equal(t, int32(5), users["user1"].Gen)
+			validate: func(users map[string]*users.User) {
+				s.Require().Len(users, 1)
+				s.Require().Contains(users, "user1")
+				s.Equal("anchor", users["user1"].Role)
+				s.Equal(constants.AnchorStatusOnAir, users["user1"].Status)
+				s.Equal(time.Unix(1234567890, 0), users["user1"].TS)
+				s.Equal(int32(5), users["user1"].Gen)
 			},
 		},
 		{
@@ -181,11 +193,11 @@ func TestParseUsersData(t *testing.T) {
 			input: map[string]string{
 				"m:user1": "viewer",
 			},
-			validate: func(t *testing.T, users map[string]*users.User) {
-				require.Len(t, users, 1)
-				require.Contains(t, users, "user1")
-				assert.Equal(t, "viewer", users["user1"].Role)
-				assert.Equal(t, constants.AnchorStatus(""), users["user1"].Status)
+			validate: func(users map[string]*users.User) {
+				s.Require().Len(users, 1)
+				s.Require().Contains(users, "user1")
+				s.Equal("viewer", users["user1"].Role)
+				s.Equal(constants.AnchorStatus(""), users["user1"].Status)
 			},
 		},
 		{
@@ -196,12 +208,12 @@ func TestParseUsersData(t *testing.T) {
 				"m:user2": "viewer",
 				"s:user2": "9876543210,idle,2",
 			},
-			validate: func(t *testing.T, users map[string]*users.User) {
-				require.Len(t, users, 2)
-				assert.Equal(t, "anchor", users["user1"].Role)
-				assert.Equal(t, constants.AnchorStatusOnAir, users["user1"].Status)
-				assert.Equal(t, "viewer", users["user2"].Role)
-				assert.Equal(t, constants.AnchorStatusIdle, users["user2"].Status)
+			validate: func(users map[string]*users.User) {
+				s.Require().Len(users, 2)
+				s.Equal("anchor", users["user1"].Role)
+				s.Equal(constants.AnchorStatusOnAir, users["user1"].Status)
+				s.Equal("viewer", users["user2"].Role)
+				s.Equal(constants.AnchorStatusIdle, users["user2"].Status)
 			},
 		},
 		{
@@ -210,10 +222,10 @@ func TestParseUsersData(t *testing.T) {
 				"m:user1": "anchor",
 				"s:user1": "invalid-format",
 			},
-			validate: func(t *testing.T, users map[string]*users.User) {
-				require.Len(t, users, 1)
-				assert.Equal(t, "anchor", users["user1"].Role)
-				assert.Equal(t, constants.AnchorStatus(""), users["user1"].Status)
+			validate: func(users map[string]*users.User) {
+				s.Require().Len(users, 1)
+				s.Equal("anchor", users["user1"].Role)
+				s.Equal(constants.AnchorStatus(""), users["user1"].Status)
 			},
 		},
 		{
@@ -222,66 +234,66 @@ func TestParseUsersData(t *testing.T) {
 				"m:user1": "anchor",
 				"x:user1": "unknown-field",
 			},
-			validate: func(t *testing.T, users map[string]*users.User) {
-				require.Len(t, users, 1)
-				assert.Equal(t, "anchor", users["user1"].Role)
+			validate: func(users map[string]*users.User) {
+				s.Require().Len(users, 1)
+				s.Equal("anchor", users["user1"].Role)
 			},
 		},
 		{
 			name:  "parse empty data",
 			input: map[string]string{},
-			validate: func(t *testing.T, users map[string]*users.User) {
-				assert.Len(t, users, 0)
+			validate: func(users map[string]*users.User) {
+				s.Len(users, 0)
 			},
 		},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		s.Run(tt.name, func() {
 			users := parseUsersData(tt.input)
-			tt.validate(t, users)
+			tt.validate(users)
 		})
 	}
 }
 
-func TestRoomStateRedis_Keys(t *testing.T) {
+func (s *RoomRedisTestSuite) TestRoomStateRedis_Keys() {
 	r := &roomStateRedis{
-		prefix: "test-prefix",
+		prefix: s.testPrefix,
 	}
 
-	t.Run("roomsKey", func(t *testing.T) {
+	s.Run("roomsKey", func() {
 		expected := "test-prefix:rooms"
-		assert.Equal(t, expected, r.roomsKey())
+		s.Equal(expected, r.roomsKey())
 	})
 
-	t.Run("userStatusKey", func(t *testing.T) {
+	s.Run("userStatusKey", func() {
 		expected := "test-prefix:r:room123:us"
-		assert.Equal(t, expected, r.userStatusKey("room123"))
+		s.Equal(expected, r.userStatusKey("room123"))
 	})
 }
 
-func TestParseUsersData_StatusBeforeRole(t *testing.T) {
-	t.Run("status field comes before role field", func(t *testing.T) {
+func (s *RoomRedisTestSuite) TestParseUsersData_StatusBeforeRole() {
+	s.Run("status field comes before role field", func() {
 		input := map[string]string{
 			"s:user1": "1234567890,onair,5",
 			"m:user1": "anchor",
 		}
 
 		users := parseUsersData(input)
-		require.Len(t, users, 1)
-		require.Contains(t, users, "user1")
-		assert.Equal(t, "anchor", users["user1"].Role)
-		assert.Equal(t, constants.AnchorStatusOnAir, users["user1"].Status)
-		assert.Equal(t, time.Unix(1234567890, 0), users["user1"].TS)
-		assert.Equal(t, int32(5), users["user1"].Gen)
+		s.Require().Len(users, 1)
+		s.Require().Contains(users, "user1")
+		s.Equal("anchor", users["user1"].Role)
+		s.Equal(constants.AnchorStatusOnAir, users["user1"].Status)
+		s.Equal(time.Unix(1234567890, 0), users["user1"].TS)
+		s.Equal(int32(5), users["user1"].Gen)
 	})
 }
 
-func TestRoomStateRedis_ParseRoomTracks(t *testing.T) {
+func (s *RoomRedisTestSuite) TestRoomStateRedis_ParseRoomTracks() {
 	tests := []struct {
 		name     string
 		input    map[string]string
-		validate func(*testing.T, map[string]time.Time, error)
+		validate func(map[string]time.Time, error)
 	}{
 		{
 			name: "parse valid room tracks",
@@ -289,25 +301,25 @@ func TestRoomStateRedis_ParseRoomTracks(t *testing.T) {
 				"room1": "1234567890",
 				"room2": "9876543210",
 			},
-			validate: func(t *testing.T, result map[string]time.Time, err error) {
-				require.NoError(t, err)
-				require.Len(t, result, 2)
-				assert.Equal(t, time.Unix(1234567890, 0), result["room1"])
-				assert.Equal(t, time.Unix(9876543210, 0), result["room2"])
+			validate: func(result map[string]time.Time, err error) {
+				s.Require().NoError(err)
+				s.Require().Len(result, 2)
+				s.Equal(time.Unix(1234567890, 0), result["room1"])
+				s.Equal(time.Unix(9876543210, 0), result["room2"])
 			},
 		},
 		{
 			name:  "parse empty tracks",
 			input: map[string]string{},
-			validate: func(t *testing.T, result map[string]time.Time, err error) {
-				require.NoError(t, err)
-				assert.Len(t, result, 0)
+			validate: func(result map[string]time.Time, err error) {
+				s.Require().NoError(err)
+				s.Len(result, 0)
 			},
 		},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		s.Run(tt.name, func() {
 			result := make(map[string]time.Time)
 			var err error
 
@@ -319,7 +331,7 @@ func TestRoomStateRedis_ParseRoomTracks(t *testing.T) {
 				}
 			}
 
-			tt.validate(t, result, err)
+			tt.validate(result, err)
 		})
 	}
 }

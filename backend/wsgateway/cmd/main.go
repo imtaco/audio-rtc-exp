@@ -160,7 +160,7 @@ func main() {
 		config.AllowedOrigins,
 		logger.Module("WSRPC"),
 	)
-	signalServer := signal.NewSignalServer(
+	signalServer := signal.NewServer(
 		wsRPCServer,
 		janusProxy,
 		janusTokenCodec,

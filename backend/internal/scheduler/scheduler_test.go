@@ -68,14 +68,14 @@ func (s *SchedulerTestSuite) TestBasic() {
 
 	// Advance time to trigger key1
 	s.clock.Advance(50 * time.Millisecond)
-	s.Assert().Equal("key1", <-triggered) // wait for key1
+	s.Equal("key1", <-triggered) // wait for key1
 
 	// Advance time to trigger key2
 	s.clock.Advance(50 * time.Millisecond)
-	s.Assert().Equal("key2", <-triggered) // wait for key2
+	s.Equal("key2", <-triggered) // wait for key2
 
-	s.Assert().Equal(1, s.getTriggeredCount("key1"))
-	s.Assert().Equal(1, s.getTriggeredCount("key2"))
+	s.Equal(1, s.getTriggeredCount("key1"))
+	s.Equal(1, s.getTriggeredCount("key2"))
 }
 
 func (s *SchedulerTestSuite) TestCancel() {
@@ -86,17 +86,17 @@ func (s *SchedulerTestSuite) TestCancel() {
 	s.scheduler.doEnqueue(&item{key: "key1", ts: nowPlus100ms})
 	s.scheduler.doEnqueue(&item{key: "key2", ts: nowPlus200ms})
 
-	s.Assert().Equal(2, len(s.scheduler.items))
-	s.Assert().Equal(2, len(s.scheduler.heap))
-	s.Assert().Equal(s.scheduler.timerTS, nowPlus100ms)
+	s.Equal(2, len(s.scheduler.items))
+	s.Equal(2, len(s.scheduler.heap))
+	s.Equal(s.scheduler.timerTS, nowPlus100ms)
 
 	s.scheduler.doCancel("key1")
 
-	s.Assert().Equal(1, len(s.scheduler.items))
-	s.Assert().Equal(1, len(s.scheduler.heap))
-	s.Assert().Equal(s.scheduler.timerTS, nowPlus200ms)
+	s.Equal(1, len(s.scheduler.items))
+	s.Equal(1, len(s.scheduler.heap))
+	s.Equal(s.scheduler.timerTS, nowPlus200ms)
 	_, ok := s.scheduler.items["key2"]
-	s.Assert().True(ok)
+	s.True(ok)
 }
 
 func (s *SchedulerTestSuite) TestClear() {
@@ -108,7 +108,7 @@ func (s *SchedulerTestSuite) TestClear() {
 	s.scheduler.doClear()
 
 	// empty
-	s.Assert().Equal(0, len(s.scheduler.items))
+	s.Equal(0, len(s.scheduler.items))
 }
 
 func (s *SchedulerTestSuite) TestUpdate() {
@@ -128,8 +128,8 @@ func (s *SchedulerTestSuite) TestUpdate() {
 	s.clock.Advance(50 * time.Millisecond)
 	<-triggered
 
-	s.Assert().Equal(1, s.getTriggeredCount("key1"))
-	s.Assert().Equal(0, len(s.scheduler.items))
+	s.Equal(1, s.getTriggeredCount("key1"))
+	s.Equal(0, len(s.scheduler.items))
 }
 
 func (s *SchedulerTestSuite) TestUpdateLater() {
@@ -152,9 +152,9 @@ func (s *SchedulerTestSuite) TestUpdateLater() {
 	s.clock.Advance(100 * time.Millisecond)
 	<-triggered
 
-	s.Assert().Equal(1, s.getTriggeredCount("key1"))
+	s.Equal(1, s.getTriggeredCount("key1"))
 	// no more items
-	s.Assert().Equal(0, len(s.scheduler.items))
+	s.Equal(0, len(s.scheduler.items))
 }
 
 func (s *SchedulerTestSuite) TestConcurrentKeys() {
@@ -181,5 +181,5 @@ func (s *SchedulerTestSuite) TestConcurrentKeys() {
 		<-triggered
 	}
 
-	s.Assert().Equal(expectedCount, s.getTriggeredKeys())
+	s.Equal(expectedCount, s.getTriggeredKeys())
 }

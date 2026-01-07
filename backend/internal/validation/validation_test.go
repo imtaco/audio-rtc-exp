@@ -137,9 +137,9 @@ func (s *ValidationTestSuite) TestValidateRoomID() {
 			err := s.validator.Struct(testData)
 
 			if tt.wantErr {
-				s.Error(err, "Expected validation error for roomID: %s", tt.roomID)
+				s.Require().Error(err, "Expected validation error for roomID: %s", tt.roomID)
 			} else {
-				s.NoError(err, "Expected no validation error for roomID: %s", tt.roomID)
+				s.Require().NoError(err, "Expected no validation error for roomID: %s", tt.roomID)
 			}
 		})
 	}
@@ -164,7 +164,7 @@ func (s *ValidationTestSuite) TestRegister() {
 	}
 
 	err := Register(s.validator, "custom", customValidator)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	type TestStruct struct {
 		Field string `validate:"custom"`
@@ -172,11 +172,11 @@ func (s *ValidationTestSuite) TestRegister() {
 
 	// Test valid case
 	err = s.validator.Struct(TestStruct{Field: "test"})
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	// Test invalid case
 	err = s.validator.Struct(TestStruct{Field: "invalid"})
-	s.Error(err)
+	s.Require().Error(err)
 }
 
 // TestRegisterAlias tests the RegisterAlias function
@@ -189,15 +189,15 @@ func (s *ValidationTestSuite) TestRegisterAlias() {
 
 	// Test valid case
 	err := s.validator.Struct(TestStruct{Field: "hello"})
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	// Test invalid case - too short
 	err = s.validator.Struct(TestStruct{Field: "hi"})
-	s.Error(err)
+	s.Require().Error(err)
 
 	// Test invalid case - empty
 	err = s.validator.Struct(TestStruct{Field: ""})
-	s.Error(err)
+	s.Require().Error(err)
 }
 
 // TestMustRegisterGin tests MustRegisterGin panic behavior
@@ -232,7 +232,7 @@ func (s *ValidationTestSuite) TestFormatValidationError() {
 	}
 
 	err := s.validator.Struct(testData)
-	s.Error(err)
+	s.Require().Error(err)
 
 	formatted := FormatValidationError(err)
 	s.NotEmpty(formatted)
@@ -258,7 +258,7 @@ func (s *ValidationTestSuite) TestFormatValidationErrorNoError() {
 
 	testData := TestStruct{Email: "valid@example.com"}
 	err := s.validator.Struct(testData)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	formatted := FormatValidationError(err)
 	s.Empty(formatted)
@@ -278,17 +278,17 @@ type CustomTagsTestSuite struct {
 }
 
 // SetupTest runs before each test
-func (c *CustomTagsTestSuite) SetupTest() {
-	c.validator = validator.New()
+func (s *CustomTagsTestSuite) SetupTest() {
+	s.validator = validator.New()
 	// Register all custom tags
-	err := Register(c.validator, "roomid", ValidateRoomID)
-	c.Require().NoError(err)
+	err := Register(s.validator, "roomid", ValidateRoomID)
+	s.Require().NoError(err)
 
-	RegisterAlias(c.validator, "userid", "uuid4")
-	RegisterAlias(c.validator, "modules", "oneof=mixers januses")
-	RegisterAlias(c.validator, "moduleid", "alphanum,min=3,max=32")
-	RegisterAlias(c.validator, "role", "oneof=host guest moderator")
-	RegisterAlias(c.validator, "label", "oneof=ready cordon draining drained unready")
+	RegisterAlias(s.validator, "userid", "uuid4")
+	RegisterAlias(s.validator, "modules", "oneof=mixers januses")
+	RegisterAlias(s.validator, "moduleid", "alphanum,min=3,max=32")
+	RegisterAlias(s.validator, "role", "oneof=host guest moderator")
+	RegisterAlias(s.validator, "label", "oneof=ready cordon draining drained unready")
 }
 
 // TestCustomTagsTestSuite runs the custom tags test suite
@@ -297,7 +297,7 @@ func TestCustomTagsTestSuite(t *testing.T) {
 }
 
 // TestUserIDAlias tests the userid custom alias tag
-func (c *CustomTagsTestSuite) TestUserIDAlias() {
+func (s *CustomTagsTestSuite) TestUserIDAlias() {
 	type TestStruct struct {
 		UserID string `validate:"userid"`
 	}
@@ -330,21 +330,21 @@ func (c *CustomTagsTestSuite) TestUserIDAlias() {
 	}
 
 	for _, tt := range tests {
-		c.Run(tt.name, func() {
+		s.Run(tt.name, func() {
 			testData := TestStruct{UserID: tt.userID}
-			err := c.validator.Struct(testData)
+			err := s.validator.Struct(testData)
 
 			if tt.wantErr {
-				c.Error(err)
+				s.Require().Error(err)
 			} else {
-				c.NoError(err)
+				s.Require().NoError(err)
 			}
 		})
 	}
 }
 
 // TestModulesAlias tests the modules custom alias tag
-func (c *CustomTagsTestSuite) TestModulesAlias() {
+func (s *CustomTagsTestSuite) TestModulesAlias() {
 	type TestStruct struct {
 		Module string `validate:"modules"`
 	}
@@ -382,21 +382,21 @@ func (c *CustomTagsTestSuite) TestModulesAlias() {
 	}
 
 	for _, tt := range tests {
-		c.Run(tt.name, func() {
+		s.Run(tt.name, func() {
 			testData := TestStruct{Module: tt.module}
-			err := c.validator.Struct(testData)
+			err := s.validator.Struct(testData)
 
 			if tt.wantErr {
-				c.Error(err)
+				s.Require().Error(err)
 			} else {
-				c.NoError(err)
+				s.Require().NoError(err)
 			}
 		})
 	}
 }
 
 // TestModuleIDAlias tests the moduleid custom alias tag
-func (c *CustomTagsTestSuite) TestModuleIDAlias() {
+func (s *CustomTagsTestSuite) TestModuleIDAlias() {
 	type TestStruct struct {
 		ModuleID string `validate:"moduleid"`
 	}
@@ -449,21 +449,21 @@ func (c *CustomTagsTestSuite) TestModuleIDAlias() {
 	}
 
 	for _, tt := range tests {
-		c.Run(tt.name, func() {
+		s.Run(tt.name, func() {
 			testData := TestStruct{ModuleID: tt.moduleID}
-			err := c.validator.Struct(testData)
+			err := s.validator.Struct(testData)
 
 			if tt.wantErr {
-				c.Error(err)
+				s.Require().Error(err)
 			} else {
-				c.NoError(err)
+				s.Require().NoError(err)
 			}
 		})
 	}
 }
 
 // TestRoleAlias tests the role custom alias tag
-func (c *CustomTagsTestSuite) TestRoleAlias() {
+func (s *CustomTagsTestSuite) TestRoleAlias() {
 	type TestStruct struct {
 		Role string `validate:"role"`
 	}
@@ -511,21 +511,21 @@ func (c *CustomTagsTestSuite) TestRoleAlias() {
 	}
 
 	for _, tt := range tests {
-		c.Run(tt.name, func() {
+		s.Run(tt.name, func() {
 			testData := TestStruct{Role: tt.role}
-			err := c.validator.Struct(testData)
+			err := s.validator.Struct(testData)
 
 			if tt.wantErr {
-				c.Error(err)
+				s.Require().Error(err)
 			} else {
-				c.NoError(err)
+				s.Require().NoError(err)
 			}
 		})
 	}
 }
 
 // TestLabelAlias tests the label custom alias tag
-func (c *CustomTagsTestSuite) TestLabelAlias() {
+func (s *CustomTagsTestSuite) TestLabelAlias() {
 	type TestStruct struct {
 		Label string `validate:"label"`
 	}
@@ -578,21 +578,21 @@ func (c *CustomTagsTestSuite) TestLabelAlias() {
 	}
 
 	for _, tt := range tests {
-		c.Run(tt.name, func() {
+		s.Run(tt.name, func() {
 			testData := TestStruct{Label: tt.label}
-			err := c.validator.Struct(testData)
+			err := s.validator.Struct(testData)
 
 			if tt.wantErr {
-				c.Error(err)
+				s.Require().Error(err)
 			} else {
-				c.NoError(err)
+				s.Require().NoError(err)
 			}
 		})
 	}
 }
 
 // TestMultipleCustomTags tests using multiple custom tags together
-func (c *CustomTagsTestSuite) TestMultipleCustomTags() {
+func (s *CustomTagsTestSuite) TestMultipleCustomTags() {
 	type ComplexStruct struct {
 		RoomID   string `validate:"roomid"`
 		UserID   string `validate:"userid"`
@@ -611,8 +611,8 @@ func (c *CustomTagsTestSuite) TestMultipleCustomTags() {
 		Role:     "host",
 		Label:    "ready",
 	}
-	err := c.validator.Struct(validData)
-	c.NoError(err)
+	err := s.validator.Struct(validData)
+	s.NoError(err)
 
 	// Test with invalid roomID
 	invalidData := ComplexStruct{
@@ -623,10 +623,10 @@ func (c *CustomTagsTestSuite) TestMultipleCustomTags() {
 		Role:     "host",
 		Label:    "ready",
 	}
-	err = c.validator.Struct(invalidData)
-	c.Error(err)
+	err = s.validator.Struct(invalidData)
+	s.Require().Error(err)
 
-	// Test with invalid userID
+	// Require().Test with invalid userID
 	invalidData2 := ComplexStruct{
 		RoomID:   "test-room_123",
 		UserID:   "not-a-uuid",
@@ -635,10 +635,10 @@ func (c *CustomTagsTestSuite) TestMultipleCustomTags() {
 		Role:     "host",
 		Label:    "ready",
 	}
-	err = c.validator.Struct(invalidData2)
-	c.Error(err)
+	err = s.validator.Struct(invalidData2)
+	s.Require().Error(err)
 
-	// Test with invalid role
+	// Require().Test with invalid role
 	invalidData3 := ComplexStruct{
 		RoomID:   "test-room_123",
 		UserID:   "550e8400-e29b-41d4-a716-446655440000",
@@ -647,6 +647,6 @@ func (c *CustomTagsTestSuite) TestMultipleCustomTags() {
 		Role:     "admin", // invalid role
 		Label:    "ready",
 	}
-	err = c.validator.Struct(invalidData3)
-	c.Error(err)
+	err = s.validator.Struct(invalidData3)
+	s.Require().Error(err)
 }

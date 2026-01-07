@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/imtaco/audio-rtc-exp/internal/crypto"
+	"github.com/imtaco/audio-rtc-exp/internal/cryptoutil"
 )
 
 // EncryptionGenerator generates encryption key files for HLS
@@ -33,13 +33,13 @@ func (eg *EncryptionGenerator) Generate(roomID, nonce, _ string) (string, error)
 	keyInfoPath := filepath.Join(eg.tmpDir, fmt.Sprintf("enc-%s.keyinfo", roomID))
 
 	// Generate deterministic AES key
-	key := crypto.GenerateAESKey(roomID, nonce)
+	key := cryptoutil.GenerateAESKey(roomID, nonce)
 	if err := os.WriteFile(keyPath, key, 0600); err != nil {
 		return "", fmt.Errorf("failed to write key file: %w", err)
 	}
 
 	// Generate random IV
-	iv, err := crypto.GenerateIV()
+	iv, err := cryptoutil.GenerateIV()
 	if err != nil {
 		return "", fmt.Errorf("failed to generate IV: %w", err)
 	}

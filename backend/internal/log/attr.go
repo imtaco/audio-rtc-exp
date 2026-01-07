@@ -45,7 +45,7 @@ func Float64(key string, val float64) Field {
 	return zap.Float64(key, val)
 }
 
-func Any(key string, val interface{}) Field {
+func Any(key string, val any) Field {
 	return zap.Any(key, val)
 }
 

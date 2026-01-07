@@ -19,21 +19,21 @@ import (
 
 type mockConn struct {
 	context    *rtcContext
-	notifyFunc func(ctx context.Context, method string, params interface{}) error
+	notifyFunc func(ctx context.Context, method string, params any) error
 }
 
 func (m *mockConn) Open(_ context.Context) error {
 	return nil
 }
 
-func (m *mockConn) Notify(ctx context.Context, method string, params interface{}) error {
+func (m *mockConn) Notify(ctx context.Context, method string, params any) error {
 	if m.notifyFunc != nil {
 		return m.notifyFunc(ctx, method, params)
 	}
 	return nil
 }
 
-func (m *mockConn) Call(_ context.Context, _ string, _ interface{}, _ interface{}) error {
+func (m *mockConn) Call(_ context.Context, _ string, _ any, _ any) error {
 	return nil
 }
 
@@ -66,7 +66,7 @@ type ClientManagerSuite struct {
 	ctrl      *gomock.Controller
 	miniRedis *miniredis.Miniredis
 	client    *redis.Client
-	mockPeer  *rpcmocks.MockPeer[interface{}]
+	mockPeer  *rpcmocks.MockPeer[any]
 	manager   *WSConnManager
 	logger    *log.Logger
 }
@@ -87,7 +87,7 @@ func (s *ClientManagerSuite) SetupTest() {
 	})
 
 	s.logger = log.NewNop()
-	s.mockPeer = rpcmocks.NewMockPeer[interface{}](s.ctrl)
+	s.mockPeer = rpcmocks.NewMockPeer[any](s.ctrl)
 
 	s.manager, err = NewWSConnMgr(s.client, "test:ws:stream", s.logger)
 	s.Require().NoError(err)
@@ -223,7 +223,7 @@ func (s *ClientManagerSuite) TestNotifyRoomLocalPeer() {
 			roomID: roomID,
 			reqCtx: context.Background(),
 		},
-		notifyFunc: func(_ context.Context, method string, _ interface{}) error {
+		notifyFunc: func(_ context.Context, method string, _ any) error {
 			notified["conn1"] = true
 			s.Equal("testMethod", method)
 			return nil
@@ -236,7 +236,7 @@ func (s *ClientManagerSuite) TestNotifyRoomLocalPeer() {
 			roomID: roomID,
 			reqCtx: context.Background(),
 		},
-		notifyFunc: func(_ context.Context, method string, _ interface{}) error {
+		notifyFunc: func(_ context.Context, method string, _ any) error {
 			notified["conn2"] = true
 			s.Equal("testMethod", method)
 			return nil
@@ -255,7 +255,7 @@ func (s *ClientManagerSuite) TestNotifyRoomLocalPeer() {
 func (s *ClientManagerSuite) TestHandleBroadcast() {
 	roomID := "room1"
 	var notifiedMethod string
-	var notifiedParams interface{}
+	var notifiedParams any
 	notified := false
 
 	peer := &mockConn{
@@ -264,7 +264,7 @@ func (s *ClientManagerSuite) TestHandleBroadcast() {
 			roomID: roomID,
 			reqCtx: context.Background(),
 		},
-		notifyFunc: func(_ context.Context, method string, params interface{}) error {
+		notifyFunc: func(_ context.Context, method string, params any) error {
 			notified = true
 			notifiedMethod = method
 			notifiedParams = params
@@ -297,7 +297,7 @@ func (s *ClientManagerSuite) TestHandleBroadcast() {
 	rawParams := json.RawMessage(params)
 
 	_, err = s.manager.handleBroadcast(nil, &rawParams)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.True(notified)
 	s.Equal("roomStatus", notifiedMethod)
 	s.Equal(members, notifiedParams)
@@ -310,11 +310,11 @@ func (s *ClientManagerSuite) TestClientManager_StartStop() {
 	s.mockPeer.EXPECT().Def("broadcastRoomStatus", gomock.Any())
 
 	err := s.manager.Start(ctx)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	s.mockPeer.EXPECT().Close().Return(nil)
 	err = s.manager.Stop(ctx)
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 func (s *ClientManagerSuite) TestClientManager_Errors() {
@@ -324,19 +324,19 @@ func (s *ClientManagerSuite) TestClientManager_Errors() {
 	s.mockPeer.EXPECT().Open(ctx).Return(context.DeadlineExceeded)
 	s.mockPeer.EXPECT().Def(gomock.Any(), gomock.Any())
 	err := s.manager.Start(ctx)
-	s.Error(err)
+	s.Require().Error(err)
 
 	// Stop error
 	s.mockPeer.EXPECT().Close().Return(context.DeadlineExceeded)
 	err = s.manager.Stop(ctx)
-	s.NoError(err) // Stop swallows error
+	s.Require().NoError(err) // Stop swallows error
 }
 
 func (s *ClientManagerSuite) TestHandleBroadcast_Error() {
 	// invalid params
 	badParams := json.RawMessage(`{invalid`)
 	_, err := s.manager.handleBroadcast(nil, &badParams)
-	s.Error(err)
+	s.Require().Error(err)
 }
 
 func (s *ClientManagerSuite) TestNotifyRoomLocalPeer_Error() {
@@ -346,7 +346,7 @@ func (s *ClientManagerSuite) TestNotifyRoomLocalPeer_Error() {
 		context: &rtcContext{
 			reqCtx: context.Background(),
 		},
-		notifyFunc: func(_ context.Context, _ string, _ interface{}) error {
+		notifyFunc: func(_ context.Context, _ string, _ any) error {
 			return context.DeadlineExceeded
 		},
 	}

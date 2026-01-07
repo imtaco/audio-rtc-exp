@@ -3,6 +3,7 @@ package jsonrpc
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"sync"
 	"sync/atomic"
@@ -61,7 +62,7 @@ func (c *connImpl[T]) Context() MethodContext[T] {
 	return c.mctx
 }
 
-func (c *connImpl[T]) Call(ctx context.Context, method string, params, result interface{}) error {
+func (c *connImpl[T]) Call(ctx context.Context, method string, params, result any) error {
 	req, err := newRequestMessage(method, params)
 	if err != nil {
 		return err
@@ -73,7 +74,7 @@ func (c *connImpl[T]) Call(ctx context.Context, method string, params, result in
 	return c.wait(ctx, req.ID, done, result)
 }
 
-func (c *connImpl[T]) Notify(ctx context.Context, method string, params interface{}) error {
+func (c *connImpl[T]) Notify(ctx context.Context, method string, params any) error {
 	req, err := newNotificationMessage(method, params)
 	if err != nil {
 		return err
@@ -83,7 +84,7 @@ func (c *connImpl[T]) Notify(ctx context.Context, method string, params interfac
 }
 
 // reply sends a successful response with a result.
-func (c *connImpl[T]) reply(ctx context.Context, id *ID, result interface{}) error {
+func (c *connImpl[T]) reply(ctx context.Context, id *ID, result any) error {
 	if id == nil {
 		return nil
 	}
@@ -118,7 +119,7 @@ func (c *connImpl[T]) close(err error) error {
 	// to avoid race condition, first collect all pending keys
 	// then delete them with popPending
 	key2del := make([]ID, 0)
-	c.pendings.Range(func(key, _ interface{}) bool {
+	c.pendings.Range(func(key, _ any) bool {
 		key2del = append(key2del, key.(ID))
 		return true
 	})
@@ -131,7 +132,7 @@ func (c *connImpl[T]) close(err error) error {
 		}
 	}
 
-	if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
+	if err != nil && !errors.Is(err, io.EOF) && !errors.Is(err, io.ErrUnexpectedEOF) {
 		c.logger.Error("jsonrpc unknown error", log.Error(err))
 	}
 
@@ -215,7 +216,7 @@ func (c *connImpl[T]) send(ctx context.Context, m *message) (doneChan, error) {
 	return done, nil
 }
 
-func (c *connImpl[T]) wait(ctx context.Context, id *ID, done doneChan, result interface{}) error {
+func (c *connImpl[T]) wait(ctx context.Context, id *ID, done doneChan, result any) error {
 	select {
 	case <-ctx.Done():
 		// remove pending on context done (timeout/cancel etc)

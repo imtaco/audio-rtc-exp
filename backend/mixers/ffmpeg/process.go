@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/imtaco/audio-rtc-exp/internal/errors"
 	"github.com/imtaco/audio-rtc-exp/internal/log"
 )
 
@@ -238,7 +239,7 @@ func (p *ProcessInfo) startWaitForExit() <-chan struct{} {
 
 		var exitCode int
 		if err != nil {
-			if exitErr, ok := err.(*exec.ExitError); ok {
+			if exitErr, ok := errors.As[*exec.ExitError](err); ok {
 				if status, ok := exitErr.Sys().(syscall.WaitStatus); ok {
 					exitCode = status.ExitStatus()
 				}

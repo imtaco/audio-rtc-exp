@@ -38,9 +38,9 @@ func (b *baseInstance) GetHandleID() int64 {
 	return b.handleID
 }
 
-func (b *baseInstance) post(ctx context.Context, payload map[string]interface{}) (*Response, error) {
+func (b *baseInstance) post(ctx context.Context, payload map[string]any) (*Response, error) {
 	if payload == nil {
-		payload = make(map[string]interface{})
+		payload = make(map[string]any)
 	}
 	payload["session_id"] = b.sessionID
 	payload["handle_id"] = b.handleID
@@ -49,8 +49,8 @@ func (b *baseInstance) post(ctx context.Context, payload map[string]interface{})
 }
 
 // postMessage posts a message with a typed body payload.
-func (b *baseInstance) postMessage(ctx context.Context, janus string, body interface{}) (*Response, error) {
-	payload := map[string]interface{}{
+func (b *baseInstance) postMessage(ctx context.Context, janus string, body any) (*Response, error) {
+	payload := map[string]any{
 		"janus":      janus,
 		"session_id": b.sessionID,
 		"handle_id":  b.handleID,
@@ -64,7 +64,7 @@ func (b *baseInstance) postMessage(ctx context.Context, janus string, body inter
 
 // postTrickle posts a trickle ICE candidate.
 func (b *baseInstance) postTrickle(ctx context.Context, candidate ICECandidate) (*Response, error) {
-	payload := map[string]interface{}{
+	payload := map[string]any{
 		"janus":      "trickle",
 		"session_id": b.sessionID,
 		"handle_id":  b.handleID,
@@ -77,10 +77,10 @@ func (b *baseInstance) postTrickle(ctx context.Context, candidate ICECandidate) 
 // postMessageWithJSEP posts a message with body and JSEP.
 func (b *baseInstance) postMessageWithJSEP(
 	ctx context.Context,
-	body interface{},
+	body any,
 	jsep *JSEP,
 ) (*Response, error) {
-	payload := map[string]interface{}{
+	payload := map[string]any{
 		"janus":      "message",
 		"session_id": b.sessionID,
 		"handle_id":  b.handleID,
@@ -99,7 +99,7 @@ func (b *baseInstance) Close() {
 
 func (b *baseInstance) Destroy(ctx context.Context) error {
 	b.StopKeepalive()
-	body := map[string]interface{}{
+	body := map[string]any{
 		"janus": "destroy",
 	}
 	_, err := b.post(ctx, body)
@@ -107,7 +107,7 @@ func (b *baseInstance) Destroy(ctx context.Context) error {
 }
 
 func (b *baseInstance) KeepAlive(ctx context.Context) error {
-	body := map[string]interface{}{
+	body := map[string]any{
 		"janus": "keepalive",
 	}
 	_, err := b.post(ctx, body)

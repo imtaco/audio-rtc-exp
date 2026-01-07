@@ -86,7 +86,7 @@ func (s *JanusHealthMonitorTestSuite) TestStart_CreateCanaryRoom_Success() {
 	}()
 
 	err := s.monitor.Start(s.ctx)
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 func (s *JanusHealthMonitorTestSuite) TestStart_CanaryRoomExists() {
@@ -100,7 +100,7 @@ func (s *JanusHealthMonitorTestSuite) TestStart_CanaryRoomExists() {
 	}()
 
 	err := s.monitor.Start(s.ctx)
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 func (s *JanusHealthMonitorTestSuite) TestStart_CreateCanaryRoom_Error() {
@@ -113,7 +113,7 @@ func (s *JanusHealthMonitorTestSuite) TestStart_CreateCanaryRoom_Error() {
 		Return(errors.New("create failed"))
 
 	err := s.monitor.Start(s.ctx)
-	s.Error(err)
+	s.Require().Error(err)
 	s.Contains(err.Error(), "create failed")
 }
 

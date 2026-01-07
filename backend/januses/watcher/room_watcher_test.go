@@ -58,7 +58,7 @@ func (s *RoomWatcherTestSuite) TestCryptoRandInt_WithinRange() {
 
 	for i := 0; i < 100; i++ {
 		val, err := cryptoRandInt(maxVal)
-		s.NoError(err)
+		s.Require().NoError(err)
 		s.GreaterOrEqual(val, int64(0))
 		s.Less(val, maxVal)
 	}
@@ -69,7 +69,7 @@ func (s *RoomWatcherTestSuite) TestCryptoRandInt_SmallRange() {
 
 	for i := 0; i < 50; i++ {
 		val, err := cryptoRandInt(maxVal)
-		s.NoError(err)
+		s.Require().NoError(err)
 		s.GreaterOrEqual(val, int64(0))
 		s.Less(val, maxVal)
 	}
@@ -81,7 +81,7 @@ func (s *RoomWatcherTestSuite) TestCryptoRandInt_Distribution() {
 
 	for i := 0; i < 1000; i++ {
 		val, err := cryptoRandInt(maxVal)
-		s.NoError(err)
+		s.Require().NoError(err)
 		counts[val]++
 	}
 
@@ -101,7 +101,7 @@ func (s *RoomWatcherTestSuite) TestCreateRoom_Success() {
 		Return(nil)
 
 	janusRoomID, err := s.watcher.createRoom(s.ctx, roomID, pin)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.GreaterOrEqual(janusRoomID, int64(100000))
 	s.Less(janusRoomID, int64(1000000))
 }
@@ -121,7 +121,7 @@ func (s *RoomWatcherTestSuite) TestCreateRoom_RetryOnCollision() {
 		Return(nil)
 
 	janusRoomID, err := s.watcher.createRoom(s.ctx, roomID, pin)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.GreaterOrEqual(janusRoomID, int64(100000))
 }
 
@@ -136,7 +136,7 @@ func (s *RoomWatcherTestSuite) TestCreateRoom_MaxRetriesExceeded() {
 		Times(maxRoomCreationAttempts)
 
 	janusRoomID, err := s.watcher.createRoom(s.ctx, roomID, pin)
-	s.Error(err)
+	s.Require().Error(err)
 	s.Contains(err.Error(), "failed to create room after")
 	s.Zero(janusRoomID)
 }
@@ -150,7 +150,7 @@ func (s *RoomWatcherTestSuite) TestCreateRoom_OtherError() {
 		Return(errors.New(janus.ErrFailedRequest, "network error"))
 
 	janusRoomID, err := s.watcher.createRoom(s.ctx, roomID, pin)
-	s.Error(err)
+	s.Require().Error(err)
 	s.Contains(err.Error(), "network error")
 	s.Zero(janusRoomID)
 }
@@ -163,7 +163,7 @@ func (s *RoomWatcherTestSuite) TestDestroyRoom_Success() {
 		Return(nil)
 
 	err := s.watcher.destroyRoom(s.ctx, janusRoomID)
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 func (s *RoomWatcherTestSuite) TestDestroyRoom_NotFound() {
@@ -174,7 +174,7 @@ func (s *RoomWatcherTestSuite) TestDestroyRoom_NotFound() {
 		Return(errors.New(janus.ErrNotFound, "room not found"))
 
 	err := s.watcher.destroyRoom(s.ctx, janusRoomID)
-	s.NoError(err) // Should not return error for not found
+	s.Require().NoError(err) // Should not return error for not found
 }
 
 func (s *RoomWatcherTestSuite) TestDestroyRoom_OtherError() {
@@ -185,7 +185,7 @@ func (s *RoomWatcherTestSuite) TestDestroyRoom_OtherError() {
 		Return(errors.New(janus.ErrFailedRequest, "network error"))
 
 	err := s.watcher.destroyRoom(s.ctx, janusRoomID)
-	s.Error(err)
+	s.Require().Error(err)
 	s.Contains(err.Error(), "network error")
 }
 
@@ -203,7 +203,7 @@ func (s *RoomWatcherTestSuite) TestCreateRtpForwarder_Success() {
 		Return(streamID, nil)
 
 	err := s.watcher.createRtpForwarder(s.ctx, roomID, activeRoom, fwip, fwport)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.Equal(streamID, activeRoom.StreamID)
 	s.Equal(fwip, activeRoom.FwIP)
 	s.Equal(fwport, activeRoom.FwPort)
@@ -219,7 +219,7 @@ func (s *RoomWatcherTestSuite) TestCreateRtpForwarder_NoJanusRoom() {
 
 	// Should not call Janus API
 	err := s.watcher.createRtpForwarder(s.ctx, roomID, activeRoom, fwip, fwport)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.Zero(activeRoom.StreamID)
 }
 
@@ -236,7 +236,7 @@ func (s *RoomWatcherTestSuite) TestCreateRtpForwarder_Error() {
 		Return(int64(0), janus.ErrNoneSuccessResponse)
 
 	err := s.watcher.createRtpForwarder(s.ctx, roomID, activeRoom, fwip, fwport)
-	s.ErrorIs(err, janus.ErrNoneSuccessResponse)
+	s.Require().ErrorIs(err, janus.ErrNoneSuccessResponse)
 	// s.Contains(err.Error(), "forwarder creation failed")
 	s.Zero(activeRoom.StreamID)
 }
@@ -255,7 +255,7 @@ func (s *RoomWatcherTestSuite) TestStopRtpForwarder_Success() {
 		Return(nil)
 
 	err := s.watcher.stopRtpForwarder(s.ctx, roomID, activeRoom)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.Zero(activeRoom.StreamID)
 	s.Empty(activeRoom.FwIP)
 	s.Zero(activeRoom.FwPort)
@@ -275,7 +275,7 @@ func (s *RoomWatcherTestSuite) TestStopRtpForwarder_NotFound() {
 		Return(errors.New(janus.ErrNotFound, "forwarder not found"))
 
 	err := s.watcher.stopRtpForwarder(s.ctx, roomID, activeRoom)
-	s.NoError(err) // Should not return error for not found
+	s.Require().NoError(err) // Should not return error for not found
 	s.Zero(activeRoom.StreamID)
 	s.Empty(activeRoom.FwIP)
 	s.Zero(activeRoom.FwPort)
@@ -295,7 +295,7 @@ func (s *RoomWatcherTestSuite) TestStopRtpForwarder_OtherError() {
 		Return(errors.New(janus.ErrFailedRequest, "network error"))
 
 	err := s.watcher.stopRtpForwarder(s.ctx, roomID, activeRoom)
-	s.Error(err)
+	s.Require().Error(err)
 	s.Contains(err.Error(), "network error")
 }
 
@@ -373,7 +373,7 @@ func (s *RoomWatcherTestSuite) TestBusinessLogic_CreateRoom_ThenAddForwarder() {
 		Return(nil)
 
 	janusRoomID, err := s.watcher.createRoom(s.ctx, roomID, pin)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.NotZero(janusRoomID)
 
 	// Step 2: Add forwarder to the room
@@ -386,7 +386,7 @@ func (s *RoomWatcherTestSuite) TestBusinessLogic_CreateRoom_ThenAddForwarder() {
 		Return(int64(7890), nil)
 
 	err = s.watcher.createRtpForwarder(s.ctx, roomID, activeRoom, "10.0.0.1", 5000)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.Equal(int64(7890), activeRoom.StreamID)
 	s.Equal("10.0.0.1", activeRoom.FwIP)
 	s.Equal(5000, activeRoom.FwPort)
@@ -408,7 +408,7 @@ func (s *RoomWatcherTestSuite) TestBusinessLogic_StopForwarder_ThenDestroyRoom()
 		Return(nil)
 
 	err := s.watcher.stopRtpForwarder(s.ctx, roomID, activeRoom)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.Zero(activeRoom.StreamID)
 
 	// Step 2: Destroy room
@@ -417,7 +417,7 @@ func (s *RoomWatcherTestSuite) TestBusinessLogic_StopForwarder_ThenDestroyRoom()
 		Return(nil)
 
 	err = s.watcher.destroyRoom(s.ctx, int64(123456))
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 func (s *RoomWatcherTestSuite) TestBusinessLogic_RecreateForwarder_OnEndpointChange() {
@@ -436,7 +436,7 @@ func (s *RoomWatcherTestSuite) TestBusinessLogic_RecreateForwarder_OnEndpointCha
 		Return(nil)
 
 	err := s.watcher.stopRtpForwarder(s.ctx, roomID, activeRoom)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	// Step 2: Create new forwarder with different endpoint
 	s.mockJanus.EXPECT().
@@ -444,7 +444,7 @@ func (s *RoomWatcherTestSuite) TestBusinessLogic_RecreateForwarder_OnEndpointCha
 		Return(int64(9999), nil)
 
 	err = s.watcher.createRtpForwarder(s.ctx, roomID, activeRoom, "10.0.0.2", 5001)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.Equal(int64(9999), activeRoom.StreamID)
 	s.Equal("10.0.0.2", activeRoom.FwIP)
 	s.Equal(5001, activeRoom.FwPort)
@@ -683,7 +683,7 @@ func (s *RoomWatcherTestSuite) TestBusinessLogic_RetryMechanism() {
 	)
 
 	janusRoomID, err := s.watcher.createRoom(s.ctx, roomID, pin)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.NotZero(janusRoomID)
 }
 
@@ -698,7 +698,7 @@ func (s *RoomWatcherTestSuite) TestBusinessLogic_ErrorPropagation() {
 		Times(1) // Only called once, not retried
 
 	_, err := s.watcher.createRoom(s.ctx, roomID, pin)
-	s.Error(err)
+	s.Require().Error(err)
 	s.Contains(err.Error(), "network error")
 }
 
@@ -709,11 +709,11 @@ func (s *RoomWatcherTestSuite) TestRebuildStart_EmptyJanus() {
 		Return([]janus.RoomInfo{}, nil)
 
 	err := s.watcher.RebuildStart(context.Background())
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	// Verify activeRooms is empty
 	count := 0
-	s.watcher.activeRooms.Range(func(_, _ interface{}) bool {
+	s.watcher.activeRooms.Range(func(_, _ any) bool {
 		count++
 		return true
 	})
@@ -746,7 +746,7 @@ func (s *RoomWatcherTestSuite) TestRebuildStart_WithRooms() {
 		Return([]janus.RTPForwarderInfo{}, nil)
 
 	err := s.watcher.RebuildStart(context.Background())
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	// Verify rooms were stored
 	val1, ok1 := s.watcher.activeRooms.Load("room-123")
@@ -774,7 +774,7 @@ func (s *RoomWatcherTestSuite) TestRebuildStart_ListRoomsError() {
 		Return(nil, errors.New(janus.ErrFailedRequest, "janus connection error"))
 
 	err := s.watcher.RebuildStart(context.Background())
-	s.Error(err)
+	s.Require().Error(err)
 	s.Contains(err.Error(), "janus connection error")
 }
 
@@ -793,7 +793,7 @@ func (s *RoomWatcherTestSuite) TestRebuildStart_ListForwardersError() {
 		Return(nil, errors.New(janus.ErrNoneSuccessResponse, "forwarder list error"))
 
 	err := s.watcher.RebuildStart(context.Background())
-	s.NoError(err) // Should continue despite forwarder list error
+	s.Require().NoError(err) // Should continue despite forwarder list error
 
 	// Room should NOT be stored when forwarder listing fails
 	_, ok := s.watcher.activeRooms.Load("room-123")
@@ -820,7 +820,7 @@ func (s *RoomWatcherTestSuite) TestRebuildStart_MultipleForwarders() {
 		}, nil)
 
 	err := s.watcher.RebuildStart(context.Background())
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	// Should use first forwarder
 	val, _ := s.watcher.activeRooms.Load("room-123")
@@ -832,7 +832,7 @@ func (s *RoomWatcherTestSuite) TestRebuildStart_MultipleForwarders() {
 
 func (s *RoomWatcherTestSuite) TestRebuildEnd() {
 	err := s.watcher.RebuildEnd(context.Background())
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 func (s *RoomWatcherTestSuite) TestRebuildState_NoActiveRoom() {
@@ -842,7 +842,7 @@ func (s *RoomWatcherTestSuite) TestRebuildState_NoActiveRoom() {
 
 	// No active room in watcher
 	err := s.watcher.RebuildState(context.Background(), roomID, state)
-	s.NoError(err) // Should be a no-op
+	s.Require().NoError(err) // Should be a no-op
 }
 
 func (s *RoomWatcherTestSuite) TestRebuildState_EndpointMatches() {
@@ -862,7 +862,7 @@ func (s *RoomWatcherTestSuite) TestRebuildState_EndpointMatches() {
 	state.Mixer = &etcdstate.Mixer{IP: "10.0.0.1", Port: 5000}
 
 	err := s.watcher.RebuildState(context.Background(), roomID, state)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	// Forwarder should still exist (not stopped)
 	val, _ := s.watcher.activeRooms.Load(roomID)
@@ -892,7 +892,7 @@ func (s *RoomWatcherTestSuite) TestRebuildState_EndpointMismatch_StopsForwarder(
 		Return(nil)
 
 	err := s.watcher.RebuildState(context.Background(), roomID, state)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	// Forwarder should be cleared
 	val, _ := s.watcher.activeRooms.Load(roomID)
@@ -922,7 +922,7 @@ func (s *RoomWatcherTestSuite) TestRebuildState_NoMixerData() {
 		Return(nil)
 
 	err := s.watcher.RebuildState(context.Background(), roomID, state)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	// Forwarder should be cleared
 	val, _ := s.watcher.activeRooms.Load(roomID)
@@ -950,7 +950,7 @@ func (s *RoomWatcherTestSuite) TestRebuildState_StopForwarderError() {
 		Return(errors.New(janus.ErrNoneSuccessResponse, "stop failed"))
 
 	err := s.watcher.RebuildState(context.Background(), roomID, state)
-	s.NoError(err) // Should log error but not fail
+	s.Require().NoError(err) // Should log error but not fail
 }
 
 func (s *RoomWatcherTestSuite) TestRebuildState_NoForwarder() {
@@ -969,7 +969,7 @@ func (s *RoomWatcherTestSuite) TestRebuildState_NoForwarder() {
 	// No Janus API calls expected (no forwarder to stop)
 
 	err := s.watcher.RebuildState(context.Background(), roomID, state)
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 // ProcessChange Integration Tests
@@ -988,7 +988,7 @@ func (s *RoomWatcherTestSuite) TestProcessChange_NotAssignedToUs_NoAction() {
 
 	// No Janus API calls expected
 	err := s.watcher.processChange(context.Background(), roomID, state)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	// Verify no room was created
 	_, ok := s.watcher.activeRooms.Load(roomID)
@@ -1004,7 +1004,7 @@ func (s *RoomWatcherTestSuite) TestProcessChange_NoMetaOrLiveMeta_NoAction() {
 	// No livemeta
 
 	err := s.watcher.processChange(context.Background(), roomID, state)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	// Verify no room was created
 	_, ok := s.watcher.activeRooms.Load(roomID)
@@ -1051,7 +1051,7 @@ func (s *RoomWatcherTestSuite) TestProcessChange_Full_CreateRoomAndForwarder() {
 	)
 
 	err := w.processChange(context.Background(), roomID, state)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	// Verify room and forwarder were created
 	val, ok := w.activeRooms.Load(roomID)
@@ -1083,7 +1083,7 @@ func (s *RoomWatcherTestSuite) TestProcessChange_Full_CreateRoomOnly_NoMixer() {
 		Return(nil)
 
 	err := w.processChange(context.Background(), roomID, state)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	// Verify room was created but no forwarder
 	val, ok := w.activeRooms.Load(roomID)
@@ -1118,7 +1118,7 @@ func (s *RoomWatcherTestSuite) TestProcessChange_Full_DestroyRoom() {
 		Return(nil)
 
 	err := w.processChange(context.Background(), roomID, state)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	// Verify room was removed
 	_, ok := w.activeRooms.Load(roomID)
@@ -1154,7 +1154,7 @@ func (s *RoomWatcherTestSuite) TestProcessChange_Full_AddForwarder() {
 		Return(int64(7890), nil)
 
 	err := w.processChange(context.Background(), roomID, state)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	// Verify forwarder was created
 	val, _ := w.activeRooms.Load(roomID)
@@ -1193,7 +1193,7 @@ func (s *RoomWatcherTestSuite) TestProcessChange_Full_RemoveForwarder() {
 		Return(nil)
 
 	err := w.processChange(context.Background(), roomID, state)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	// Verify forwarder was removed
 	val, _ := w.activeRooms.Load(roomID)
@@ -1237,7 +1237,7 @@ func (s *RoomWatcherTestSuite) TestProcessChange_Full_RecreateForwarder() {
 	)
 
 	err := w.processChange(context.Background(), roomID, state)
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	// Verify forwarder was recreated
 	val, _ := w.activeRooms.Load(roomID)

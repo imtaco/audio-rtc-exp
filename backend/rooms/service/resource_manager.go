@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"time"
 
 	"github.com/imtaco/audio-rtc-exp/internal/log"
@@ -215,5 +215,5 @@ func (rm *resourceMgrImpl) randomPickModule(watcher etcdwatcher.HealthyModuleWat
 	}
 
 	// Randomly pick one
-	return pickableKeys[rand.Intn(len(pickableKeys))] // #nosec G404 -- weak random is acceptable for load balancing resource selection, no security impact
+	return pickableKeys[rand.IntN(len(pickableKeys))] // #nosec G404 -- weak random is acceptable for load balancing resource selection, no security impact
 }

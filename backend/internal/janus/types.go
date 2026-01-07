@@ -69,7 +69,7 @@ type PluginData struct {
 }
 
 // DecodePluginData unmarshals the plugin data payload into v.
-func (r *Response) DecodePluginData(v interface{}) error {
+func (r *Response) DecodePluginData(v any) error {
 	if r == nil || r.Plugindata == nil {
 		return errors.New(ErrInvalidResponse, "plugin data unavailable")
 	}

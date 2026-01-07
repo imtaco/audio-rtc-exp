@@ -1,3 +1,4 @@
+//nolint:revive
 package errors
 
 import (
@@ -85,10 +86,15 @@ func Is(err, target error) bool {
 	return stderrors.Is(err, target)
 }
 
-func As[T error](err error) (*T, bool) {
+func As[T any](err error) (T, bool) {
+	var zero T
+	if err == nil {
+		return zero, false
+	}
+
 	var target T
 	if errors.As(err, &target) {
-		return &target, true
+		return target, true
 	}
-	return nil, false
+	return zero, false
 }

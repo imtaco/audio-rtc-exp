@@ -83,7 +83,7 @@ func (w *healthModuleWatcherImpl) Get(id string) (etcdstate.ModuleState, bool) {
 // GetAllHealthy returns all healthy module IDs
 func (w *healthModuleWatcherImpl) GetAllHealthy() []string {
 	var healthyIDs []string
-	w.healths.Range(func(key, _ interface{}) bool {
+	w.healths.Range(func(key, _ any) bool {
 		healthyIDs = append(healthyIDs, key.(string))
 		return true
 	})
@@ -147,6 +147,7 @@ func (w *healthModuleWatcherImpl) NewState(
 	}
 
 	if curState.IsEmpty() {
+		//nolint:nilnil
 		return nil, nil
 	}
 	return curState, nil

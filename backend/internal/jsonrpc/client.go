@@ -23,7 +23,7 @@ type timeoutConn[T any] struct {
 func (c *timeoutConn[T]) Call(
 	ctx context.Context,
 	method string,
-	params, result interface{},
+	params, result any,
 ) error {
 	ctx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
@@ -33,7 +33,7 @@ func (c *timeoutConn[T]) Call(
 func (c *timeoutConn[T]) Notify(
 	ctx context.Context,
 	method string,
-	params interface{},
+	params any,
 ) error {
 	ctx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()

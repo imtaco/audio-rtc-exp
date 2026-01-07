@@ -64,9 +64,9 @@ func (s *FFmpegManagerTestSuite) TestNewFFmpegManager() {
 			log.NewNop(),
 		).(*ffmpegMgrImpl)
 
-		s.Assert().Equal("/tmp/hls", mgr.hlsDir)
-		s.Assert().Equal(1*time.Second, mgr.retryDelay)
-		s.Assert().Equal(5*time.Second, mgr.forceKillTimeout)
+		s.Equal("/tmp/hls", mgr.hlsDir)
+		s.Equal(1*time.Second, mgr.retryDelay)
+		s.Equal(5*time.Second, mgr.forceKillTimeout)
 	})
 
 	s.Run("create with custom values", func() {
@@ -79,9 +79,9 @@ func (s *FFmpegManagerTestSuite) TestNewFFmpegManager() {
 			log.NewNop(),
 		).(*ffmpegMgrImpl)
 
-		s.Assert().Equal("/custom/hls", mgr.hlsDir)
-		s.Assert().Equal(2*time.Second, mgr.retryDelay)
-		s.Assert().Equal(10*time.Second, mgr.forceKillTimeout)
+		s.Equal("/custom/hls", mgr.hlsDir)
+		s.Equal(2*time.Second, mgr.retryDelay)
+		s.Equal(10*time.Second, mgr.forceKillTimeout)
 	})
 
 	s.Run("clean path", func() {
@@ -94,7 +94,7 @@ func (s *FFmpegManagerTestSuite) TestNewFFmpegManager() {
 			log.NewNop(),
 		).(*ffmpegMgrImpl)
 
-		s.Assert().Equal("/tmp/hls", mgr.hlsDir)
+		s.Equal("/tmp/hls", mgr.hlsDir)
 	})
 }
 
@@ -105,8 +105,8 @@ func (s *FFmpegManagerTestSuite) TestCalculateSeqNo() {
 
 		seqNo := s.ffmpegMgr.calculateSeqNo(roomID, createdAt)
 
-		s.Assert().Greater(seqNo, 0)
-		s.Assert().LessOrEqual(seqNo, 10)
+		s.Greater(seqNo, 0)
+		s.LessOrEqual(seqNo, 10)
 	})
 
 	s.Run("with empty createdAt", func() {
@@ -115,7 +115,7 @@ func (s *FFmpegManagerTestSuite) TestCalculateSeqNo() {
 
 		seqNo := s.ffmpegMgr.calculateSeqNo(roomID, createdAt)
 
-		s.Assert().Equal(0, seqNo)
+		s.Equal(0, seqNo)
 	})
 
 	s.Run("with old createdAt", func() {
@@ -124,7 +124,7 @@ func (s *FFmpegManagerTestSuite) TestCalculateSeqNo() {
 
 		seqNo := s.ffmpegMgr.calculateSeqNo(roomID, createdAt)
 
-		s.Assert().Greater(seqNo, 40)
+		s.Greater(seqNo, 40)
 	})
 
 	s.Run("with recent createdAt", func() {
@@ -133,7 +133,7 @@ func (s *FFmpegManagerTestSuite) TestCalculateSeqNo() {
 
 		seqNo := s.ffmpegMgr.calculateSeqNo(roomID, createdAt)
 
-		s.Assert().GreaterOrEqual(seqNo, 0)
+		s.GreaterOrEqual(seqNo, 0)
 	})
 }
 
@@ -149,13 +149,13 @@ func (s *FFmpegManagerTestSuite) TestStartFFmpeg() {
 		s.Require().NoError(err)
 
 		sdpPath := filepath.Join(s.sdpDir, roomID+".sdp")
-		s.Assert().FileExists(sdpPath)
+		s.FileExists(sdpPath)
 
 		hlsDir := filepath.Join(s.ffmpegMgr.hlsDir, roomID)
-		s.Assert().DirExists(hlsDir)
+		s.DirExists(hlsDir)
 
 		keyInfoPath := filepath.Join(s.tmpDir, "enc-"+roomID+".keyinfo")
-		s.Assert().FileExists(keyInfoPath)
+		s.FileExists(keyInfoPath)
 	})
 
 	s.Run("start ffmpeg stores process info", func() {
@@ -169,12 +169,12 @@ func (s *FFmpegManagerTestSuite) TestStartFFmpeg() {
 		s.Require().NoError(err)
 
 		val, exists := s.ffmpegMgr.processes.Load(roomID)
-		s.Assert().True(exists)
-		s.Assert().NotNil(val)
+		s.True(exists)
+		s.NotNil(val)
 
 		processInfo := val.(*ProcessInfo)
-		s.Assert().Equal(roomID, processInfo.roomID)
-		s.Assert().Equal(rtpPort, processInfo.rtpPort)
+		s.Equal(roomID, processInfo.roomID)
+		s.Equal(rtpPort, processInfo.rtpPort)
 	})
 
 	s.Run("start ffmpeg when already running", func() {
@@ -187,7 +187,7 @@ func (s *FFmpegManagerTestSuite) TestStartFFmpeg() {
 		err = s.ffmpegMgr.StartFFmpeg(roomID, rtpPort, time.Now(), "nonce2")
 
 		s.Require().Error(err)
-		s.Assert().Contains(err.Error(), "already running")
+		s.Contains(err.Error(), "already running")
 	})
 }
 
@@ -210,7 +210,7 @@ func (s *FFmpegManagerTestSuite) TestStopFFmpeg() {
 		err := s.ffmpegMgr.StopFFmpeg(roomID)
 
 		s.Require().Error(err)
-		s.Assert().Contains(err.Error(), "no FFmpeg process found")
+		s.Contains(err.Error(), "no FFmpeg process found")
 	})
 
 	s.Run("cleanup resources after stop", func() {
@@ -222,16 +222,16 @@ func (s *FFmpegManagerTestSuite) TestStopFFmpeg() {
 
 		sdpPath := filepath.Join(s.sdpDir, roomID+".sdp")
 		keyInfoPath := filepath.Join(s.tmpDir, "enc-"+roomID+".keyinfo")
-		s.Assert().FileExists(sdpPath)
-		s.Assert().FileExists(keyInfoPath)
+		s.FileExists(sdpPath)
+		s.FileExists(keyInfoPath)
 
 		err = s.ffmpegMgr.StopFFmpeg(roomID)
 		s.Require().NoError(err)
 
 		time.Sleep(100 * time.Millisecond)
 
-		s.Assert().NoFileExists(sdpPath)
-		s.Assert().NoFileExists(keyInfoPath)
+		s.NoFileExists(sdpPath)
+		s.NoFileExists(keyInfoPath)
 	})
 }
 
@@ -245,11 +245,11 @@ func (s *FFmpegManagerTestSuite) TestStopAll() {
 		}
 
 		count := 0
-		s.ffmpegMgr.processes.Range(func(_, _ interface{}) bool {
+		s.ffmpegMgr.processes.Range(func(_, _ any) bool {
 			count++
 			return true
 		})
-		s.Assert().Equal(3, count)
+		s.Equal(3, count)
 
 		err := s.ffmpegMgr.Stop()
 

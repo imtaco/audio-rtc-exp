@@ -3,6 +3,7 @@ package etcd
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strings"
 	"time"
 
@@ -243,7 +244,7 @@ func (w *BaseEtcdWatcher[T]) getAndWatch(ctx context.Context) {
 		w.gawCancel = cancel
 
 		if err := w.getAndWatchOnce(gawCtx, ch); err != nil {
-			if err != context.Canceled {
+			if !errors.Is(err, context.Canceled) {
 				w.logger.Error("Error in getAndWatch loop", log.Error(err))
 				time.Sleep(w.retryDelay)
 				continue

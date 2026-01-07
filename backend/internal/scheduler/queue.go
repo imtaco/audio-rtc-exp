@@ -1,3 +1,4 @@
+//nolint:forcetypeassert
 package scheduler
 
 import "time"
@@ -25,14 +26,14 @@ func (pq priorityQueue) Swap(i, j int) {
 	pq[j].index = j
 }
 
-func (pq *priorityQueue) Push(x interface{}) {
+func (pq *priorityQueue) Push(x any) {
 	n := len(*pq)
 	item := x.(*item)
 	item.index = n
 	*pq = append(*pq, item)
 }
 
-func (pq *priorityQueue) Pop() interface{} {
+func (pq *priorityQueue) Pop() any {
 	old := *pq
 	n := len(old)
 	item := old[n-1]

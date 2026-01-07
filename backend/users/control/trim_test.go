@@ -72,15 +72,15 @@ func (s *TrimerTestSuite) TestTrimOnce() {
 
 	s.redisClient.XAdd(ctx, &redis.XAddArgs{
 		Stream: "test:stream:in",
-		Values: map[string]interface{}{"data": "test1"},
+		Values: map[string]any{"data": "test1"},
 	})
 	s.redisClient.XAdd(ctx, &redis.XAddArgs{
 		Stream: "test:stream:reply",
-		Values: map[string]interface{}{"data": "test2"},
+		Values: map[string]any{"data": "test2"},
 	})
 	s.redisClient.XAdd(ctx, &redis.XAddArgs{
 		Stream: "test:ws:stream",
-		Values: map[string]interface{}{"data": "test3"},
+		Values: map[string]any{"data": "test3"},
 	})
 
 	s.trimer.trimOnce(ctx)
@@ -91,13 +91,13 @@ func (s *TrimerTestSuite) TestStartStop_Multiple() {
 	defer cancel1()
 
 	err := s.trimer.Start(ctx1)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.trimer.Stop()
 
 	ctx2, cancel2 := context.WithCancel(context.Background())
 	defer cancel2()
 
 	err = s.trimer.Start(ctx2)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.trimer.Stop()
 }

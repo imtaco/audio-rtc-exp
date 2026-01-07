@@ -59,7 +59,7 @@ func (w *roomWatcherImpl) GetActiveLiveMeta(roomID string) *etcdstate.LiveMeta {
 // 		return nil
 // 	}
 
-// 	result, _, _ := w.sfMixer.Do(roomID, func() (interface{}, error) {
+// 	result, _, _ := w.sfMixer.Do(roomID, func() (any, error) {
 // 		handler, ok := w.handlerMap.Load(roomID)
 // 		if ok {
 // 			return handler, nil

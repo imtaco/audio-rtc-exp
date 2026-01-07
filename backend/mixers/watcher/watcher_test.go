@@ -144,9 +144,9 @@ func (s *RoomWatcherTestSuite) TestStartRoomFFmpeg() {
 		s.Require().NoError(err)
 
 		activeRooms := s.watcher.GetActiveRooms()
-		s.Assert().Contains(activeRooms, roomID)
-		s.Assert().Equal(port, activeRooms[roomID].Port)
-		s.Assert().Equal("running", activeRooms[roomID].Status)
+		s.Contains(activeRooms, roomID)
+		s.Equal(port, activeRooms[roomID].Port)
+		s.Equal("running", activeRooms[roomID].Status)
 	})
 
 	s.Run("port allocation fails", func() {
@@ -163,7 +163,7 @@ func (s *RoomWatcherTestSuite) TestStartRoomFFmpeg() {
 		err := s.watcher.startRoomFFmpeg(s.ctx, roomID, livemeta)
 
 		s.Require().Error(err)
-		s.Assert().Contains(err.Error(), "failed to allocate RTP port")
+		s.Contains(err.Error(), "failed to allocate RTP port")
 	})
 
 	s.Run("ffmpeg start fails", func() {
@@ -187,7 +187,7 @@ func (s *RoomWatcherTestSuite) TestStartRoomFFmpeg() {
 		err := s.watcher.startRoomFFmpeg(s.ctx, roomID, livemeta)
 
 		s.Require().Error(err)
-		s.Assert().Contains(err.Error(), "failed to start FFmpeg")
+		s.Contains(err.Error(), "failed to start FFmpeg")
 	})
 
 	s.Run("update mixer fails", func() {
@@ -215,7 +215,7 @@ func (s *RoomWatcherTestSuite) TestStartRoomFFmpeg() {
 		err := s.watcher.startRoomFFmpeg(s.ctx, roomID, livemeta)
 
 		s.Require().Error(err)
-		s.Assert().Contains(err.Error(), "failed to update mixer data")
+		s.Contains(err.Error(), "failed to update mixer data")
 	})
 }
 
@@ -237,7 +237,7 @@ func (s *RoomWatcherTestSuite) TestStopRoomFFmpeg() {
 		s.Require().NoError(err)
 
 		activeRooms := s.watcher.GetActiveRooms()
-		s.Assert().NotContains(activeRooms, roomID)
+		s.NotContains(activeRooms, roomID)
 	})
 
 	s.Run("stop ffmpeg successfully not state runner", func() {
@@ -253,7 +253,7 @@ func (s *RoomWatcherTestSuite) TestStopRoomFFmpeg() {
 		s.Require().NoError(err)
 
 		activeRooms := s.watcher.GetActiveRooms()
-		s.Assert().NotContains(activeRooms, roomID)
+		s.NotContains(activeRooms, roomID)
 	})
 
 	s.Run("ffmpeg stop fails", func() {
@@ -267,7 +267,7 @@ func (s *RoomWatcherTestSuite) TestStopRoomFFmpeg() {
 		err := s.watcher.stopRoomFFmpeg(s.ctx, roomID, true)
 
 		s.Require().Error(err)
-		s.Assert().Contains(err.Error(), "failed to stop FFmpeg")
+		s.Contains(err.Error(), "failed to stop FFmpeg")
 	})
 
 	s.Run("remove mixer data fails", func() {
@@ -285,7 +285,7 @@ func (s *RoomWatcherTestSuite) TestStopRoomFFmpeg() {
 		err := s.watcher.stopRoomFFmpeg(s.ctx, roomID, true)
 
 		s.Require().Error(err)
-		s.Assert().Contains(err.Error(), "failed to remove mixer data")
+		s.Contains(err.Error(), "failed to remove mixer data")
 	})
 }
 
@@ -310,7 +310,7 @@ func (s *RoomWatcherTestSuite) TestSyncMixerData() {
 		err := s.watcher.syncMixerData(s.ctx, roomID)
 
 		s.Require().Error(err)
-		s.Assert().Contains(err.Error(), "room not found in active rooms")
+		s.Contains(err.Error(), "room not found in active rooms")
 	})
 }
 
@@ -342,7 +342,7 @@ func (s *RoomWatcherTestSuite) TestProcessChange() {
 		err := s.watcher.processChange(s.ctx, roomID, state)
 
 		s.Require().NoError(err)
-		s.Assert().Contains(s.watcher.GetActiveRooms(), roomID)
+		s.Contains(s.watcher.GetActiveRooms(), roomID)
 	})
 
 	s.Run("sync mixer data when running but not state runner", func() {
@@ -395,7 +395,7 @@ func (s *RoomWatcherTestSuite) TestProcessChange() {
 		err := s.watcher.processChange(s.ctx, roomID, state)
 
 		s.Require().NoError(err)
-		s.Assert().NotContains(s.watcher.GetActiveRooms(), roomID)
+		s.NotContains(s.watcher.GetActiveRooms(), roomID)
 	})
 
 	s.Run("do nothing when already in correct state", func() {
@@ -432,14 +432,14 @@ func (s *RoomWatcherTestSuite) TestProcessChange() {
 		err := s.watcher.processChange(s.ctx, roomID, state)
 
 		s.Require().NoError(err)
-		s.Assert().NotContains(s.watcher.GetActiveRooms(), roomID)
+		s.NotContains(s.watcher.GetActiveRooms(), roomID)
 	})
 }
 
 func (s *RoomWatcherTestSuite) TestGetActiveRooms() {
 	s.Run("get empty active rooms", func() {
 		rooms := s.watcher.GetActiveRooms()
-		s.Assert().Empty(rooms)
+		s.Empty(rooms)
 	})
 
 	s.Run("get active rooms with data", func() {
@@ -448,10 +448,10 @@ func (s *RoomWatcherTestSuite) TestGetActiveRooms() {
 
 		rooms := s.watcher.GetActiveRooms()
 
-		s.Assert().Len(rooms, 2)
-		s.Assert().Contains(rooms, "room1")
-		s.Assert().Contains(rooms, "room2")
-		s.Assert().Equal(5004, rooms["room1"].Port)
-		s.Assert().Equal(5006, rooms["room2"].Port)
+		s.Len(rooms, 2)
+		s.Contains(rooms, "room1")
+		s.Contains(rooms, "room2")
+		s.Equal(5004, rooms["room1"].Port)
+		s.Equal(5006, rooms["room2"].Port)
 	})
 }

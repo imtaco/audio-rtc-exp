@@ -65,7 +65,7 @@ func (s *RoomStoreTestSuite) TestCreateRoom_Success() {
 			// Verify JSON structure
 			var stored etcdstate.Meta
 			err := json.Unmarshal([]byte(val), &stored)
-			s.NoError(err)
+			s.Require().NoError(err)
 			s.Equal("1234", stored.Pin)
 			s.Equal("/hls/room-123", stored.HLSPath)
 			s.NotEmpty(stored.CreatedAt)
@@ -74,7 +74,7 @@ func (s *RoomStoreTestSuite) TestCreateRoom_Success() {
 		})
 
 	result, err := s.store.CreateRoom(s.ctx, "room-123", roomData)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.NotNil(result)
 	s.NotEmpty(result.CreatedAt)
 }
@@ -95,7 +95,7 @@ func (s *RoomStoreTestSuite) TestCreateRoom_AlreadyExists() {
 		}, nil)
 
 	result, err := s.store.CreateRoom(s.ctx, "room-123", roomData)
-	s.Error(err)
+	s.Require().Error(err)
 	s.Nil(result)
 	s.Contains(err.Error(), "already exists")
 }
@@ -111,7 +111,7 @@ func (s *RoomStoreTestSuite) TestCreateRoom_GetError() {
 		Return(nil, errors.New("etcd connection error"))
 
 	result, err := s.store.CreateRoom(s.ctx, "room-123", roomData)
-	s.Error(err)
+	s.Require().Error(err)
 	s.Nil(result)
 	s.Contains(err.Error(), "failed to check room existence")
 }
@@ -130,7 +130,7 @@ func (s *RoomStoreTestSuite) TestCreateRoom_PutError() {
 		Return(nil, errors.New("etcd write error"))
 
 	result, err := s.store.CreateRoom(s.ctx, "room-123", roomData)
-	s.Error(err)
+	s.Require().Error(err)
 	s.Nil(result)
 	s.Contains(err.Error(), "failed to store room")
 }
@@ -149,7 +149,7 @@ func (s *RoomStoreTestSuite) TestGetRoom_Success() {
 		}, nil)
 
 	room, err := s.store.GetRoom(s.ctx, "room-123")
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.NotNil(room)
 	s.Equal("1234", room.Pin)
 	s.Equal("/hls/room-123", room.HLSPath)
@@ -161,7 +161,7 @@ func (s *RoomStoreTestSuite) TestGetRoom_NotFound() {
 		Return(&clientv3.GetResponse{Kvs: []*mvccpb.KeyValue{}}, nil)
 
 	room, err := s.store.GetRoom(s.ctx, "room-123")
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.Nil(room)
 }
 
@@ -171,7 +171,7 @@ func (s *RoomStoreTestSuite) TestGetRoom_GetError() {
 		Return(nil, errors.New("etcd error"))
 
 	room, err := s.store.GetRoom(s.ctx, "room-123")
-	s.Error(err)
+	s.Require().Error(err)
 	s.Nil(room)
 	s.Contains(err.Error(), "failed to get room")
 }
@@ -186,7 +186,7 @@ func (s *RoomStoreTestSuite) TestGetRoom_UnmarshalError() {
 		}, nil)
 
 	room, err := s.store.GetRoom(s.ctx, "room-123")
-	s.Error(err)
+	s.Require().Error(err)
 	s.Nil(room)
 	s.Contains(err.Error(), "failed to unmarshal")
 }
@@ -203,7 +203,7 @@ func (s *RoomStoreTestSuite) TestExists_True() {
 		}, nil)
 
 	exists, err := s.store.Exists(s.ctx, "room-123")
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.True(exists)
 }
 
@@ -213,7 +213,7 @@ func (s *RoomStoreTestSuite) TestExists_False() {
 		Return(&clientv3.GetResponse{Kvs: []*mvccpb.KeyValue{}}, nil)
 
 	exists, err := s.store.Exists(s.ctx, "room-123")
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.False(exists)
 }
 
@@ -223,7 +223,7 @@ func (s *RoomStoreTestSuite) TestExists_Error() {
 		Return(nil, errors.New("etcd error"))
 
 	exists, err := s.store.Exists(s.ctx, "room-123")
-	s.Error(err)
+	s.Require().Error(err)
 	s.False(exists)
 }
 
@@ -235,7 +235,7 @@ func (s *RoomStoreTestSuite) TestDeleteRoom_Success() {
 		Return(&clientv3.DeleteResponse{Deleted: 3}, nil)
 
 	deleted, err := s.store.DeleteRoom(s.ctx, "room-123")
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.True(deleted)
 }
 
@@ -245,7 +245,7 @@ func (s *RoomStoreTestSuite) TestDeleteRoom_NotFound() {
 		Return(&clientv3.DeleteResponse{Deleted: 0}, nil)
 
 	deleted, err := s.store.DeleteRoom(s.ctx, "room-123")
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.False(deleted)
 }
 
@@ -255,7 +255,7 @@ func (s *RoomStoreTestSuite) TestDeleteRoom_Error() {
 		Return(nil, errors.New("etcd error"))
 
 	deleted, err := s.store.DeleteRoom(s.ctx, "room-123")
-	s.Error(err)
+	s.Require().Error(err)
 	s.False(deleted)
 	s.Contains(err.Error(), "failed to delete room")
 }
@@ -268,7 +268,7 @@ func (s *RoomStoreTestSuite) TestCreateLiveMeta_Success() {
 		DoAndReturn(func(_ context.Context, _, val string, _ ...clientv3.OpOption) (*clientv3.PutResponse, error) {
 			var livemeta rooms.LiveMeta
 			err := json.Unmarshal([]byte(val), &livemeta)
-			s.NoError(err)
+			s.Require().NoError(err)
 			s.Equal(constants.RoomStatusOnAir, livemeta.Status)
 			s.Equal("mixer-1", livemeta.MixerID)
 			s.Equal("janus-1", livemeta.JanusID)
@@ -279,7 +279,7 @@ func (s *RoomStoreTestSuite) TestCreateLiveMeta_Success() {
 		})
 
 	err := s.store.CreateLiveMeta(s.ctx, "room-123", "mixer-1", "janus-1", "nonce-123")
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 func (s *RoomStoreTestSuite) TestCreateLiveMeta_PutError() {
@@ -288,7 +288,7 @@ func (s *RoomStoreTestSuite) TestCreateLiveMeta_PutError() {
 		Return(nil, errors.New("etcd error"))
 
 	err := s.store.CreateLiveMeta(s.ctx, "room-123", "mixer-1", "janus-1", "nonce-123")
-	s.Error(err)
+	s.Require().Error(err)
 	s.Contains(err.Error(), "failed to store livemeta")
 }
 
@@ -300,7 +300,7 @@ func (s *RoomStoreTestSuite) TestStopLiveMeta_Success() {
 		DoAndReturn(func(_ context.Context, _, val string, _ ...clientv3.OpOption) (*clientv3.PutResponse, error) {
 			var livemeta rooms.LiveMeta
 			err := json.Unmarshal([]byte(val), &livemeta)
-			s.NoError(err)
+			s.Require().NoError(err)
 			s.Equal(constants.RoomStatusRemoving, livemeta.Status)
 			s.NotEmpty(livemeta.DiscardAt)
 
@@ -308,7 +308,7 @@ func (s *RoomStoreTestSuite) TestStopLiveMeta_Success() {
 		})
 
 	err := s.store.StopLiveMeta(s.ctx, "room-123")
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 func (s *RoomStoreTestSuite) TestStopRoom_CallsStopLiveMeta() {
@@ -317,7 +317,7 @@ func (s *RoomStoreTestSuite) TestStopRoom_CallsStopLiveMeta() {
 		Return(&clientv3.PutResponse{}, nil)
 
 	err := s.store.StopRoom(s.ctx, "room-123")
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 // GetAllRooms Tests
@@ -343,7 +343,7 @@ func (s *RoomStoreTestSuite) TestGetAllRooms_Success() {
 		}, nil)
 
 	rooms, err := s.store.GetAllRooms(s.ctx)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.Len(rooms, 2)
 	s.NotNil(rooms["room-1"])
 	s.NotNil(rooms["room-2"])
@@ -355,7 +355,7 @@ func (s *RoomStoreTestSuite) TestGetAllRooms_EmptyResult() {
 		Return(&clientv3.GetResponse{Kvs: []*mvccpb.KeyValue{}}, nil)
 
 	rooms, err := s.store.GetAllRooms(s.ctx)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.Empty(rooms)
 }
 
@@ -365,7 +365,7 @@ func (s *RoomStoreTestSuite) TestGetAllRooms_Error() {
 		Return(nil, errors.New("etcd error"))
 
 	rooms, err := s.store.GetAllRooms(s.ctx)
-	s.Error(err)
+	s.Require().Error(err)
 	s.Nil(rooms)
 }
 
@@ -390,7 +390,7 @@ func (s *RoomStoreTestSuite) TestGetAllRooms_SkipsInvalidJSON() {
 		}, nil)
 
 	rooms, err := s.store.GetAllRooms(s.ctx)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.Len(rooms, 2) // room-2 should be skipped
 	s.NotNil(rooms["room-1"])
 	s.NotNil(rooms["room-3"])
@@ -410,7 +410,7 @@ func (s *RoomStoreTestSuite) TestGetStats_Success() {
 		}, nil)
 
 	stats, err := s.store.GetStats(s.ctx)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.NotNil(stats)
 	s.Equal(3, stats.Total)
 	s.Equal(0, stats.TotalParticipants)
@@ -422,7 +422,7 @@ func (s *RoomStoreTestSuite) TestGetStats_Error() {
 		Return(nil, errors.New("etcd error"))
 
 	stats, err := s.store.GetStats(s.ctx)
-	s.Error(err)
+	s.Require().Error(err)
 	s.Nil(stats)
 }
 
@@ -440,7 +440,7 @@ func (s *RoomStoreTestSuite) TestGetMixerData_Success() {
 		}, nil)
 
 	mixerData, err := s.store.GetMixerData(s.ctx, "room-123")
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.NotNil(mixerData)
 	s.Equal(5000, mixerData.Port)
 }
@@ -451,7 +451,7 @@ func (s *RoomStoreTestSuite) TestGetMixerData_NotFound() {
 		Return(&clientv3.GetResponse{Kvs: []*mvccpb.KeyValue{}}, nil)
 
 	mixerData, err := s.store.GetMixerData(s.ctx, "room-123")
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.Nil(mixerData)
 }
 
@@ -461,7 +461,7 @@ func (s *RoomStoreTestSuite) TestGetMixerData_GetError() {
 		Return(nil, errors.New("etcd error"))
 
 	mixerData, err := s.store.GetMixerData(s.ctx, "room-123")
-	s.Error(err)
+	s.Require().Error(err)
 	s.Nil(mixerData)
 }
 
@@ -475,7 +475,7 @@ func (s *RoomStoreTestSuite) TestGetMixerData_UnmarshalError() {
 		}, nil)
 
 	mixerData, err := s.store.GetMixerData(s.ctx, "room-123")
-	s.Error(err)
+	s.Require().Error(err)
 	s.Nil(mixerData)
 }
 
@@ -509,7 +509,7 @@ func (s *RoomStoreTestSuite) TestCreateRoom_SetsTimestamp() {
 	roomData := &etcdstate.Meta{}
 	result, err := s.store.CreateRoom(s.ctx, "room-123", roomData)
 
-	s.NoError(err)
+	s.Require().NoError(err)
 	// Verify timestamp is recent and in RFC3339 format
 	s.True(result.CreatedAt.After(before), "CreatedAt should be after 'before' time")
 	s.True(result.CreatedAt.Before(time.Now().Add(time.Second)), "CreatedAt should be recent")
@@ -524,7 +524,7 @@ func (s *RoomStoreTestSuite) TestSetModuleMark_SuccessWithoutTTL() {
 			// Verify JSON structure
 			var markData etcdstate.MarkData
 			err := json.Unmarshal([]byte(val), &markData)
-			s.NoError(err)
+			s.Require().NoError(err)
 			s.Equal(constants.MarkLabelReady, markData.Label)
 
 			// Verify no lease option is set
@@ -534,7 +534,7 @@ func (s *RoomStoreTestSuite) TestSetModuleMark_SuccessWithoutTTL() {
 		})
 
 	err := s.store.SetModuleMark(s.ctx, "mixers", "mixer-1", constants.MarkLabelReady, 0)
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 func (s *RoomStoreTestSuite) TestSetModuleMark_SuccessWithTTL() {
@@ -550,7 +550,7 @@ func (s *RoomStoreTestSuite) TestSetModuleMark_SuccessWithTTL() {
 			// Verify JSON structure
 			var markData etcdstate.MarkData
 			err := json.Unmarshal([]byte(val), &markData)
-			s.NoError(err)
+			s.Require().NoError(err)
 			s.Equal(constants.MarkLabelCordon, markData.Label)
 
 			// Verify that lease option is set (should have 1 option with the lease)
@@ -560,7 +560,7 @@ func (s *RoomStoreTestSuite) TestSetModuleMark_SuccessWithTTL() {
 		})
 
 	err := s.store.SetModuleMark(s.ctx, "januses", "jan-1", constants.MarkLabelCordon, 3600)
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 func (s *RoomStoreTestSuite) TestSetModuleMark_GrantLeaseError() {
@@ -569,7 +569,7 @@ func (s *RoomStoreTestSuite) TestSetModuleMark_GrantLeaseError() {
 		Return(nil, errors.New("lease grant failed"))
 
 	err := s.store.SetModuleMark(s.ctx, "januses", "jan-1", constants.MarkLabelCordon, 3600)
-	s.Error(err)
+	s.Require().Error(err)
 	s.Contains(err.Error(), "failed to create lease")
 }
 
@@ -588,13 +588,13 @@ func (s *RoomStoreTestSuite) TestSetModuleMark_AllLabels() {
 			DoAndReturn(func(_ context.Context, _, val string, _ ...clientv3.OpOption) (*clientv3.PutResponse, error) {
 				var markData etcdstate.MarkData
 				err := json.Unmarshal([]byte(val), &markData)
-				s.NoError(err)
+				s.Require().NoError(err)
 				s.Equal(label, markData.Label)
 				return &clientv3.PutResponse{}, nil
 			})
 
 		err := s.store.SetModuleMark(s.ctx, "mixers", "mixer-1", label, 0)
-		s.NoError(err)
+		s.Require().NoError(err)
 	}
 }
 
@@ -604,7 +604,7 @@ func (s *RoomStoreTestSuite) TestSetModuleMark_PutError() {
 		Return(nil, errors.New("etcd write error"))
 
 	err := s.store.SetModuleMark(s.ctx, "mixers", "mixer-1", constants.MarkLabelReady, 0)
-	s.Error(err)
+	s.Require().Error(err)
 	s.Contains(err.Error(), "failed to set module mark")
 }
 
@@ -621,7 +621,7 @@ func (s *RoomStoreTestSuite) TestSetModuleMark_ModuleTypes() {
 			})
 
 		err := s.store.SetModuleMark(s.ctx, moduleType, "module-1", constants.MarkLabelReady, 0)
-		s.NoError(err)
+		s.Require().NoError(err)
 	}
 }
 
@@ -633,7 +633,7 @@ func (s *RoomStoreTestSuite) TestDeleteModuleMark_Success() {
 		Return(&clientv3.DeleteResponse{Deleted: 1}, nil)
 
 	err := s.store.DeleteModuleMark(s.ctx, "mixers", "mixer-1")
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 func (s *RoomStoreTestSuite) TestDeleteModuleMark_DeleteError() {
@@ -642,7 +642,7 @@ func (s *RoomStoreTestSuite) TestDeleteModuleMark_DeleteError() {
 		Return(nil, errors.New("etcd delete error"))
 
 	err := s.store.DeleteModuleMark(s.ctx, "mixers", "mixer-1")
-	s.Error(err)
+	s.Require().Error(err)
 	s.Contains(err.Error(), "failed to delete module mark")
 }
 
@@ -659,7 +659,7 @@ func (s *RoomStoreTestSuite) TestDeleteModuleMark_AllModuleTypes() {
 			})
 
 		err := s.store.DeleteModuleMark(s.ctx, moduleType, "module-1")
-		s.NoError(err)
+		s.Require().NoError(err)
 	}
 }
 
@@ -676,7 +676,7 @@ func (s *RoomStoreTestSuite) TestDeleteModuleMark_MultipleModules() {
 			})
 
 		err := s.store.DeleteModuleMark(s.ctx, "mixers", moduleID)
-		s.NoError(err)
+		s.Require().NoError(err)
 	}
 }
 

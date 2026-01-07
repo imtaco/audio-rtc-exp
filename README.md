@@ -12,7 +12,7 @@ This project implements a distributed microservices architecture for real-time a
 
 ## Technology Stack
 
-- **Backend**: Go 1.24, Gin, Gorilla WebSocket
+- **Backend**: Go 1.24, Gin, Coder WebSocket
 - **State Management**: etcd v3.5.11, Redis 8.4
 - **Media Processing**: Janus Gateway (AudioBridge), FFmpeg
 - **Frontend**: Svelte 4.2.0, Vite 5.2.0, hls.js

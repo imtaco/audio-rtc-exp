@@ -54,13 +54,13 @@ func (s *ProxySuite) TearDownTest() {
 
 func (s *ProxySuite) TestNewProxy_Success() {
 	p, err := NewProxy(nil, "room/", "janus/", 10, "8088", log.NewTest(s.T()))
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.NotNil(p)
 }
 
 func (s *ProxySuite) TestNewProxy_Error() {
 	_, err := NewProxy(nil, "", "", 0, "", log.NewTest(s.T()))
-	s.Error(err)
+	s.Require().Error(err)
 	s.Contains(err.Error(), "failed to create LRU cache")
 }
 
@@ -71,7 +71,7 @@ func (s *ProxySuite) TestOpen() {
 	s.roomWatcher.EXPECT().Start(ctx).Return(nil)
 
 	err := s.proxy.Open(ctx)
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 func (s *ProxySuite) TestOpen_JanusWatcherError() {
@@ -81,7 +81,7 @@ func (s *ProxySuite) TestOpen_JanusWatcherError() {
 	s.janusWatcher.EXPECT().Start(ctx).Return(expectedErr)
 
 	err := s.proxy.Open(ctx)
-	s.Error(err)
+	s.Require().Error(err)
 	s.Equal(expectedErr, err)
 }
 
@@ -93,7 +93,7 @@ func (s *ProxySuite) TestOpen_RoomWatcherError() {
 	s.roomWatcher.EXPECT().Start(ctx).Return(expectedErr)
 
 	err := s.proxy.Open(ctx)
-	s.Error(err)
+	s.Require().Error(err)
 	s.Equal(expectedErr, err)
 }
 
@@ -282,7 +282,7 @@ func (s *ProxySuite) TestClose() {
 	s.roomWatcher.EXPECT().Stop().Return(nil)
 
 	err := s.proxy.Close()
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 func (s *ProxySuite) TestClose_JanusWatcherError() {
@@ -292,7 +292,7 @@ func (s *ProxySuite) TestClose_JanusWatcherError() {
 	s.roomWatcher.EXPECT().Stop().Return(nil)
 
 	err := s.proxy.Close()
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 func (s *ProxySuite) TestClose_RoomWatcherError() {
@@ -302,5 +302,5 @@ func (s *ProxySuite) TestClose_RoomWatcherError() {
 	s.roomWatcher.EXPECT().Stop().Return(expectedErr)
 
 	err := s.proxy.Close()
-	s.NoError(err)
+	s.Require().NoError(err)
 }

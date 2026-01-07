@@ -11,7 +11,7 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 
 	"github.com/imtaco/audio-rtc-exp/hlsserver"
-	commoncrypto "github.com/imtaco/audio-rtc-exp/internal/crypto"
+	"github.com/imtaco/audio-rtc-exp/internal/cryptoutil"
 	"github.com/imtaco/audio-rtc-exp/internal/jwt"
 	"github.com/imtaco/audio-rtc-exp/internal/log"
 	"github.com/imtaco/audio-rtc-exp/internal/validation"
@@ -217,7 +217,7 @@ func (r *KeyRouter) getEncryptionKey(c *gin.Context) {
 			return
 		}
 
-		keyData = commoncrypto.GenerateAESKey(roomID, livemeta.Nonce)
+		keyData = cryptoutil.GenerateAESKey(roomID, livemeta.Nonce)
 		keyCache.Add(roomID, keyData)
 
 		r.logger.Debug("Key generated and cached",

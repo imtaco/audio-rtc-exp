@@ -1,19 +1,24 @@
 package validation
 
-import "github.com/go-playground/validator/v10"
+import (
+	"github.com/go-playground/validator/v10"
+
+	"github.com/imtaco/audio-rtc-exp/internal/errors"
+)
 
 func FormatValidationError(err error) []Error {
-	var errors []Error
-	if validationErrors, ok := err.(validator.ValidationErrors); ok {
+	var errs []Error
+
+	if validationErrors, ok := errors.As[validator.ValidationErrors](err); ok {
 		for _, e := range validationErrors {
-			errors = append(errors, Error{
+			errs = append(errs, Error{
 				Field:   e.Field(),
 				Message: e.Error(), // Use built-in error message
 			})
 		}
 	}
 
-	return errors
+	return errs
 }
 
 // Error represents a validation error

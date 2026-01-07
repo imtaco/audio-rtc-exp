@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/imtaco/audio-rtc-exp/internal/errors"
 	"github.com/imtaco/audio-rtc-exp/internal/log"
 )
 
@@ -82,7 +83,7 @@ func (s *handlerImpl[T]) handle(ctx context.Context, conn *connImpl[T], req *Req
 		return
 	}
 
-	reply := func(result interface{}, err error) {
+	reply := func(result any, err error) {
 		if err := s.reply(ctx, conn, req, result, err); err != nil {
 			s.logger.Error("Failed to send RPC reply",
 				log.String("method", req.Method),
@@ -97,7 +98,7 @@ func (s *handlerImpl[T]) reply(
 	ctx context.Context,
 	conn *connImpl[T],
 	req *Request,
-	result interface{},
+	result any,
 	err error,
 ) error {
 
@@ -107,7 +108,7 @@ func (s *handlerImpl[T]) reply(
 		return conn.reply(ctx, req.ID, result)
 	}
 
-	if rpcErr, ok := err.(*Error); ok {
+	if rpcErr, ok := errors.As[*Error](err); ok {
 		s.logger.Error("RPC handler returned error",
 			log.String("method", req.Method),
 			log.Any("id", req.ID),

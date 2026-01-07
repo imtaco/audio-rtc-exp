@@ -18,7 +18,7 @@ type rsStream struct {
 	logger   *log.Logger
 }
 
-func (rs *rsStream) Write(_ context.Context, obj interface{}) error {
+func (rs *rsStream) Write(ctx context.Context, obj any) error {
 	rs.logger.Debug("write to redis stream", log.Any("obj", obj))
 
 	bs, err := json.Marshal(obj)
@@ -26,21 +26,21 @@ func (rs *rsStream) Write(_ context.Context, obj interface{}) error {
 		return errors.Wrap(err, "failed to marshal object")
 	}
 
-	payload := map[string]interface{}{
+	payload := map[string]any{
 		"data": bs,
 	}
-	_, err = rs.producer.Add(context.Background(), payload)
+	_, err = rs.producer.Add(ctx, payload)
 	return err
 }
 
-func (rs *rsStream) Read(ctx context.Context, v interface{}) error {
+func (rs *rsStream) Read(ctx context.Context, v any) error {
 	rs.logger.Debug("read readstream once")
 	if rs.consumer == nil {
 		<-ctx.Done()
 		return jsonrpc.ErrClosed
 	}
 
-	var value map[string]interface{}
+	var value map[string]any
 
 	select {
 	case <-ctx.Done():
@@ -89,7 +89,7 @@ func (rs *rsStream) Close() error {
 	return nil
 }
 
-func extractDataField(values map[string]interface{}) ([]byte, bool) {
+func extractDataField(values map[string]any) ([]byte, bool) {
 	v, ok := values["data"]
 	if !ok {
 		return nil, false

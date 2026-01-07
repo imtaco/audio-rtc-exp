@@ -191,7 +191,7 @@ func (w *RoomWatcher) stopRtpForwarder(ctx context.Context, roomID string, activ
 	return nil
 }
 
-// processChange processes a room change event
+//nolint:gocyclo
 func (w *RoomWatcher) processChange(_ context.Context, roomID string, state *etcdstate.RoomState) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()

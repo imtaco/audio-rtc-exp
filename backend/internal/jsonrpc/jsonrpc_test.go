@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/imtaco/audio-rtc-exp/internal/log"
-	"github.com/imtaco/audio-rtc-exp/internal/utils"
 
 	"github.com/stretchr/testify/suite"
 )
@@ -51,7 +50,7 @@ func (s *JSONRPCSuite) TestNewCoreRequiresLogger() {
 
 func (s *JSONRPCSuite) TestDefRejectsDuplicateMethods() {
 	core := s.newHandler()
-	h := func(MethodContext[map[string]string], *json.RawMessage) (interface{}, error) {
+	h := func(MethodContext[map[string]string], *json.RawMessage) (any, error) {
 		return nil, nil
 	}
 	core.Def("sum", h)
@@ -72,7 +71,7 @@ func (s *JSONRPCSuite) TestHandleMethodNotFoundSendsError() {
 
 func (s *JSONRPCSuite) TestHandleDispatchesRegisteredHandler() {
 	core := s.newHandler()
-	core.Def("echo", func(MethodContext[map[string]string], *json.RawMessage) (interface{}, error) {
+	core.Def("echo", func(MethodContext[map[string]string], *json.RawMessage) (any, error) {
 		return map[string]string{"status": "ok"}, nil
 	})
 	conn, stream := s.newConnWithHandler(nil)
@@ -131,7 +130,7 @@ func (s *JSONRPCSuite) TestNotifySendsNotification() {
 func (s *JSONRPCSuite) TestCallPropagatesSendError() {
 	s.stream.writeErr = errors.New("send failed")
 	err := s.conn.Call(context.Background(), "sum", map[string]int{"v": 1}, nil)
-	s.Error(err)
+	s.Require().Error(err)
 }
 
 func (s *JSONRPCSuite) TestCallClearsPendingWhenContextCanceled() {
@@ -143,7 +142,7 @@ func (s *JSONRPCSuite) TestCallClearsPendingWhenContextCanceled() {
 	s.Require().ErrorIs(err, context.Canceled)
 
 	empty := true
-	s.conn.pendings.Range(func(_, _ interface{}) bool {
+	s.conn.pendings.Range(func(_, _ any) bool {
 		empty = false
 		return false
 	})
@@ -203,11 +202,11 @@ func (s *JSONRPCSuite) TestMessageValidateClassifiesMessages() {
 	notify.validate()
 	s.Equal(typeNotification, notify.msgType)
 
-	resp := &message{ID: newStringID("2"), Result: utils.Ptr(json.RawMessage("{}"))}
+	resp := &message{ID: newStringID("2"), Result: Ptr(json.RawMessage("{}"))}
 	resp.validate()
 	s.Equal(typeResponse, resp.msgType)
 
-	invalid := &message{Method: &method, Result: utils.Ptr(json.RawMessage("{}"))}
+	invalid := &message{Method: &method, Result: Ptr(json.RawMessage("{}"))}
 	invalid.validate()
 	s.Equal(typeUnknown, invalid.msgType)
 }
@@ -315,7 +314,7 @@ func (s *JSONRPCSuite) TestWaitReturnsContextError() {
 func (s *JSONRPCSuite) TestWaitUnmarshalsResult() {
 	id := *newStringID("ok")
 	done := make(doneChan, 1)
-	done <- &message{Result: utils.Ptr(json.RawMessage("{\"value\":\"done\"}"))}
+	done <- &message{Result: Ptr(json.RawMessage("{\"value\":\"done\"}"))}
 
 	var dst struct {
 		Value string `json:"value"`
@@ -355,7 +354,7 @@ func (s *JSONRPCSuite) TestReadLoopDeliversResponses() {
 	id := newStringID("resp")
 	done := make(doneChan, 1)
 	conn.pendings.Store(*id, done)
-	stream.enqueueRead(&message{ID: id, Result: utils.Ptr(json.RawMessage("{\"value\":42}"))})
+	stream.enqueueRead(&message{ID: id, Result: Ptr(json.RawMessage("{\"value\":42}"))})
 	conn.readLoop(context.Background())
 	resp := <-done
 	s.Equal("{\"value\":42}", string(*resp.Result))
@@ -369,7 +368,7 @@ func (s *JSONRPCSuite) TestReadLoopIgnoresResponseWithUnmatchedID() {
 	conn.pendings.Store(trackedID, done)
 	conn.closed.Store(true)
 	unmatched := newStringID("other")
-	stream.enqueueRead(&message{ID: unmatched, Result: utils.Ptr(json.RawMessage("\"noop\""))})
+	stream.enqueueRead(&message{ID: unmatched, Result: Ptr(json.RawMessage("\"noop\""))})
 	conn.readLoop(context.Background())
 	_, ok := conn.pendings.Load(trackedID)
 	s.True(ok)
@@ -401,7 +400,7 @@ func (s *stubStream) Open(context.Context) error {
 	return nil
 }
 
-func (s *stubStream) Read(_ context.Context, dst interface{}) error {
+func (s *stubStream) Read(_ context.Context, dst any) error {
 	if s.readErr != nil {
 		return s.readErr
 	}
@@ -415,7 +414,7 @@ func (s *stubStream) Read(_ context.Context, dst interface{}) error {
 	return nil
 }
 
-func (s *stubStream) Write(_ context.Context, obj interface{}) error {
+func (s *stubStream) Write(_ context.Context, obj any) error {
 	if s.writeErr != nil {
 		return s.writeErr
 	}

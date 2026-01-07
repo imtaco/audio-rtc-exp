@@ -41,7 +41,7 @@ func (m *mockMethodCtx) Peer() jsonrpc.Conn[rtcContext] {
 
 type mockPeer struct {
 	closeFunc   func() error
-	notifyFunc  func(ctx context.Context, method string, params interface{}) error
+	notifyFunc  func(ctx context.Context, method string, params any) error
 	contextFunc func() jsonrpc.MethodContext[rtcContext]
 }
 
@@ -49,11 +49,11 @@ func (m *mockPeer) Open(_ context.Context) error {
 	return nil
 }
 
-func (m *mockPeer) Call(_ context.Context, _ string, _ interface{}, _ interface{}) error {
+func (m *mockPeer) Call(_ context.Context, _ string, _ any, _ any) error {
 	return nil
 }
 
-func (m *mockPeer) Notify(ctx context.Context, method string, params interface{}) error {
+func (m *mockPeer) Notify(ctx context.Context, method string, params any) error {
 	if m.notifyFunc != nil {
 		return m.notifyFunc(ctx, method, params)
 	}
@@ -74,7 +74,7 @@ func (m *mockPeer) Context() jsonrpc.MethodContext[rtcContext] {
 	return nil
 }
 
-type SignalServerSuite struct {
+type ServerSuite struct {
 	suite.Suite
 	ctrl            *gomock.Controller
 	janusProxy      *wsgymocks.MockJanusProxy
@@ -84,18 +84,18 @@ type SignalServerSuite struct {
 	connGuard       *MockConnectionGuard
 	core            *jsonrpcmocks.MockCore[rtcContext]
 	clientManager   *WSConnManager
-	server          *SignalServer
+	server          *Server
 	logger          *log.Logger
 	janusServer     *httptest.Server
 	realJanusAPI    janus.API // Keep for tests that still use httptest
 	failJanus       bool
 }
 
-func TestSignalServerSuite(t *testing.T) {
-	suite.Run(t, new(SignalServerSuite))
+func TestServerSuite(t *testing.T) {
+	suite.Run(t, new(ServerSuite))
 }
 
-func (s *SignalServerSuite) SetupTest() {
+func (s *ServerSuite) SetupTest() {
 	s.ctrl = gomock.NewController(s.T())
 	s.logger = log.NewNop()
 	s.failJanus = false
@@ -113,7 +113,7 @@ func (s *SignalServerSuite) SetupTest() {
 		logger:       s.logger,
 	}
 
-	s.server = NewSignalServer(
+	s.server = NewServer(
 		s.core,
 		s.janusProxy,
 		s.janusTokenCodec,
@@ -131,59 +131,59 @@ func (s *SignalServerSuite) SetupTest() {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		var req map[string]interface{}
+		var req map[string]any
 		_ = json.NewDecoder(r.Body).Decode(&req)
 
 		janusType, _ := req["janus"].(string)
 
-		var resp map[string]interface{}
+		var resp map[string]any
 
 		switch janusType {
 		case "create": // Create Session
-			resp = map[string]interface{}{
+			resp = map[string]any{
 				"janus": "success",
-				"data": map[string]interface{}{
+				"data": map[string]any{
 					"id": 123,
 				},
 			}
 		case "attach": // Attach Plugin
-			resp = map[string]interface{}{
+			resp = map[string]any{
 				"janus": "success",
-				"data": map[string]interface{}{
+				"data": map[string]any{
 					"id": 456,
 				},
 			}
 		case "message": // Join or Offer or Candidate or Exists
-			body, _ := req["body"].(map[string]interface{})
+			body, _ := req["body"].(map[string]any)
 			request, _ := body["request"].(string)
 
 			switch request {
 			case "join":
-				resp = map[string]interface{}{
+				resp = map[string]any{
 					"janus": "ack",
-					"plugindata": map[string]interface{}{
-						"data": map[string]interface{}{
+					"plugindata": map[string]any{
+						"data": map[string]any{
 							"result": "ok",
 						},
 					},
 				}
 			case "exists":
 				// exists check for session validation
-				resp = map[string]interface{}{
+				resp = map[string]any{
 					"janus": "success",
-					"plugindata": map[string]interface{}{
+					"plugindata": map[string]any{
 						"plugin": "janus.plugin.videoroom",
-						"data": map[string]interface{}{
+						"data": map[string]any{
 							"videoroom": "success",
 							"exists":    true,
 						},
 					},
 				}
 			default:
-				resp = map[string]interface{}{
+				resp = map[string]any{
 					"janus": "success",
-					"plugindata": map[string]interface{}{
-						"data": map[string]interface{}{
+					"plugindata": map[string]any{
+						"data": map[string]any{
 							"result": "ok",
 						},
 					},
@@ -191,12 +191,12 @@ func (s *SignalServerSuite) SetupTest() {
 			}
 
 		case "trickle":
-			resp = map[string]interface{}{
+			resp = map[string]any{
 				"janus": "ack",
 			}
 
 		case "keepalive":
-			resp = map[string]interface{}{
+			resp = map[string]any{
 				"janus": "ack",
 			}
 		default:
@@ -204,10 +204,10 @@ func (s *SignalServerSuite) SetupTest() {
 
 		if r.Method == "GET" {
 			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode([]map[string]interface{}{
+			_ = json.NewEncoder(w).Encode([]map[string]any{
 				{
 					"janus": "event",
-					"jsep": map[string]interface{}{
+					"jsep": map[string]any{
 						"type": "answer",
 						"sdp":  "mock-sdp",
 					},
@@ -225,12 +225,12 @@ func (s *SignalServerSuite) SetupTest() {
 	s.realJanusAPI = janus.New(s.janusServer.URL, s.logger)
 }
 
-func (s *SignalServerSuite) TearDownTest() {
+func (s *ServerSuite) TearDownTest() {
 	s.janusServer.Close()
 	s.ctrl.Finish()
 }
 
-func (s *SignalServerSuite) TestHandleJoin_AlreadyJoined() {
+func (s *ServerSuite) TestHandleJoin_AlreadyJoined() {
 	ctx := context.Background()
 	rtcCtx := &rtcContext{
 		reqCtx: ctx,
@@ -242,11 +242,11 @@ func (s *SignalServerSuite) TestHandleJoin_AlreadyJoined() {
 	}
 
 	result, err := s.server.handleJoin(mctx, nil)
-	s.Error(err)
+	s.Require().Error(err)
 	s.Nil(result)
 }
 
-func (s *SignalServerSuite) TestHandleJoin_InvalidPin() {
+func (s *ServerSuite) TestHandleJoin_InvalidPin() {
 	ctx := context.Background()
 	roomID := "room1"
 
@@ -273,12 +273,12 @@ func (s *SignalServerSuite) TestHandleJoin_InvalidPin() {
 	// Note: GetJanusAPI should NOT be called since PIN validation fails first
 
 	result, err := s.server.handleJoin(mctx, &rawParams)
-	s.Error(err)
+	s.Require().Error(err)
 	s.Nil(result)
 	s.Contains(err.Error(), "invalid room pin")
 }
 
-func (s *SignalServerSuite) TestHandleJoin_RoomNotOnAir() {
+func (s *ServerSuite) TestHandleJoin_RoomNotOnAir() {
 	ctx := context.Background()
 	roomID := "room1"
 
@@ -304,11 +304,11 @@ func (s *SignalServerSuite) TestHandleJoin_RoomNotOnAir() {
 	})
 
 	result, err := s.server.handleJoin(mctx, &rawParams)
-	s.Error(err)
+	s.Require().Error(err)
 	s.Nil(result)
 }
 
-func (s *SignalServerSuite) TestHandleJoin_NoJanusAPI() {
+func (s *ServerSuite) TestHandleJoin_NoJanusAPI() {
 	ctx := context.Background()
 	roomID := "room1"
 
@@ -335,11 +335,11 @@ func (s *SignalServerSuite) TestHandleJoin_NoJanusAPI() {
 	s.janusProxy.EXPECT().GetJanusAPI(roomID).Return(nil)
 
 	result, err := s.server.handleJoin(mctx, &rawParams)
-	s.Error(err)
+	s.Require().Error(err)
 	s.Nil(result)
 }
 
-func (s *SignalServerSuite) TestHandleLeave_NotJoined() {
+func (s *ServerSuite) TestHandleLeave_NotJoined() {
 	ctx := context.Background()
 	rtcCtx := &rtcContext{
 		reqCtx: ctx,
@@ -351,11 +351,11 @@ func (s *SignalServerSuite) TestHandleLeave_NotJoined() {
 	}
 
 	result, err := s.server.handleLeave(mctx, nil)
-	s.Error(err)
+	s.Require().Error(err)
 	s.Nil(result)
 }
 
-func (s *SignalServerSuite) TestHandleLeave_Success() {
+func (s *ServerSuite) TestHandleLeave_Success() {
 	ctx := context.Background()
 	roomID := "room1"
 	userID := "user1"
@@ -387,7 +387,7 @@ func (s *SignalServerSuite) TestHandleLeave_Success() {
 	s.userService.EXPECT().SetUserStatus(gomock.Any(), roomID, userID, constants.AnchorStatusLeft, int32(GEN)).Return(nil)
 
 	result, err := s.server.handleLeave(mctx, nil)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.Nil(result)
 	s.True(peerClosed)
 
@@ -395,7 +395,7 @@ func (s *SignalServerSuite) TestHandleLeave_Success() {
 	s.False(exists)
 }
 
-func (s *SignalServerSuite) TestHandleIceCandidate_NotJoined() {
+func (s *ServerSuite) TestHandleIceCandidate_NotJoined() {
 	ctx := context.Background()
 	rtcCtx := &rtcContext{
 		reqCtx: ctx,
@@ -407,11 +407,11 @@ func (s *SignalServerSuite) TestHandleIceCandidate_NotJoined() {
 	}
 
 	result, err := s.server.handleIceCandidate(mctx, nil)
-	s.Error(err)
+	s.Require().Error(err)
 	s.Nil(result)
 }
 
-func (s *SignalServerSuite) TestMustHoldLock_Success() {
+func (s *ServerSuite) TestMustHoldLock_Success() {
 	ctx := context.Background()
 	userID := "user1"
 	connID := "conn1"
@@ -430,7 +430,7 @@ func (s *SignalServerSuite) TestMustHoldLock_Success() {
 	s.server.mustHoldLock(mctx)
 }
 
-func (s *SignalServerSuite) TestMustHoldLock_LockFailed() {
+func (s *ServerSuite) TestMustHoldLock_LockFailed() {
 	ctx := context.Background()
 	userID := "user1"
 	connID := "conn1"
@@ -448,7 +448,7 @@ func (s *SignalServerSuite) TestMustHoldLock_LockFailed() {
 	s.server.mustHoldLock(mctx)
 }
 
-func (s *SignalServerSuite) TestUpdateUserStatus() {
+func (s *ServerSuite) TestUpdateUserStatus() {
 	ctx := context.Background()
 	roomID := "room1"
 	userID := "user1"
@@ -459,7 +459,7 @@ func (s *SignalServerSuite) TestUpdateUserStatus() {
 	s.server.updateUserStatus(ctx, roomID, userID, status)
 }
 
-func (s *SignalServerSuite) TestOpen() {
+func (s *ServerSuite) TestOpen() {
 	ctx := context.Background()
 
 	s.core.EXPECT().Def("join", gomock.Any())
@@ -471,10 +471,10 @@ func (s *SignalServerSuite) TestOpen() {
 	s.connGuard.EXPECT().Start(gomock.Any()).Return(nil)
 
 	err := s.server.Open(ctx)
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
-func (s *SignalServerSuite) TestHandleJoin_Success() {
+func (s *ServerSuite) TestHandleJoin_Success() {
 	ctx := context.Background()
 	roomID := "room1"
 	nonce := "test-nonce"
@@ -489,7 +489,7 @@ func (s *SignalServerSuite) TestHandleJoin_Success() {
 
 	mctx := &mockMethodCtx{rtcCtx: rtcCtx}
 
-	params, _ := json.Marshal(map[string]interface{}{
+	params, _ := json.Marshal(map[string]any{
 		"pin":      "123",
 		"clientId": "550e8400-e29b-41d4-a716-446655440000",
 	})
@@ -519,13 +519,13 @@ func (s *SignalServerSuite) TestHandleJoin_Success() {
 	s.userService.EXPECT().SetUserStatus(gomock.Any(), roomID, "user1", constants.AnchorStatusIdle, gomock.Any()).Return(nil)
 
 	res, err := s.server.handleJoin(mctx, &rawParams)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.NotNil(res)
 	s.True(rtcCtx.joined)
 	s.NotNil(rtcCtx.janus)
 
 	// Verify response contains jtoken and resume flag
-	resMap, ok := res.(map[string]interface{})
+	resMap, ok := res.(map[string]any)
 	s.True(ok)
 	s.Contains(resMap, "jtoken")
 	s.Contains(resMap, "resume")
@@ -533,7 +533,7 @@ func (s *SignalServerSuite) TestHandleJoin_Success() {
 	s.Equal(false, resMap["resume"]) // New session, so resume should be false
 }
 
-func (s *SignalServerSuite) TestHandleJoin_WithInvalidToken() {
+func (s *ServerSuite) TestHandleJoin_WithInvalidToken() {
 	ctx := context.Background()
 	roomID := "room1"
 	nonce := "test-nonce"
@@ -548,7 +548,7 @@ func (s *SignalServerSuite) TestHandleJoin_WithInvalidToken() {
 
 	mctx := &mockMethodCtx{rtcCtx: rtcCtx}
 
-	params, _ := json.Marshal(map[string]interface{}{
+	params, _ := json.Marshal(map[string]any{
 		"pin":      "123",
 		"clientId": "550e8400-e29b-41d4-a716-446655440001",
 		"jtoken":   "invalid-token",
@@ -580,17 +580,17 @@ func (s *SignalServerSuite) TestHandleJoin_WithInvalidToken() {
 	s.userService.EXPECT().SetUserStatus(gomock.Any(), roomID, "user1", constants.AnchorStatusIdle, gomock.Any()).Return(nil)
 
 	res, err := s.server.handleJoin(mctx, &rawParams)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.NotNil(res)
 	s.True(rtcCtx.joined)
 
-	resMap, ok := res.(map[string]interface{})
+	resMap, ok := res.(map[string]any)
 	s.True(ok)
 	s.Equal("new-token", resMap["jtoken"])
 	s.Equal(false, resMap["resume"]) // Invalid token results in new session
 }
 
-func (s *SignalServerSuite) TestHandleJoin_WithValidTokenButExpiredSession() {
+func (s *ServerSuite) TestHandleJoin_WithValidTokenButExpiredSession() {
 	ctx := context.Background()
 	roomID := "room1"
 	nonce := "test-nonce"
@@ -605,7 +605,7 @@ func (s *SignalServerSuite) TestHandleJoin_WithValidTokenButExpiredSession() {
 
 	mctx := &mockMethodCtx{rtcCtx: rtcCtx}
 
-	params, _ := json.Marshal(map[string]interface{}{
+	params, _ := json.Marshal(map[string]any{
 		"pin":      "123",
 		"clientId": "550e8400-e29b-41d4-a716-446655440002",
 		"jtoken":   "valid-but-expired-token",
@@ -614,35 +614,35 @@ func (s *SignalServerSuite) TestHandleJoin_WithValidTokenButExpiredSession() {
 
 	// Create a special test server that returns session not found for old session
 	expiredJanusServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var req map[string]interface{}
+		var req map[string]any
 		_ = json.NewDecoder(r.Body).Decode(&req)
 
 		janusType, _ := req["janus"].(string)
-		var resp map[string]interface{}
+		var resp map[string]any
 
 		switch janusType {
 		case "create":
-			resp = map[string]interface{}{
+			resp = map[string]any{
 				"janus": "success",
-				"data": map[string]interface{}{
+				"data": map[string]any{
 					"id": 999, // New session ID
 				},
 			}
 		case "attach":
-			resp = map[string]interface{}{
+			resp = map[string]any{
 				"janus": "success",
-				"data": map[string]interface{}{
+				"data": map[string]any{
 					"id": 888, // New handle ID
 				},
 			}
 		case "message":
-			body, _ := req["body"].(map[string]interface{})
+			body, _ := req["body"].(map[string]any)
 			request, _ := body["request"].(string)
 			if request == "exists" {
 				// Session expired - return error
-				resp = map[string]interface{}{
+				resp = map[string]any{
 					"janus": "error",
-					"error": map[string]interface{}{
+					"error": map[string]any{
 						"code":   458,
 						"reason": "Session not found",
 					},
@@ -676,16 +676,16 @@ func (s *SignalServerSuite) TestHandleJoin_WithValidTokenButExpiredSession() {
 	s.userService.EXPECT().SetUserStatus(gomock.Any(), roomID, "user1", constants.AnchorStatusIdle, gomock.Any()).Return(nil)
 
 	res, err := s.server.handleJoin(mctx, &rawParams)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.NotNil(res)
 
-	resMap, ok := res.(map[string]interface{})
+	resMap, ok := res.(map[string]any)
 	s.True(ok)
 	s.Equal("new-session-token", resMap["jtoken"])
 	s.Equal(false, resMap["resume"]) // Session expired, new session created
 }
 
-func (s *SignalServerSuite) TestHandleJoin_WithValidTokenAndActiveSession() {
+func (s *ServerSuite) TestHandleJoin_WithValidTokenAndActiveSession() {
 	ctx := context.Background()
 	roomID := "room1"
 	nonce := "test-nonce"
@@ -702,7 +702,7 @@ func (s *SignalServerSuite) TestHandleJoin_WithValidTokenAndActiveSession() {
 
 	mctx := &mockMethodCtx{rtcCtx: rtcCtx}
 
-	params, _ := json.Marshal(map[string]interface{}{
+	params, _ := json.Marshal(map[string]any{
 		"pin":      "123",
 		"clientId": "550e8400-e29b-41d4-a716-446655440003",
 		"jtoken":   "valid-active-token",
@@ -737,16 +737,16 @@ func (s *SignalServerSuite) TestHandleJoin_WithValidTokenAndActiveSession() {
 	s.userService.EXPECT().SetUserStatus(gomock.Any(), roomID, "user1", constants.AnchorStatusIdle, gomock.Any()).Return(nil)
 
 	res, err := s.server.handleJoin(mctx, &rawParams)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.NotNil(res)
 
-	resMap, ok := res.(map[string]interface{})
+	resMap, ok := res.(map[string]any)
 	s.True(ok)
 	s.Equal("resumed-token", resMap["jtoken"])
 	s.Equal(true, resMap["resume"]) // Session resumed successfully
 }
 
-func (s *SignalServerSuite) TestHandleJoin_CheckFailsWithHTTPError() {
+func (s *ServerSuite) TestHandleJoin_CheckFailsWithHTTPError() {
 	ctx := context.Background()
 	roomID := "room1"
 	nonce := "test-nonce"
@@ -761,7 +761,7 @@ func (s *SignalServerSuite) TestHandleJoin_CheckFailsWithHTTPError() {
 
 	mctx := &mockMethodCtx{rtcCtx: rtcCtx}
 
-	params, _ := json.Marshal(map[string]interface{}{
+	params, _ := json.Marshal(map[string]any{
 		"pin":      "123",
 		"clientId": "550e8400-e29b-41d4-a716-446655440004",
 		"jtoken":   "valid-token",
@@ -771,29 +771,29 @@ func (s *SignalServerSuite) TestHandleJoin_CheckFailsWithHTTPError() {
 	// Create a server that returns 500 for check requests
 	// This will trigger ErrNoneSuccessResponse, causing a new session to be created
 	errorJanusServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var req map[string]interface{}
+		var req map[string]any
 		_ = json.NewDecoder(r.Body).Decode(&req)
 
 		janusType, _ := req["janus"].(string)
-		var resp map[string]interface{}
+		var resp map[string]any
 
 		switch janusType {
 		case "create":
-			resp = map[string]interface{}{
+			resp = map[string]any{
 				"janus": "success",
-				"data": map[string]interface{}{
+				"data": map[string]any{
 					"id": 777, // New session after check fails
 				},
 			}
 		case "attach":
-			resp = map[string]interface{}{
+			resp = map[string]any{
 				"janus": "success",
-				"data": map[string]interface{}{
+				"data": map[string]any{
 					"id": 666, // New handle after check fails
 				},
 			}
 		case "message":
-			body, _ := req["body"].(map[string]interface{})
+			body, _ := req["body"].(map[string]any)
 			request, _ := body["request"].(string)
 			if request == "exists" {
 				// Return 500 error - this is treated as ErrNoneSuccessResponse
@@ -828,16 +828,16 @@ func (s *SignalServerSuite) TestHandleJoin_CheckFailsWithHTTPError() {
 	s.userService.EXPECT().SetUserStatus(gomock.Any(), roomID, "user1", constants.AnchorStatusIdle, gomock.Any()).Return(nil)
 
 	res, err := s.server.handleJoin(mctx, &rawParams)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.NotNil(res)
 
-	resMap, ok := res.(map[string]interface{})
+	resMap, ok := res.(map[string]any)
 	s.True(ok)
 	s.Equal("new-session-after-check-fail", resMap["jtoken"])
 	s.Equal(false, resMap["resume"]) // Check failed, so new session created
 }
 
-func (s *SignalServerSuite) TestHandleJoin_CheckFailsWithUnexpectedError() {
+func (s *ServerSuite) TestHandleJoin_CheckFailsWithUnexpectedError() {
 	ctx := context.Background()
 	roomID := "room1"
 	nonce := "test-nonce"
@@ -854,7 +854,7 @@ func (s *SignalServerSuite) TestHandleJoin_CheckFailsWithUnexpectedError() {
 
 	mctx := &mockMethodCtx{rtcCtx: rtcCtx}
 
-	params, _ := json.Marshal(map[string]interface{}{
+	params, _ := json.Marshal(map[string]any{
 		"pin":      "123",
 		"clientId": "550e8400-e29b-41d4-a716-446655440005",
 		"jtoken":   "valid-token",
@@ -885,12 +885,12 @@ func (s *SignalServerSuite) TestHandleJoin_CheckFailsWithUnexpectedError() {
 	// Should NOT call Encrypt or SetUserStatus because the join should fail
 
 	res, err := s.server.handleJoin(mctx, &rawParams)
-	s.Error(err) // Should return error
+	s.Require().Error(err) // Should return error
 	s.Nil(res)
 	s.False(rtcCtx.joined) // Should not be joined
 }
 
-func (s *SignalServerSuite) TestHandleJoin_InvalidParams() {
+func (s *ServerSuite) TestHandleJoin_InvalidParams() {
 	ctx := context.Background()
 	rtcCtx := &rtcContext{
 		reqCtx: ctx,
@@ -904,12 +904,12 @@ func (s *SignalServerSuite) TestHandleJoin_InvalidParams() {
 	invalidParams := json.RawMessage(`{invalid json}`)
 
 	res, err := s.server.handleJoin(mctx, &invalidParams)
-	s.Error(err)
+	s.Require().Error(err)
 	s.Nil(res)
 	s.Contains(err.Error(), "invalid join parameters")
 }
 
-func (s *SignalServerSuite) TestHandleJoin_EncryptFailure() {
+func (s *ServerSuite) TestHandleJoin_EncryptFailure() {
 	ctx := context.Background()
 	roomID := "room1"
 	nonce := "test-nonce"
@@ -924,7 +924,7 @@ func (s *SignalServerSuite) TestHandleJoin_EncryptFailure() {
 
 	mctx := &mockMethodCtx{rtcCtx: rtcCtx}
 
-	params, _ := json.Marshal(map[string]interface{}{
+	params, _ := json.Marshal(map[string]any{
 		"pin":      "123",
 		"clientId": "550e8400-e29b-41d4-a716-446655440006",
 	})
@@ -949,12 +949,12 @@ func (s *SignalServerSuite) TestHandleJoin_EncryptFailure() {
 	s.janusTokenCodec.EXPECT().Encode(nonce, int64(123), int64(456)).Return("", fmt.Errorf("encryption error"))
 
 	res, err := s.server.handleJoin(mctx, &rawParams)
-	s.Error(err)
+	s.Require().Error(err)
 	s.Nil(res)
 	s.Contains(err.Error(), "fail to create janus token")
 }
 
-func (s *SignalServerSuite) TestHandleOffer_Success() {
+func (s *ServerSuite) TestHandleOffer_Success() {
 	// Setup context
 	ctx := context.Background()
 	roomID := "room1"
@@ -974,7 +974,7 @@ func (s *SignalServerSuite) TestHandleOffer_Success() {
 
 	// Params
 	sdp := janus.JSEP{Type: "offer", SDP: "offer-sdp"}
-	params, _ := json.Marshal(map[string]interface{}{
+	params, _ := json.Marshal(map[string]any{
 		"sdp": sdp,
 	})
 	rawParams := json.RawMessage(params)
@@ -985,15 +985,15 @@ func (s *SignalServerSuite) TestHandleOffer_Success() {
 
 	// Execute
 	res, err := s.server.handleOffer(mctx, &rawParams)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.NotNil(res)
 
-	resMap, ok := res.(map[string]interface{})
+	resMap, ok := res.(map[string]any)
 	s.True(ok)
 	s.Contains(resMap, "sdp")
 }
 
-func (s *SignalServerSuite) TestHandleOffer_JanusError() {
+func (s *ServerSuite) TestHandleOffer_JanusError() {
 	ctx := context.Background()
 	roomID := "room1"
 
@@ -1011,7 +1011,7 @@ func (s *SignalServerSuite) TestHandleOffer_JanusError() {
 	mctx := &mockMethodCtx{rtcCtx: rtcCtx}
 
 	sdp := janus.JSEP{Type: "offer", SDP: "offer-sdp"}
-	params, _ := json.Marshal(map[string]interface{}{
+	params, _ := json.Marshal(map[string]any{
 		"sdp": sdp,
 	})
 	rawParams := json.RawMessage(params)
@@ -1019,10 +1019,10 @@ func (s *SignalServerSuite) TestHandleOffer_JanusError() {
 	s.janusProxy.EXPECT().GetJanusRoomID("room2").Return(int64(0))
 	rtcCtx.roomID = "room2"
 	_, err = s.server.handleOffer(mctx, &rawParams)
-	s.Error(err)
+	s.Require().Error(err)
 }
 
-func (s *SignalServerSuite) TestHandleOffer_NotJoined() {
+func (s *ServerSuite) TestHandleOffer_NotJoined() {
 	ctx := context.Background()
 	rtcCtx := &rtcContext{
 		reqCtx: ctx,
@@ -1032,12 +1032,12 @@ func (s *SignalServerSuite) TestHandleOffer_NotJoined() {
 	mctx := &mockMethodCtx{rtcCtx: rtcCtx}
 
 	res, err := s.server.handleOffer(mctx, nil)
-	s.Error(err)
+	s.Require().Error(err)
 	s.Nil(res)
 	s.Contains(err.Error(), "not joined yet")
 }
 
-func (s *SignalServerSuite) TestHandleOffer_InvalidParams() {
+func (s *ServerSuite) TestHandleOffer_InvalidParams() {
 	ctx := context.Background()
 	rtcCtx := &rtcContext{
 		reqCtx: ctx,
@@ -1050,12 +1050,12 @@ func (s *SignalServerSuite) TestHandleOffer_InvalidParams() {
 	invalidParams := json.RawMessage(`{invalid json}`)
 
 	res, err := s.server.handleOffer(mctx, &invalidParams)
-	s.Error(err)
+	s.Require().Error(err)
 	s.Nil(res)
 	s.Contains(err.Error(), "invalid offer parameters")
 }
 
-func (s *SignalServerSuite) TestHandleOffer_MissingSDP() {
+func (s *ServerSuite) TestHandleOffer_MissingSDP() {
 	ctx := context.Background()
 	rtcCtx := &rtcContext{
 		reqCtx: ctx,
@@ -1064,16 +1064,16 @@ func (s *SignalServerSuite) TestHandleOffer_MissingSDP() {
 
 	mctx := &mockMethodCtx{rtcCtx: rtcCtx}
 
-	params, _ := json.Marshal(map[string]interface{}{})
+	params, _ := json.Marshal(map[string]any{})
 	rawParams := json.RawMessage(params)
 
 	res, err := s.server.handleOffer(mctx, &rawParams)
-	s.Error(err)
+	s.Require().Error(err)
 	s.Nil(res)
 	s.Contains(err.Error(), "invalid offer parameters")
 }
 
-func (s *SignalServerSuite) TestHandleOffer_NoRoomMeta() {
+func (s *ServerSuite) TestHandleOffer_NoRoomMeta() {
 	ctx := context.Background()
 	roomID := "room1"
 
@@ -1091,7 +1091,7 @@ func (s *SignalServerSuite) TestHandleOffer_NoRoomMeta() {
 	mctx := &mockMethodCtx{rtcCtx: rtcCtx}
 
 	sdp := janus.JSEP{Type: "offer", SDP: "offer-sdp"}
-	params, _ := json.Marshal(map[string]interface{}{
+	params, _ := json.Marshal(map[string]any{
 		"sdp": sdp,
 	})
 	rawParams := json.RawMessage(params)
@@ -1100,12 +1100,12 @@ func (s *SignalServerSuite) TestHandleOffer_NoRoomMeta() {
 	s.janusProxy.EXPECT().GetRoomMeta(roomID).Return(nil)
 
 	res, err := s.server.handleOffer(mctx, &rawParams)
-	s.Error(err)
+	s.Require().Error(err)
 	s.Nil(res)
 	s.Contains(err.Error(), "no room found")
 }
 
-func (s *SignalServerSuite) TestHandleIceCandidate_Success() {
+func (s *ServerSuite) TestHandleIceCandidate_Success() {
 	ctx := context.Background()
 	roomID := "room1"
 
@@ -1123,17 +1123,17 @@ func (s *SignalServerSuite) TestHandleIceCandidate_Success() {
 	mctx := &mockMethodCtx{rtcCtx: rtcCtx}
 
 	candidate := janus.ICECandidate{Candidate: "candidate:..."}
-	params, _ := json.Marshal(map[string]interface{}{
+	params, _ := json.Marshal(map[string]any{
 		"candidate": candidate,
 	})
 	rawParams := json.RawMessage(params)
 
 	res, err := s.server.handleIceCandidate(mctx, &rawParams)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.Nil(res)
 }
 
-func (s *SignalServerSuite) TestHandleIceCandidate_JanusError() {
+func (s *ServerSuite) TestHandleIceCandidate_JanusError() {
 	ctx := context.Background()
 	inst, err := s.realJanusAPI.CreateAnchorInstance(ctx, "client1", 0, 0)
 	s.Require().NoError(err)
@@ -1147,7 +1147,7 @@ func (s *SignalServerSuite) TestHandleIceCandidate_JanusError() {
 	mctx := &mockMethodCtx{rtcCtx: rtcCtx}
 
 	candidate := janus.ICECandidate{Candidate: "candidate:..."}
-	params, _ := json.Marshal(map[string]interface{}{
+	params, _ := json.Marshal(map[string]any{
 		"candidate": candidate,
 	})
 	rawParams := json.RawMessage(params)
@@ -1155,10 +1155,10 @@ func (s *SignalServerSuite) TestHandleIceCandidate_JanusError() {
 	s.failJanus = true
 
 	_, err = s.server.handleIceCandidate(mctx, &rawParams)
-	s.Error(err)
+	s.Require().Error(err)
 }
 
-func (s *SignalServerSuite) TestHandleIceCandidate_InvalidParams() {
+func (s *ServerSuite) TestHandleIceCandidate_InvalidParams() {
 	ctx := context.Background()
 	rtcCtx := &rtcContext{
 		reqCtx: ctx,
@@ -1171,12 +1171,12 @@ func (s *SignalServerSuite) TestHandleIceCandidate_InvalidParams() {
 	invalidParams := json.RawMessage(`{invalid json}`)
 
 	res, err := s.server.handleIceCandidate(mctx, &invalidParams)
-	s.Error(err)
+	s.Require().Error(err)
 	s.Nil(res)
 	s.Contains(err.Error(), "invalid ice candidate parameters")
 }
 
-func (s *SignalServerSuite) TestHandleIceCandidate_MissingCandidate() {
+func (s *ServerSuite) TestHandleIceCandidate_MissingCandidate() {
 	ctx := context.Background()
 	rtcCtx := &rtcContext{
 		reqCtx: ctx,
@@ -1185,16 +1185,16 @@ func (s *SignalServerSuite) TestHandleIceCandidate_MissingCandidate() {
 
 	mctx := &mockMethodCtx{rtcCtx: rtcCtx}
 
-	params, _ := json.Marshal(map[string]interface{}{})
+	params, _ := json.Marshal(map[string]any{})
 	rawParams := json.RawMessage(params)
 
 	res, err := s.server.handleIceCandidate(mctx, &rawParams)
-	s.Error(err)
+	s.Require().Error(err)
 	s.Nil(res)
 	s.Contains(err.Error(), "invalid ice candidate parameters")
 }
 
-func (s *SignalServerSuite) TestHandleKeepAlive_Success() {
+func (s *ServerSuite) TestHandleKeepAlive_Success() {
 	ctx := context.Background()
 	roomID := "room1"
 	userID := "user1"
@@ -1216,7 +1216,7 @@ func (s *SignalServerSuite) TestHandleKeepAlive_Success() {
 
 	mctx := &mockMethodCtx{rtcCtx: rtcCtx}
 
-	params, _ := json.Marshal(map[string]interface{}{
+	params, _ := json.Marshal(map[string]any{
 		"status": constants.AnchorStatusOnAir,
 	})
 	rawParams := json.RawMessage(params)
@@ -1226,11 +1226,11 @@ func (s *SignalServerSuite) TestHandleKeepAlive_Success() {
 	s.userService.EXPECT().SetUserStatus(gomock.Any(), roomID, userID, constants.AnchorStatusOnAir, gomock.Any()).Return(nil)
 
 	res, err := s.server.handleKeepAlive(mctx, &rawParams)
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.Nil(res)
 }
 
-func (s *SignalServerSuite) TestHandleKeepAlive_JanusError() {
+func (s *ServerSuite) TestHandleKeepAlive_JanusError() {
 	ctx := context.Background()
 	inst, err := s.realJanusAPI.CreateAnchorInstance(ctx, "client1", 0, 0)
 	s.Require().NoError(err)
@@ -1243,16 +1243,16 @@ func (s *SignalServerSuite) TestHandleKeepAlive_JanusError() {
 	}
 	mctx := &mockMethodCtx{rtcCtx: rtcCtx}
 
-	params, _ := json.Marshal(map[string]interface{}{})
+	params, _ := json.Marshal(map[string]any{})
 	rawParams := json.RawMessage(params)
 
 	s.failJanus = true
 
 	_, err = s.server.handleKeepAlive(mctx, &rawParams)
-	s.Error(err)
+	s.Require().Error(err)
 }
 
-func (s *SignalServerSuite) TestHandleKeepAlive_NotJoined() {
+func (s *ServerSuite) TestHandleKeepAlive_NotJoined() {
 	ctx := context.Background()
 	rtcCtx := &rtcContext{
 		reqCtx: ctx,
@@ -1262,12 +1262,12 @@ func (s *SignalServerSuite) TestHandleKeepAlive_NotJoined() {
 	mctx := &mockMethodCtx{rtcCtx: rtcCtx}
 
 	res, err := s.server.handleKeepAlive(mctx, nil)
-	s.Error(err)
+	s.Require().Error(err)
 	s.Nil(res)
 	s.Contains(err.Error(), "not joined yet")
 }
 
-func (s *SignalServerSuite) TestUpdateUserStatus_Error() {
+func (s *ServerSuite) TestUpdateUserStatus_Error() {
 	ctx := context.Background()
 
 	s.userService.EXPECT().SetUserStatus(gomock.Any(), "room1", "user1", constants.AnchorStatusOnAir, gomock.Any()).Return(fmt.Errorf("error"))

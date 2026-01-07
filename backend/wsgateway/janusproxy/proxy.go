@@ -87,9 +87,10 @@ func (jp *janusProxyImpl) GetJanusRoomID(roomID string) int64 {
 }
 
 func (jp *janusProxyImpl) GetJanusAPI(roomID string) janus.API {
-	result, _, _ := jp.sfJanus.Do(roomID, func() (interface{}, error) {
+	result, _, _ := jp.sfJanus.Do(roomID, func() (any, error) {
 		janusID := jp.getJanusID(roomID)
 		if janusID == "" {
+			//nolint:nilnil
 			return nil, nil
 		}
 
@@ -99,6 +100,7 @@ func (jp *janusProxyImpl) GetJanusAPI(roomID string) janus.API {
 		// unregister janus instance if host is not found or unhealthy
 		if host == "" {
 			jp.instCache.Remove(janusID)
+			//nolint:nilnil
 			return nil, nil
 		}
 

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"time"
 
@@ -156,7 +157,7 @@ func main() {
 	// Start HTTP server in goroutine
 	go func() {
 		logger.Info("Starting REST API server", log.String("addr", config.HTTP.Addr))
-		if err := server.Listen(); err != nil && err != http.ErrServerClosed {
+		if err := server.Listen(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Fatal("Failed to start REST API server", log.Error(err))
 		}
 	}()

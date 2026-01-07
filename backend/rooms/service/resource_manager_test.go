@@ -74,7 +74,7 @@ func (s *ResourceManagerTestSuite) TestStart_Success() {
 		Return(nil)
 
 	err := s.rm.Start(s.ctx)
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 func (s *ResourceManagerTestSuite) TestStart_RoomWatcherError() {
@@ -83,7 +83,7 @@ func (s *ResourceManagerTestSuite) TestStart_RoomWatcherError() {
 		Return(errors.New("room watcher init error"))
 
 	err := s.rm.Start(s.ctx)
-	s.Error(err)
+	s.Require().Error(err)
 	s.Contains(err.Error(), "failed to start room watcher")
 }
 
@@ -97,7 +97,7 @@ func (s *ResourceManagerTestSuite) TestStart_JanusWatcherError() {
 		Return(errors.New("janus watcher init error"))
 
 	err := s.rm.Start(s.ctx)
-	s.Error(err)
+	s.Require().Error(err)
 	s.Contains(err.Error(), "failed to start janus watcher")
 }
 
@@ -115,7 +115,7 @@ func (s *ResourceManagerTestSuite) TestStart_MixerWatcherError() {
 		Return(errors.New("mixer watcher init error"))
 
 	err := s.rm.Start(s.ctx)
-	s.Error(err)
+	s.Require().Error(err)
 	s.Contains(err.Error(), "failed to start mixer watcher")
 }
 
@@ -135,7 +135,7 @@ func (s *ResourceManagerTestSuite) TestStop_Success() {
 		Return(nil)
 
 	err := s.rm.Stop()
-	s.NoError(err)
+	s.Require().NoError(err)
 
 	// Verify stopCh was closed
 	select {
@@ -160,7 +160,7 @@ func (s *ResourceManagerTestSuite) TestStop_WatcherStopErrors() {
 		Return(errors.New("mixer watcher stop error"))
 	// Close should not return error, just log them
 	err := s.rm.Stop()
-	s.NoError(err)
+	s.Require().NoError(err)
 }
 
 // PickJanus Tests
@@ -197,7 +197,7 @@ func (s *ResourceManagerTestSuite) TestPickJanus_Success() {
 		Return(0)
 
 	janusID, err := s.rm.PickJanus()
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.NotEmpty(janusID)
 	s.Contains([]string{"janus-1", "janus-2"}, janusID)
 }
@@ -208,7 +208,7 @@ func (s *ResourceManagerTestSuite) TestPickJanus_NoHealthyModules() {
 		Return([]string{})
 
 	janusID, err := s.rm.PickJanus()
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.Empty(janusID)
 }
 
@@ -228,7 +228,7 @@ func (s *ResourceManagerTestSuite) TestPickJanus_NoPickableModules() {
 		Return(unpickableModule, true)
 
 	janusID, err := s.rm.PickJanus()
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.Empty(janusID)
 }
 
@@ -266,7 +266,7 @@ func (s *ResourceManagerTestSuite) TestPickMixer_Success() {
 		Return(0)
 
 	mixerID, err := s.rm.PickMixer()
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.NotEmpty(mixerID)
 	s.Contains([]string{"mixer-1", "mixer-2"}, mixerID)
 }
@@ -277,7 +277,7 @@ func (s *ResourceManagerTestSuite) TestPickMixer_NoHealthyModules() {
 		Return([]string{})
 
 	mixerID, err := s.rm.PickMixer()
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.Empty(mixerID)
 }
 
@@ -297,7 +297,7 @@ func (s *ResourceManagerTestSuite) TestPickMixer_NoPickableModules() {
 		Return(unpickableModule, true)
 
 	mixerID, err := s.rm.PickMixer()
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.Empty(mixerID)
 }
 
@@ -345,7 +345,7 @@ func (s *ResourceManagerTestSuite) TestRandomPickModule_MultipleCalls() {
 			Return(0)
 
 		janusID, err := s.rm.PickJanus()
-		s.NoError(err)
+		s.Require().NoError(err)
 		s.NotEmpty(janusID)
 	}
 }
@@ -395,7 +395,7 @@ func (s *ResourceManagerTestSuite) TestPickJanus_WithCapacityLimit() {
 		Return(6) // Over capacity
 
 	janusID, err := s.rm.PickJanus()
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.Equal("janus-1", janusID) // Only janus-1 should be picked
 }
 
@@ -431,7 +431,7 @@ func (s *ResourceManagerTestSuite) TestPickJanus_AllAtCapacity() {
 		Return(4) // Over capacity
 
 	janusID, err := s.rm.PickJanus()
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.Empty(janusID) // No module available
 }
 
@@ -456,7 +456,7 @@ func (s *ResourceManagerTestSuite) TestPickJanus_NoCapacitySet() {
 		Return(moduleNoCapacity, true)
 
 	janusID, err := s.rm.PickJanus()
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.Empty(janusID)
 }
 
@@ -494,7 +494,7 @@ func (s *ResourceManagerTestSuite) TestPickMixer_WithCapacityLimit() {
 		Return(10) // At capacity
 
 	mixerID, err := s.rm.PickMixer()
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.Equal("mixer-1", mixerID) // Only mixer-1 should be picked
 }
 
@@ -538,6 +538,6 @@ func (s *ResourceManagerTestSuite) TestPickMixer_MixedCapacityAndNoCapacity() {
 		Return(2) // Under capacity
 
 	mixerID, err := s.rm.PickMixer()
-	s.NoError(err)
+	s.Require().NoError(err)
 	s.Equal("mixer-1", mixerID) // Only mixer-1 should be picked
 }

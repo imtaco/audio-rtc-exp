@@ -27,7 +27,7 @@ func (s *UtilsTestSuite) TestMinID() {
 	expectedTime := fakeClock.Now().Add(-backtime).UnixMilli()
 	expectedID := fmt.Sprintf("%d-0", expectedTime)
 
-	s.Assert().Equal(expectedID, result)
+	s.Equal(expectedID, result)
 }
 
 func (s *UtilsTestSuite) TestMinIDWithDifferentDurations() {
@@ -46,7 +46,7 @@ func (s *UtilsTestSuite) TestMinIDWithDifferentDurations() {
 	for _, tc := range testCases {
 		s.Run(tc.name, func() {
 			result := minIDWithClock(fakeClock, tc.backtime)
-			s.Assert().Regexp(`^\d+-0$`, result)
+			s.Regexp(`^\d+-0$`, result)
 		})
 	}
 }
@@ -60,8 +60,8 @@ func (s *UtilsTestSuite) TestMinIDFormat() {
 	// Test exact value with fake clock
 	expectedTime := fakeClock.Now().Add(-backtime).UnixMilli()
 	expectedID := fmt.Sprintf("%d-0", expectedTime)
-	s.Assert().Equal(expectedID, result)
+	s.Equal(expectedID, result)
 
 	// Also verify format
-	s.Assert().Regexp(`^\d+-0$`, result, "minID should return format 'timestamp-0'")
+	s.Regexp(`^\d+-0$`, result, "minID should return format 'timestamp-0'")
 }

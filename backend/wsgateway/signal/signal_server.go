@@ -20,7 +20,7 @@ const (
 	GEN = 1
 )
 
-type SignalServer struct {
+type Server struct {
 	jsonrpc.Handler[rtcContext]
 	janusProxy      wsgateway.JanusProxy
 	janusTokenCodec wsgateway.JanusTokenCodec
@@ -31,7 +31,7 @@ type SignalServer struct {
 	logger          *log.Logger
 }
 
-func NewSignalServer(
+func NewServer(
 	handler jsonrpc.Handler[rtcContext],
 	janusProxy wsgateway.JanusProxy,
 	janusTokenCodec wsgateway.JanusTokenCodec,
@@ -40,9 +40,9 @@ func NewSignalServer(
 	connGuard ConnectionGuard,
 	jwtAuth jwt.Auth,
 	logger *log.Logger,
-) *SignalServer {
+) *Server {
 	// TODO: create client manager here ?
-	return &SignalServer{
+	return &Server{
 		Handler:         handler,
 		janusProxy:      janusProxy,
 		connGuard:       connGuard,
@@ -54,7 +54,7 @@ func NewSignalServer(
 	}
 }
 
-func (s *SignalServer) Open(ctx context.Context) error {
+func (s *Server) Open(ctx context.Context) error {
 	s.logger.Info("Opening Signal Server")
 	s.register()
 
@@ -65,13 +65,13 @@ func (s *SignalServer) Open(ctx context.Context) error {
 	return nil
 }
 
-func (s *SignalServer) Close() error {
+func (s *Server) Close() error {
 	s.logger.Info("Closing Signal Server")
 	s.connGuard.Stop()
 	return nil
 }
 
-func (s *SignalServer) register() {
+func (s *Server) register() {
 	// Register RPC methods
 	// handler is single threaded, no need to lock here
 	s.Def("join", s.handleJoin)
@@ -82,7 +82,7 @@ func (s *SignalServer) register() {
 	s.Def("status", s.handleKeepAlive)
 }
 
-func (s *SignalServer) updateUserStatus(ctx context.Context, roomID, userID string, status constants.AnchorStatus) {
+func (s *Server) updateUserStatus(ctx context.Context, roomID, userID string, status constants.AnchorStatus) {
 	// TODO: handle gen
 	if err := s.userService.SetUserStatus(
 		ctx,
@@ -100,13 +100,13 @@ func (s *SignalServer) updateUserStatus(ctx context.Context, roomID, userID stri
 	}
 }
 
-func (s *SignalServer) mustHoldLock(mctx jsonrpc.MethodContext[rtcContext]) {
+func (s *Server) mustHoldLock(mctx jsonrpc.MethodContext[rtcContext]) {
 	if _, err := s.connGuard.MustHold(mctx); err != nil {
 		s.logger.Error("Failed to acquire connect lock", log.Error(err))
 	}
 }
 
-func (s *SignalServer) handleJoin(mctx jsonrpc.MethodContext[rtcContext], params *json.RawMessage) (interface{}, error) {
+func (s *Server) handleJoin(mctx jsonrpc.MethodContext[rtcContext], params *json.RawMessage) (any, error) {
 
 	rtcCtx := mctx.Get()
 	if rtcCtx.joined {
@@ -176,13 +176,13 @@ func (s *SignalServer) handleJoin(mctx jsonrpc.MethodContext[rtcContext], params
 	s.updateUserStatus(ctx, roomID, rtcCtx.userID, constants.AnchorStatusIdle)
 
 	// pass janus token back to client for future reconnect
-	return map[string]interface{}{
+	return map[string]any{
 		"jtoken": janusToken,
 		"resume": resume,
 	}, nil
 }
 
-func (s *SignalServer) handleLeave(mctx jsonrpc.MethodContext[rtcContext], _ *json.RawMessage) (interface{}, error) {
+func (s *Server) handleLeave(mctx jsonrpc.MethodContext[rtcContext], _ *json.RawMessage) (any, error) {
 	rtcCtx := mctx.Get()
 	if !rtcCtx.joined {
 		return nil, jsonrpc.ErrInvalidRequest("not joined yet")
@@ -192,15 +192,18 @@ func (s *SignalServer) handleLeave(mctx jsonrpc.MethodContext[rtcContext], _ *js
 	s.clientManager.RemoveClient(rtcCtx.connID)
 	if err := mctx.Peer().Close(); err != nil {
 		s.logger.Error("Failed to close connection", log.Error(err))
+		//nolint:nilnil
 		return nil, nil
 	}
 
 	ctx := rtcCtx.reqCtx
 	s.updateUserStatus(ctx, rtcCtx.roomID, rtcCtx.userID, constants.AnchorStatusLeft)
+
+	//nolint:nilnil
 	return nil, nil
 }
 
-func (s *SignalServer) handleOffer(mctx jsonrpc.MethodContext[rtcContext], params *json.RawMessage) (interface{}, error) {
+func (s *Server) handleOffer(mctx jsonrpc.MethodContext[rtcContext], params *json.RawMessage) (any, error) {
 	rtcCtx := mctx.Get()
 	if !rtcCtx.joined {
 		return nil, jsonrpc.ErrInvalidRequest("not joined yet")
@@ -245,12 +248,12 @@ func (s *SignalServer) handleOffer(mctx jsonrpc.MethodContext[rtcContext], param
 		return nil, jsonrpc.ErrInternal("fail to get janus events")
 	}
 
-	return map[string]interface{}{
+	return map[string]any{
 		"sdp": jsep,
 	}, nil
 }
 
-func (s *SignalServer) eventLoop(ctx context.Context, apiInst janus.Anchor) (json.RawMessage, error) {
+func (s *Server) eventLoop(ctx context.Context, apiInst janus.Anchor) (json.RawMessage, error) {
 	resps, err := apiInst.GetEvents(ctx, 10)
 	if err != nil {
 		return nil, err
@@ -264,7 +267,7 @@ func (s *SignalServer) eventLoop(ctx context.Context, apiInst janus.Anchor) (jso
 	return nil, fmt.Errorf("no SDP answer found in Janus events")
 }
 
-func (s *SignalServer) handleIceCandidate(mctx jsonrpc.MethodContext[rtcContext], params *json.RawMessage) (interface{}, error) {
+func (s *Server) handleIceCandidate(mctx jsonrpc.MethodContext[rtcContext], params *json.RawMessage) (any, error) {
 	// ice candidate might called several times before answered
 	rtcCtx := mctx.Get()
 	if !rtcCtx.joined {
@@ -288,12 +291,14 @@ func (s *SignalServer) handleIceCandidate(mctx jsonrpc.MethodContext[rtcContext]
 		return nil, jsonrpc.ErrInternal("failed to exchange ice candidate")
 	}
 
+	// cause too many status updates, we skip updating status here
 	// s.updateUserStatus(ctx, rtcCtx.roomID, rtcCtx.userID, constants.AnchorStatusOnAir)
 
+	//nolint:nilnil
 	return nil, nil
 }
 
-func (s *SignalServer) handleKeepAlive(mctx jsonrpc.MethodContext[rtcContext], params *json.RawMessage) (interface{}, error) {
+func (s *Server) handleKeepAlive(mctx jsonrpc.MethodContext[rtcContext], params *json.RawMessage) (any, error) {
 	rtcCtx := mctx.Get()
 	if !rtcCtx.joined {
 		return nil, fmt.Errorf("not joined yet")
@@ -315,10 +320,11 @@ func (s *SignalServer) handleKeepAlive(mctx jsonrpc.MethodContext[rtcContext], p
 	s.mustHoldLock(mctx)
 	s.updateUserStatus(ctx, rtcCtx.roomID, rtcCtx.userID, data.Status)
 
+	//nolint:nilnil
 	return nil, nil
 }
 
-func (*SignalServer) restoreJanusInstance(
+func (*Server) restoreJanusInstance(
 	rtcCtx *rtcContext,
 	janusAPI janus.API,
 	sessionID, handleID int64,

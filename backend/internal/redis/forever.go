@@ -14,13 +14,13 @@ import (
 // All operations retry forever until successful or context is cancelled.
 type Forever interface {
 	Get(ctx context.Context, key string) (string, error)
-	Set(ctx context.Context, key string, value interface{}, expiration time.Duration) error
+	Set(ctx context.Context, key string, value any, expiration time.Duration) error
 	Del(ctx context.Context, key string) error
-	HSet(ctx context.Context, key string, values ...interface{}) error
+	HSet(ctx context.Context, key string, values ...any) error
 	HGet(ctx context.Context, key string, field string) (string, error)
 	HGetAll(ctx context.Context, key string) (map[string]string, error)
 	HDel(ctx context.Context, key string, fields ...string) error
-	EvalSha(ctx context.Context, sha1 string, keys []string, args ...interface{}) (interface{}, error)
+	EvalSha(ctx context.Context, sha1 string, keys []string, args ...any) (any, error)
 }
 
 type redisForeverImpl struct {
@@ -123,7 +123,7 @@ func (r *redisForeverImpl) Get(ctx context.Context, key string) (string, error) 
 	return result, err
 }
 
-func (r *redisForeverImpl) Set(ctx context.Context, key string, value interface{}, expiration time.Duration) error {
+func (r *redisForeverImpl) Set(ctx context.Context, key string, value any, expiration time.Duration) error {
 	return r.retryWithBackoff(ctx, func() error {
 		return r.client.Set(ctx, key, value, expiration).Err()
 	}, "Set")
@@ -135,7 +135,7 @@ func (r *redisForeverImpl) Del(ctx context.Context, key string) error {
 	}, "Del")
 }
 
-func (r *redisForeverImpl) HSet(ctx context.Context, key string, values ...interface{}) error {
+func (r *redisForeverImpl) HSet(ctx context.Context, key string, values ...any) error {
 	return r.retryWithBackoff(ctx, func() error {
 		return r.client.HSet(ctx, key, values...).Err()
 	}, "HSet")
@@ -173,8 +173,8 @@ func (r *redisForeverImpl) HDel(ctx context.Context, key string, fields ...strin
 	}, "HDel")
 }
 
-func (r *redisForeverImpl) EvalSha(ctx context.Context, sha1 string, keys []string, args ...interface{}) (interface{}, error) {
-	var result interface{}
+func (r *redisForeverImpl) EvalSha(ctx context.Context, sha1 string, keys []string, args ...any) (any, error) {
+	var result any
 	err := r.retryWithBackoff(ctx, func() error {
 		val, err := r.client.EvalSha(ctx, sha1, keys, args...).Result()
 		if err != nil {

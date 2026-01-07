@@ -37,7 +37,7 @@ func TestHealthCheck(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 
-	var response map[string]interface{}
+	var response map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, "ok", response["status"])
@@ -72,12 +72,12 @@ func TestCreateRoom(t *testing.T) {
 
 		assert.Equal(t, http.StatusCreated, w.Code)
 
-		var response map[string]interface{}
+		var response map[string]any
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.Equal(t, true, response["success"])
 
-		roomData := response["room"].(map[string]interface{})
+		roomData := response["room"].(map[string]any)
 		assert.Equal(t, roomID, roomData["roomId"])
 	})
 
@@ -197,7 +197,7 @@ func TestCreateRoom(t *testing.T) {
 		mockService.EXPECT().CreateRoom(gomock.Any(), roomID, pin, customMaxAnchors).Return(expectedRoom, nil)
 		mockService.EXPECT().StartLive(gomock.Any(), roomID).Return(nil)
 
-		payload := map[string]interface{}{
+		payload := map[string]any{
 			"roomId":     roomID,
 			"pin":        pin,
 			"maxAnchors": customMaxAnchors,
@@ -211,7 +211,7 @@ func TestCreateRoom(t *testing.T) {
 
 		assert.Equal(t, http.StatusCreated, w.Code)
 
-		var response map[string]interface{}
+		var response map[string]any
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.Equal(t, true, response["success"])
@@ -220,7 +220,7 @@ func TestCreateRoom(t *testing.T) {
 	t.Run("InvalidMaxAnchors", func(t *testing.T) {
 		router, _, _ := setupRouter(t)
 
-		payload := map[string]interface{}{
+		payload := map[string]any{
 			"roomId":     "test-room",
 			"pin":        "123456",
 			"maxAnchors": 10, // Invalid: exceeds max of 5
@@ -234,7 +234,7 @@ func TestCreateRoom(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 
-		var response map[string]interface{}
+		var response map[string]any
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.Equal(t, false, response["success"])
@@ -259,7 +259,7 @@ func TestGetRoom(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var response map[string]interface{}
+		var response map[string]any
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.Equal(t, true, response["success"])
@@ -321,7 +321,7 @@ func TestListRooms(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 
-	var response map[string]interface{}
+	var response map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, true, response["success"])
@@ -410,7 +410,7 @@ func TestGetStats(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 
-	var response map[string]interface{}
+	var response map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, true, response["success"])
@@ -445,7 +445,7 @@ func TestSetModuleMark(t *testing.T) {
 			ttl,
 		).Return(nil)
 
-		payload := map[string]interface{}{
+		payload := map[string]any{
 			"label": label,
 			"ttl":   ttl,
 		}
@@ -458,13 +458,13 @@ func TestSetModuleMark(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var response map[string]interface{}
+		var response map[string]any
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.Equal(t, true, response["success"])
 		assert.Equal(t, "Module mark set successfully", response["message"])
 
-		module := response["module"].(map[string]interface{})
+		module := response["module"].(map[string]any)
 		assert.Equal(t, moduleType, module["type"])
 		assert.Equal(t, moduleID, module["id"])
 		assert.Equal(t, label, module["label"])
@@ -486,7 +486,7 @@ func TestSetModuleMark(t *testing.T) {
 			int64(0),
 		).Return(nil)
 
-		payload := map[string]interface{}{
+		payload := map[string]any{
 			"label": label,
 		}
 		jsonValue, _ := json.Marshal(payload)
@@ -498,7 +498,7 @@ func TestSetModuleMark(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var response map[string]interface{}
+		var response map[string]any
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.Equal(t, true, response["success"])
@@ -510,7 +510,7 @@ func TestSetModuleMark(t *testing.T) {
 		moduleType := "invalid"
 		moduleID := "module1"
 
-		payload := map[string]interface{}{
+		payload := map[string]any{
 			"label": "ready",
 		}
 		jsonValue, _ := json.Marshal(payload)
@@ -522,7 +522,7 @@ func TestSetModuleMark(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 
-		var response map[string]interface{}
+		var response map[string]any
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.Equal(t, false, response["success"])
@@ -534,7 +534,7 @@ func TestSetModuleMark(t *testing.T) {
 		moduleType := "mixers"
 		moduleID := "mixer1"
 
-		payload := map[string]interface{}{
+		payload := map[string]any{
 			"label": "invalid",
 		}
 		jsonValue, _ := json.Marshal(payload)
@@ -546,7 +546,7 @@ func TestSetModuleMark(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 
-		var response map[string]interface{}
+		var response map[string]any
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.Equal(t, false, response["success"])
@@ -558,7 +558,7 @@ func TestSetModuleMark(t *testing.T) {
 		moduleType := "mixers"
 		moduleID := "mixer1"
 
-		payload := map[string]interface{}{}
+		payload := map[string]any{}
 		jsonValue, _ := json.Marshal(payload)
 
 		w := httptest.NewRecorder()
@@ -568,7 +568,7 @@ func TestSetModuleMark(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 
-		var response map[string]interface{}
+		var response map[string]any
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.Equal(t, false, response["success"])
@@ -580,7 +580,7 @@ func TestSetModuleMark(t *testing.T) {
 		moduleType := "mixers"
 		moduleID := "mixer1"
 
-		payload := map[string]interface{}{
+		payload := map[string]any{
 			"label": "ready",
 			"ttl":   100000, // Exceeds max of 86400
 		}
@@ -593,7 +593,7 @@ func TestSetModuleMark(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 
-		var response map[string]interface{}
+		var response map[string]any
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.Equal(t, false, response["success"])
@@ -605,7 +605,7 @@ func TestSetModuleMark(t *testing.T) {
 		moduleType := "mixers"
 		moduleID := "mixer1"
 
-		payload := map[string]interface{}{
+		payload := map[string]any{
 			"label": "ready",
 			"ttl":   -1,
 		}
@@ -618,7 +618,7 @@ func TestSetModuleMark(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 
-		var response map[string]interface{}
+		var response map[string]any
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.Equal(t, false, response["success"])
@@ -637,7 +637,7 @@ func TestSetModuleMark(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 
-		var response map[string]interface{}
+		var response map[string]any
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.Equal(t, false, response["success"])
@@ -657,7 +657,7 @@ func TestSetModuleMark(t *testing.T) {
 			gomock.Any(),
 		).Return(errors.New("etcd error"))
 
-		payload := map[string]interface{}{
+		payload := map[string]any{
 			"label": "ready",
 		}
 		jsonValue, _ := json.Marshal(payload)
@@ -669,7 +669,7 @@ func TestSetModuleMark(t *testing.T) {
 
 		assert.Equal(t, http.StatusInternalServerError, w.Code)
 
-		var response map[string]interface{}
+		var response map[string]any
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.Equal(t, false, response["success"])
@@ -694,7 +694,7 @@ func TestSetModuleMark(t *testing.T) {
 					gomock.Any(),
 				).Return(nil)
 
-				payload := map[string]interface{}{
+				payload := map[string]any{
 					"label": label,
 				}
 				jsonValue, _ := json.Marshal(payload)
@@ -706,7 +706,7 @@ func TestSetModuleMark(t *testing.T) {
 
 				assert.Equal(t, http.StatusOK, w.Code)
 
-				var response map[string]interface{}
+				var response map[string]any
 				err := json.Unmarshal(w.Body.Bytes(), &response)
 				assert.NoError(t, err)
 				assert.Equal(t, true, response["success"])
@@ -734,13 +734,13 @@ func TestDeleteModuleMark(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var response map[string]interface{}
+		var response map[string]any
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.Equal(t, true, response["success"])
 		assert.Equal(t, "Module mark deleted successfully", response["message"])
 
-		module := response["module"].(map[string]interface{})
+		module := response["module"].(map[string]any)
 		assert.Equal(t, moduleType, module["type"])
 		assert.Equal(t, moduleID, module["id"])
 	})
@@ -763,7 +763,7 @@ func TestDeleteModuleMark(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var response map[string]interface{}
+		var response map[string]any
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.Equal(t, true, response["success"])
@@ -781,7 +781,7 @@ func TestDeleteModuleMark(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 
-		var response map[string]interface{}
+		var response map[string]any
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.Equal(t, false, response["success"])
@@ -799,7 +799,7 @@ func TestDeleteModuleMark(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 
-		var response map[string]interface{}
+		var response map[string]any
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.Equal(t, false, response["success"])
@@ -823,7 +823,7 @@ func TestDeleteModuleMark(t *testing.T) {
 
 		assert.Equal(t, http.StatusInternalServerError, w.Code)
 
-		var response map[string]interface{}
+		var response map[string]any
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.Equal(t, false, response["success"])
