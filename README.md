@@ -24,9 +24,21 @@ This project implements a distributed microservices architecture for real-time a
 # Start all services
 docker-compose up -d
 
-# Access the application
-# Anchor (broadcaster): http://localhost:8080/anchor
-# Viewer (HLS): http://localhost:8080/audience-hls
+# Create room
+curl -sSL -X POST http://localhost:3000/api/rooms -H "Content-Type: application/json" -d '{"roomId": "testroom01"}'
+
+# Create anchor x 2 for token and pin code
+curl -sSL localhost:8085/api/rooms/testroom01/users -X POST -H "Content-Type: application/json" -d '{"role": "anchor"}'
+
+# for each Anchor
+# Open http://localhost:5173/anchor.html
+# fill token and pin and join (use mic or play with a wav file)
+
+# Generate audience token
+curl -sSL localhost:3100/api/token -X POST -H "Content-Type: application/json" -d '{"userId":"user01", "roomId": "testroom01"}'
+
+# Open http://localhost:5173/audience.html
+# fill token and join to listen mixed stream
 ```
 
 ## Documentation
