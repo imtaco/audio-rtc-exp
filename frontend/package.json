@@ -6,7 +6,7 @@
     "mediasoup-client": "^3.18.1",
     "pino": "^10.1.0",
     "pino-pretty": "^13.0.0",
-    "rpc-websockets": "^9.3.2",
+    "rpc-websockets": "^9.3.9",
     "ws": "^8.14.2"
   },
   "devDependencies": {
